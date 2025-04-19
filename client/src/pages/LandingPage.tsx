@@ -6,8 +6,8 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-white transition-all duration-500 overflow-y-auto">
       <header className="text-center flex flex-col items-center justify-center w-full max-w-4xl mx-auto h-[70vh]">
-        <h1 className="text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">AI Interview Platform</h1>
-        <p className="mt-4 text-xl text-gray-700 dark:text-gray-400">Enhance your interview preparation with AI-powered features.</p>
+        <h1 className="text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">Whisper</h1>
+        <p className="mt-4 text-xl text-gray-700 dark:text-gray-400">Blind for students.</p>
         <GetStartedButton />
       </header>
 

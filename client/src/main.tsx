@@ -7,13 +7,9 @@ import LandingPage from './pages/LandingPage'
 import SignInPage from './pages/SignInPage'
 import SignUpPage from './pages/SignUpPage'
 import AuthLayout from './layouts/AuthLayout'
-import AppLayout from './layouts/AppLayout'
-import DashboardPage from './pages/DashboardPage'
 import RootLayout from './layouts/RootLayout'
-import InterviewPage from './pages/InterviewPage'
-import InterviewLayout from './layouts/InterviewLayout'
-import InterviewForm from './components/interview/InterviewForm'
-import AnalyticsPage from './pages/AnalyticsPage'
+import React from 'react'
+import AppLayout from './layouts/AppLayout'
 
 // Import your Publishable Key
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
@@ -30,36 +26,24 @@ const router = createBrowserRouter([
     children: [
       // public routes
       {
-        path: "",
+        path: "home",
         element: <LandingPage />,
       },
-
-      // protected routes
       {
-        path: "dashboard",
+        path: "",
         element: <AppLayout />,
         children: [
           {
-            path: "",
-            element: <DashboardPage />,
+            path: "college",
+            element: <h1>My College</h1>,
           },
           {
-            path: "user/form",
-            element: <InterviewForm />,
-          },
-        ]
-      },
-      {
-        path: "interview",
-        element: <InterviewLayout />,
-        children: [
-          {
-            path: ":id",
-            element: <InterviewPage />,
+            path: "polls",
+            element: <h1>Polls</h1>,
           },
           {
-            path: ":id/feedback",
-            element: <AnalyticsPage />,
+            path: "trending",
+            element: <h1>Trending</h1>,
           },
         ]
       },
@@ -87,17 +71,17 @@ const router = createBrowserRouter([
 ]);
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  // <React.StrictMode>
-  // {/* auth setup */ }
-  < ClerkProvider
-    publishableKey={PUBLISHABLE_KEY}
-    afterSignOutUrl="/"
-    signInForceRedirectUrl="/dashboard"
-    signUpForceRedirectUrl="/dashboard"
-    signInUrl="/auth/signin"
-    signUpUrl="/auth/signup"
-  >
-    <RouterProvider router={router} />
-  </ ClerkProvider>
-  // </React.StrictMode>,
+  <React.StrictMode>
+  {/* auth setup */}
+    < ClerkProvider
+      publishableKey={PUBLISHABLE_KEY}
+      afterSignOutUrl="/"
+      signInForceRedirectUrl="/dashboard"
+      signUpForceRedirectUrl="/dashboard"
+      signInUrl="/auth/signin"
+      signUpUrl="/auth/signup"
+    >
+      <RouterProvider router={router} />
+    </ ClerkProvider>
+  </React.StrictMode>,
 )

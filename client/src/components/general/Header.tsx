@@ -4,9 +4,8 @@ import ThemeToggler from "./ThemeToggler"
 import { Loader2 } from "lucide-react";
 
 const navLinks = [
-  { to: "/", label: "Home" },
-  { to: "/dashboard", label: "Dashboard" },
-  { to: "/about", label: "About us" },
+  { to: "/home", label: "Home" },
+  { to: "/", label: "Feed" },
 ];
 
 function Header() {

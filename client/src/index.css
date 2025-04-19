@@ -5,6 +5,8 @@
 html,
 body {
   overflow-x: hidden;
+  padding: 0;
+  margin: 0;
 }
 
 @layer base {
@@ -68,7 +70,7 @@ body {
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-border outline-ring/50;
   }
   body {
     @apply bg-background text-foreground;
@@ -105,16 +107,5 @@ body {
   }
   .animate-fadeIn {
     animation: fadeIn 0.3s ease-in-out;
-  }
-}
-
-
-
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
   }
 }
