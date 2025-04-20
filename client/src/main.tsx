@@ -10,6 +10,7 @@ import AuthLayout from './layouts/AuthLayout'
 import RootLayout from './layouts/RootLayout'
 import React from 'react'
 import AppLayout from './layouts/AppLayout'
+import FeedPage from './pages/FeedPage'
 
 // Import your Publishable Key
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
@@ -33,6 +34,10 @@ const router = createBrowserRouter([
         path: "",
         element: <AppLayout />,
         children: [
+          {
+            path: "",
+            element: <FeedPage/>,
+          },
           {
             path: "college",
             element: <h1>My College</h1>,

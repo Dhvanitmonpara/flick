@@ -8,16 +8,19 @@ import { Separator } from "@/components/ui/separator";
 
 function AppLayout() {
   return (
-    <div className="grid grid-cols-10 max-w-[88rem] mx-auto w-full min-h-screen">
-      <div className="col-span-2 space-y-2 py-6 px-4">
-        <Tab to="/" text="Feed" activeIcon={<PiCardsThreeFill size={22} />} passiveIcon={<PiCardsThreeLight size={22} />} />
-        <Tab to="/college" text="My College" activeIcon={<RiGraduationCapFill size={22} />} passiveIcon={<RiGraduationCapLine size={22} />} />
-        <Tab to="/polls" text="Polls" activeIcon={<BiSolidBarChartSquare size={22} />} passiveIcon={<BiBarChartSquare size={22} />} />
-        <Tab to="/trending" text="Trending" activeIcon={<PiFireFill size={22} />} passiveIcon={<PiFireLight size={22} />} />
+    <div className="flex max-w-[88rem] mx-auto w-full min-h-screen pr-8">
+      <div className="hidden md:block w-[270px] space-y-1 py-6 px-4">
+        <section className="space-y-2">
+          <Tab to="/" text="Feed" activeIcon={<PiCardsThreeFill size={22} />} passiveIcon={<PiCardsThreeLight size={22} />} />
+          <Tab to="/college" text="My College" activeIcon={<RiGraduationCapFill size={22} />} passiveIcon={<RiGraduationCapLine size={22} />} />
+          <Tab to="/polls" text="Polls" activeIcon={<BiSolidBarChartSquare size={22} />} passiveIcon={<BiBarChartSquare size={22} />} />
+          <Tab to="/trending" text="Trending" activeIcon={<PiFireFill size={22} />} passiveIcon={<PiFireLight size={22} />} />
+        </section>
         <Separator />
-        <Tab to="/home" text="Home" />
-        <Tab to="/home" text="Home" />
-        <Tab to="/home" text="Home" />
+        <Heading text="Branches" />
+        <Tab to="/bca" text="Bca" />
+        <Tab to="/mca" text="Mca" />
+        <Tab to="/btech" text="B.tech" />
       </div>
       <Outlet />
     </div>
@@ -28,10 +31,16 @@ function Tab({ to, text, activeIcon, passiveIcon }: { to: string, text: string, 
   const location = useLocation().pathname
   return <Link to={to} className={`flex justify-start items-center space-x-3 px-4 ${activeIcon && passiveIcon ? "py-2" : "py-1.5"} rounded-md ${location === to ? "bg-zinc-200/50 dark:bg-zinc-800/40 text-zinc-900 dark:text-zinc-100" : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-200/50 dark:hover:bg-zinc-800/40"}`}>
     {location === to ? (activeIcon || null) : (passiveIcon || null)}
-    <span className="text-md">
+    <span>
       {text}
     </span>
   </Link>
+}
+
+function Heading({ text }: { text: string }) {
+  return (
+    <h3 className="text-lg uppercase px-4 pt-3 pb-1">{text}</h3>
+  )
 }
 
 export default AppLayout
