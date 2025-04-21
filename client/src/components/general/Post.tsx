@@ -1,6 +1,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { FaHeart, FaComment, FaEye } from 'react-icons/fa';
 import { BsDot } from "react-icons/bs";
+import { HiDotsHorizontal } from "react-icons/hi";
 import {
   Card,
   CardContent,
@@ -9,8 +10,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { FaRegBookmark } from "react-icons/fa6";
+import { TbMessageReport } from "react-icons/tb";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden"
 import { useState } from "react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 interface PostProps {
   avatar: string,
@@ -33,25 +42,40 @@ function Post({ avatar, avatarFallback, createdAt, company, title, content, like
   console.log(topic)
   return (
     <Card className="dark:bg-transparent bg-transparent border-x-0 border-t-0 border-b-zinc-300/60 dark:border-b-zinc-700/50 shadow-none rounded-none">
-      <CardHeader className="flex-row space-x-2 p-4">
-        <VisuallyHidden>
-          <CardTitle>{title}</CardTitle>
-          <CardDescription>{content}</CardDescription>
-        </VisuallyHidden>
-        <Avatar>
-          <AvatarImage src={avatar} />
-          <AvatarFallback>{avatarFallback}</AvatarFallback>
-        </Avatar>
-        <div>
-          <h2>{company}</h2>
-          <p className="flex space-x-0.5 text-xs text-zinc-600 dark:text-zinc-400">
-            <span>{usernameOrDisplayName}</span>
-            <BsDot size={16}/>
-            <span>{branch}</span>
-            <BsDot size={16}/>
-            <span>{createdAt}</span>
-          </p>
+      <CardHeader className="flex-row justify-between space-x-2 p-4">
+        <div className="flex space-x-4">
+          <VisuallyHidden>
+            <CardTitle>{title}</CardTitle>
+            <CardDescription>{content}</CardDescription>
+          </VisuallyHidden>
+          <Avatar>
+            <AvatarImage src={avatar} />
+            <AvatarFallback>{avatarFallback}</AvatarFallback>
+          </Avatar>
+          <div>
+            <h2>{company}</h2>
+            <p className="flex space-x-0.5 text-xs text-zinc-600 dark:text-zinc-400">
+              <span>{usernameOrDisplayName}</span>
+              <BsDot size={16} />
+              <span>{branch}</span>
+              <BsDot size={16} />
+              <span>{createdAt}</span>
+            </p>
+          </div>
         </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger className="rounded-full p-2 text-lg transition-colors hover:bg-zinc-300/60 dark:hover:bg-zinc-700/60"><HiDotsHorizontal /></DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem>
+              <TbMessageReport />
+              <span>Report</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <FaRegBookmark />
+              <span>Save</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </CardHeader>
       <CardContent>
         <h2 className="text-xl font-semibold">{title}</h2>

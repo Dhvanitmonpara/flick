@@ -13,6 +13,7 @@ const UserSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    isBanned: { type: Boolean, default: false },
     likes: [
       {
         type: Schema.Types.ObjectId,
@@ -25,7 +26,7 @@ const UserSchema = new mongoose.Schema(
     },
   },
   { timestamps: true }
-); // Adds createdAt and updatedAt fields
+);
 
 const userModel = mongoose.model("User", UserSchema);
 

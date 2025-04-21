@@ -5,6 +5,7 @@
 html,
 body {
   overflow-x: hidden;
+  overflow-y: hidden;
   padding: 0;
   margin: 0;
 }
@@ -44,7 +45,7 @@ body {
     --foreground: 210 40% 98%;
     --card: 222.2 84% 4.9%;
     --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
+    --popover: 222.2 7% 13%;
     --popover-foreground: 210 40% 98%;
     --primary: 248 90% 66%;
     --primary-foreground: 222.2 47.4% 11.2%;
@@ -107,5 +108,16 @@ body {
   }
   .animate-fadeIn {
     animation: fadeIn 0.3s ease-in-out;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  /* Hide scrollbar for IE, Edge and Firefox */
+  .no-scrollbar {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
   }
 }
