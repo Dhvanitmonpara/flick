@@ -24,7 +24,7 @@ const collegeSchema = new mongoose.Schema(
     }
   },
   { timestamps: true }
-); // Adds createdAt and updatedAt fields
+);
 
 const collegeModel = mongoose.model("College", collegeSchema);
 

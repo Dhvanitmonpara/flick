@@ -1,71 +1,46 @@
 import { Response, Request } from "express";
 import { runningInterviewSession } from "../src/app";
 import { PostModel } from "../models/post.model";
-import { clerkClient } from "@clerk/express";
 
-const createSession = async (req: Request, res: Response) => {
-  const { socketId, userId } = req.body;
+const createPost = async (req: Request, res: Response) => {
+  const { title, postedBy, content } = req.body;
 
-  if (!socketId) {
+  if (!postedBy || !title || !content) {
     res.status(400).json({
       success: false,
-      message: "socketId are required",
+      message: "All fields are required",
     });
     return;
   }
 
   try {
-    const user = await clerkClient.users.getUser(userId);
-
-    if (!user || !user.emailAddresses[0]?.emailAddress) {
-      res.status(400).json({
-        success: false,
-        message: "User not found",
-      });
-      return;
-    }
-
-    const interviewSession = runningInterviewSession.get(socketId);
-
-    if (!interviewSession) {
-      res.status(404).json({
-        success: false,
-        message: "Interview session not found",
-      });
-      return;
-    }
-
     const response = await PostModel.create({
-      userId: userId,
-      candidate: interviewSession.candidate.email,
-      jobRole: interviewSession.candidate.jobRole,
-      skills: interviewSession.candidate.skills,
-      yearsOfExperience: interviewSession.candidate.yearsOfExperience,
-      questions: interviewSession.questions,
-      startTime: interviewSession.startTime,
-      endTime: interviewSession.endTime,
+      title,
+      content,
+      postedBy,
+      likes: [],
     });
 
     if (!response) {
       res.status(500).json({
         success: false,
-        message: "Failed to create session in the database",
+        message: "Failed to create post in the database",
       });
     }
 
     res.status(200).json({
       success: true,
       response,
-      message: "Session created successfully",
+      message: "Post created successfully",
     });
   } catch (error) {
     if (error instanceof Error && (error as any).code === 11000) {
       res.status(409).json({
         success: false,
-        message: "A session with this candidate email already exists",
+        message: "A post with same title already exists",
         error: error.message,
       });
-      return
+      return;
     }
     if (error instanceof Error) {
       res.status(500).json({
@@ -84,16 +59,104 @@ const createSession = async (req: Request, res: Response) => {
   }
 };
 
-const updateSession = async (req: Request, res: Response) => {
-  //
+const updatePost = async (req: Request, res: Response) => {
+  const { title, postId, content } = req.body;
+
+  if(!postId) {
+    res.status(400).json({
+      success: false,
+      message: "Post id is required",
+    });
+    return;
+  }
+
+  if (!title && !content) {
+    res.status(400).json({
+      success: false,
+      message: "At least one field is required",
+    });
+    return;
+  }
+
+  try {
+    const response = await PostModel.findOneAndUpdate(
+      { postId },
+      { $set: { title, content } },
+      { new: true }
+    );
+
+    if (!response) {
+      res.status(404).json({
+        success: false,
+        message: "Post not found",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      response,
+      message: "Post updated successfully",
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(500).json({
+        success: false,
+        message: "Failed to update post in the database",
+        error: error.message,
+      });
+    } else {
+      console.error("Error in sendFeedback:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to update post in the database",
+        error: "Unknown error",
+      });
+    }
+  }
 };
 
-const getSession = async (req: Request, res: Response) => {
-  //
-};
+const deletePost = async (req: Request, res: Response) => {
+  const { postId } = req.body;
 
-const deleteSession = async (req: Request, res: Response) => {
-  //
+  if(!postId) {
+    res.status(400).json({
+      success: false,
+      message: "Post id is required",
+    })
+  }
+
+  try {
+    const response = await PostModel.findOneAndDelete({ postId });
+    if (!response) {
+      res.status(404).json({
+        success: false,
+        message: "Post not found",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      response,
+      message: "Post deleted successfully",
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(500).json({
+        success: false,
+        message: "Failed to delete post in the database",
+        error: error.message,
+      });
+    } else {
+      console.error("Error in sendFeedback:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to delete post in the database",
+        error: "Unknown error",
+      });
+    }
+  }
 };
 
 const getAllSessions = async (req: Request, res: Response) => {
@@ -138,10 +201,9 @@ const getSessionData = async (req: Request, res: Response) => {
 };
 
 export {
-  createSession,
-  updateSession,
-  deleteSession,
-  getSession,
+  createPost,
+  updatePost,
+  deletePost,
   getSessionData,
   getAllSessions,
 };

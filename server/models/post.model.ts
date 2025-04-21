@@ -9,8 +9,9 @@ const postSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  userId: {
-    type: String,
+  postedBy: {
+    type: Schema.Types.ObjectId,
+    ref: "User",
     required: true,
   },
   isBanned: {
