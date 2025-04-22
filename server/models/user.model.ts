@@ -7,6 +7,7 @@ const userSchema = new mongoose.Schema(
     username: { type: String, required: true, unique: true, trim: true },
     email: { type: String, required: true, unique: true, trim: true },
     college: { type: Schema.Types.ObjectId, ref: "College", trim: true },
+    branch: { type: String, trim: true },
     bookmarks: [
       {
         type: Schema.Types.ObjectId,
@@ -29,7 +30,6 @@ const userSchema = new mongoose.Schema(
       }
     },
     isVerified: { type: Boolean, default: false },
-    branch: { type: String, trim: true },
     password: { type: String, required: true },
   },
   { timestamps: true }
@@ -55,9 +55,10 @@ userSchema.methods.generateAccessToken = function () {
   return jwt.sign(
     {
       _id: this._id,
-      email: this.email,
       username: this.username,
-      fullName: this.fullName,
+      isVerified: this.isVerified,
+      isBlocked: this.isBlocked,
+      suspensionEnds: this.suspension.ends
     },
     process.env.ACCESS_TOKEN_SECRET,
     {

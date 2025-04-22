@@ -1,9 +1,11 @@
 import { Request, Response } from "express";
 import userModel from "../models/user.model";
 import { ApiError } from "../utils/ApiError";
-import mongoose, { Mongoose } from "mongoose";
+import mongoose from "mongoose";
 import { encryptEmail } from "../services/encryptor";
 import handleError from "../services/HandleError";
+import jwt from "jsonwebtoken";
+import { UserRequest } from "../middleware/auth.middleware";
 
 const options = {
   httpOnly: true,
@@ -77,6 +79,7 @@ const registerUser = async (req: Request, res: Response) => {
       branch,
       email: encryptedEmail,
       password,
+      bookmarks: [],
       college,
     });
 
@@ -200,29 +203,101 @@ const loginUser = async (req: Request, res: Response) => {
   }
 };
 
-const getUserData = async (req: Request, res: Response) => {
+const getUserData = async (req: UserRequest, res: Response) => {
   try {
-    const { username } = req.params;
-
-    if (!username) {
-      res.status(400).json({ error: "Username is required" });
+    if (!req.user || !req.user._id) {
+      res.status(400).json({ error: "User not found" });
       return;
     }
 
-    const newEntry = await userModel.findOne({ username });
+    const user = {
+      ...req.user,
+      password: null,
+      refreshToken: null,
+    };
 
-    if (!newEntry) {
-      res.status(400).json({ error: "User with this username does not exist" });
-      return;
-    }
-
-    await newEntry.save();
     res
       .status(201)
-      .json({ message: "User fetched successfully!", data: newEntry || "" });
+      .json({ message: "User fetched successfully!", data: user || "" });
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch a user" });
   }
 };
 
-export { registerUser, getUserData, loginUser };
+const logoutUser = async (req, res) => {
+  try {
+    await userModel.findByIdAndUpdate(
+      req.user._id,
+      {
+        $unset: {
+          refreshToken: 1,
+        },
+      },
+      {
+        new: true,
+      }
+    );
+
+    res
+      .status(200)
+      .clearCookie("__accessToken", {...options, maxAge: 0})
+      .clearCookie("__refreshToken", {...options, maxAge: 0})
+      .json({ message: "User logged Out" });
+  } catch (error) {
+    handleError(error, res, "Failed to logout");
+  }
+};
+
+const refreshAccessToken = async (req, res) => {
+  const incomingRefreshToken =
+    req.cookies.refreshToken || req.body.refreshToken;
+
+  if (!incomingRefreshToken) throw new ApiError(401, "Unauthorized request");
+
+  if (!process.env.REFRESH_TOKEN_SECRET)
+    throw new ApiError(
+      500,
+      "REFRESH_TOKEN_SECRET environment variable is not set"
+    );
+
+  try {
+    const decodedToken = jwt.verify(
+      incomingRefreshToken,
+      process.env.REFRESH_TOKEN_SECRET
+    );
+
+    if (!decodedToken || typeof decodedToken == "string") {
+      throw new ApiError(401, "Invalid Access Token");
+    }
+
+    const user = (await userModel.findById(decodedToken?._id)) as UserDocument;
+
+    if (!user) {
+      throw new ApiError(401, "Invalid Refresh Token");
+    }
+
+    if (incomingRefreshToken !== user?.refreshToken) {
+      throw new ApiError(401, "Refresh Token is expired or used");
+    }
+
+    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
+      user._id as mongoose.Types.ObjectId
+    );
+
+    res
+      .status(200)
+      .cookie("__accessToken", accessToken, {
+        ...options,
+        maxAge: accessTokenExpiry,
+      })
+      .cookie("__refreshToken", refreshToken, {
+        ...options,
+        maxAge: refreshTokenExpiry,
+      })
+      .json({ message: "Access token refreshed successfully" });
+  } catch (error) {
+    throw new ApiError(401, error?.message || "Invalid Refresh token");
+  }
+};
+
+export { registerUser, getUserData, loginUser, refreshAccessToken, logoutUser };
