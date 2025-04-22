@@ -159,51 +159,18 @@ const deletePost = async (req: Request, res: Response) => {
   }
 };
 
-const getAllSessions = async (req: Request, res: Response) => {
-  const { email } = req.params;
-
-  if (!email) {
-    res.status(400).json({ error: "Email id is required" });
-  }
-
-  const response = await PostModel.find({ candidate: email });
-
-  if (!response) {
-    res.status(404).json({ error: "Interview data not found" });
-    return;
-  }
-
-  res.status(200).json({
-    success: true,
-    response,
-  });
+const getPostsForFeed = async (req: Request, res: Response) => {
+  // 
 };
 
-// API to fetch interview data after completion
-const getSessionData = async (req: Request, res: Response) => {
-  const { socketId } = req.params;
-
-  if (!socketId) {
-    res.status(400).json({ error: "Socket id is required" });
-  }
-
-  const response = runningInterviewSession.get(socketId);
-
-  if (!response) {
-    res.status(404).json({ error: "Interview data not found" });
-    return;
-  }
-
-  res.status(200).json({
-    success: true,
-    response,
-  });
+const getPost = async (req: Request, res: Response) => {
+  // 
 };
 
 export {
   createPost,
   updatePost,
   deletePost,
-  getSessionData,
-  getAllSessions,
+  getPost,
+  getPostsForFeed,
 };
