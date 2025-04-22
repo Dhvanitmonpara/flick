@@ -345,8 +345,8 @@ io.on("connection", (socket) => {
 });
 
 // Import routes
-import sessionRouter from "../routes/post.routes";
-import userRouter from "../routes/user.routes";
+import sessionRouter from "./routes/post.routes";
+import userRouter from "./routes/user.routes";
 app.use("/api/v1/sessions", sessionRouter);
 app.use("/api/v1/users", userRouter);
 

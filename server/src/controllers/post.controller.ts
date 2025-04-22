@@ -1,6 +1,6 @@
 import { Response, Request } from "express";
-import { runningInterviewSession } from "../src/app";
-import { PostModel } from "../models/post.model";
+import { runningInterviewSession } from "../app.js";
+import { PostModel } from "../models/post.model.js";
 
 const createPost = async (req: Request, res: Response) => {
   const { title, postedBy, content } = req.body;

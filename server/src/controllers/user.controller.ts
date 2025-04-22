@@ -1,11 +1,10 @@
 import { Request, Response } from "express";
-import userModel from "../models/user.model";
-import { ApiError } from "../utils/ApiError";
+import userModel from "../models/user.model.js";
+import { ApiError } from "../utils/ApiError.js";
 import mongoose from "mongoose";
-import { encryptEmail } from "../services/encryptor";
-import handleError from "../services/HandleError";
+import { encryptEmail } from "../services/encryptor.js";
+import handleError from "../services/HandleError.js";
 import jwt from "jsonwebtoken";
-import { UserRequest } from "../middleware/auth.middleware";
 
 const options = {
   httpOnly: true,
@@ -63,7 +62,8 @@ const registerUser = async (req: Request, res: Response) => {
     const { username, branch, college, email, password } = req.body;
 
     if (!username || !branch || !college || !email || !password) {
-      return res.status(400).json({ error: "All fields are required" });
+       res.status(400).json({ error: "All fields are required" });
+       return
     }
 
     const encryptedEmail = await encryptEmail(email.toLowerCase());
@@ -203,7 +203,7 @@ const loginUser = async (req: Request, res: Response) => {
   }
 };
 
-const getUserData = async (req: UserRequest, res: Response) => {
+const getUserData = async (req: Request, res: Response) => {
   try {
     if (!req.user || !req.user._id) {
       res.status(400).json({ error: "User not found" });
@@ -220,12 +220,17 @@ const getUserData = async (req: UserRequest, res: Response) => {
       .status(201)
       .json({ message: "User fetched successfully!", data: user || "" });
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch a user" });
+    handleError(error, res, "Failed to fetch a user");
   }
 };
 
-const logoutUser = async (req, res) => {
+const logoutUser = async (req: Request, res: Response) => {
   try {
+    if (!req.user || !req.user._id) {
+      res.status(400).json({ error: "User not found" });
+      return;
+    }
+
     await userModel.findByIdAndUpdate(
       req.user._id,
       {
@@ -248,7 +253,7 @@ const logoutUser = async (req, res) => {
   }
 };
 
-const refreshAccessToken = async (req, res) => {
+const refreshAccessToken = async (req: Request, res: Response) => {
   const incomingRefreshToken =
     req.cookies.refreshToken || req.body.refreshToken;
 
@@ -296,7 +301,7 @@ const refreshAccessToken = async (req, res) => {
       })
       .json({ message: "Access token refreshed successfully" });
   } catch (error) {
-    throw new ApiError(401, error?.message || "Invalid Refresh token");
+    handleError(error, res, "Failed to refresh access token");
   }
 };
 
