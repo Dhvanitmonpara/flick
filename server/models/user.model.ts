@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 const userSchema = new mongoose.Schema(
   {
     username: { type: String, required: true, unique: true, trim: true },
+    email: { type: String, required: true, unique: true, trim: true },
     college: { type: Schema.Types.ObjectId, ref: "College", trim: true },
     bookmarks: [
       {
@@ -13,6 +14,20 @@ const userSchema = new mongoose.Schema(
       },
     ],
     isBlocked: { type: Boolean, default: false },
+    suspension: {
+      ends: {
+        type: Date,
+        default: null,
+      },
+      reason: {
+        type: String,
+        default: null,
+      },
+      howManyTimes: {
+        type: Number,
+        default: 0,
+      }
+    },
     isVerified: { type: Boolean, default: false },
     branch: { type: String, trim: true },
     password: { type: String, required: true },
@@ -22,7 +37,7 @@ const userSchema = new mongoose.Schema(
 
 userSchema.pre("save", async function (next) {
   if (this.isModified("password"))
-    this.password = await bcrypt.hash(this.password, 10);
+    this.password = await bcrypt.hash(this.password, 12);
   next();
 });
 
@@ -31,7 +46,10 @@ userSchema.methods.isPasswordCorrect = async function (password: string) {
 };
 
 userSchema.methods.generateAccessToken = function () {
-  if (!process.env.ACCESS_TOKEN_SECRET || typeof process.env.ACCESS_TOKEN_EXPIRY == "undefined") {
+  if (
+    !process.env.ACCESS_TOKEN_SECRET ||
+    typeof process.env.ACCESS_TOKEN_EXPIRY == "undefined"
+  ) {
     throw new Error("ACCESS_TOKEN_SECRET environment variable is not set");
   }
   return jwt.sign(
@@ -49,8 +67,11 @@ userSchema.methods.generateAccessToken = function () {
 };
 
 userSchema.methods.generateRefreshToken = function () {
-  if (!process.env.REFRESH_TOKEN_SECRET || typeof process.env.REFRESH_TOKEN_EXPIRY == "undefined") {
-    throw new Error('REFRESH_TOKEN_SECRET environment variable is not set');
+  if (
+    !process.env.REFRESH_TOKEN_SECRET ||
+    typeof process.env.REFRESH_TOKEN_EXPIRY == "undefined"
+  ) {
+    throw new Error("REFRESH_TOKEN_SECRET environment variable is not set");
   }
   return jwt.sign(
     {

@@ -1,19 +1,32 @@
 import { Request, Response } from "express";
 import userModel from "../models/user.model";
 import { ApiError } from "../utils/ApiError";
-import mongoose from "mongoose";
+import mongoose, { Mongoose } from "mongoose";
+import { encryptEmail } from "../services/encryptor";
+import handleError from "../services/HandleError";
 
 const options = {
   httpOnly: true,
   secure: true,
-  sameSite: "strict" as "strict"
-}
+  sameSite: "strict" as "strict",
+};
 
 const accessTokenExpiry = 15 * 60 * 1000; // 15 minutes
 const refreshTokenExpiry = 60 * 60 * 1000 * 24 * 30; // 30 days
 
 interface UserDocument extends Document {
+  password: string;
+  username: string;
+  _id: mongoose.Types.ObjectId | string;
+  isBlocked: boolean;
+  suspension: {
+    ends: Date;
+    reason: string;
+    howManyTimes: number;
+  };
+  isVerified: boolean;
   refreshToken: string;
+  isPasswordCorrect(password: string): Promise<boolean>;
   save({
     validateBeforeSave,
   }: {
@@ -43,34 +56,27 @@ const generateAccessAndRefreshToken = async (
   }
 };
 
-const createUser = async (req: Request, res: Response) => {
+const registerUser = async (req: Request, res: Response) => {
   try {
-    const { username, branch, college, email } = req.body;
+    const { username, branch, college, email, password } = req.body;
 
-    // Check if any required field is missing or empty
-    if (
-      Object.values(req.body).some(
-        (value) => value === "" || value === undefined
-      )
-    ) {
-      res.status(400).json({ error: "All fields are required" });
-      return;
+    if (!username || !branch || !college || !email || !password) {
+      return res.status(400).json({ error: "All fields are required" });
     }
 
-    // hashing algo
-    const hashedEmail = email.toLowerCase();
-
-    const existingUser = await userModel.findOne({ email: hashedEmail });
+    const encryptedEmail = await encryptEmail(email.toLowerCase());
+    const existingUser = await userModel.findOne({ email: encryptedEmail });
 
     if (existingUser) {
       res.status(400).json({ error: "User with this email already exists" });
       return;
     }
 
-    // Create and save new entry
     const createdUser = await userModel.create({
       username,
       branch,
+      email: encryptedEmail,
+      password,
       college,
     });
 
@@ -85,54 +91,138 @@ const createUser = async (req: Request, res: Response) => {
 
     if (!accessToken || !refreshToken) {
       res
-        .status(400)
+        .status(500)
         .json({ error: "Failed to generate access and refresh token" });
       return;
     }
 
     res
       .status(201)
-      .cookie("__accessToken", accessToken, {...options, maxAge: accessTokenExpiry})
-      .cookie("__refreshToken", refreshToken, {...options, maxAge: refreshTokenExpiry})
-      .json({ message: "Form submitted successfully!", data: createdUser });
-    return;
+      .cookie("__accessToken", accessToken, {
+        ...options,
+        maxAge: accessTokenExpiry,
+      })
+      .cookie("__refreshToken", refreshToken, {
+        ...options,
+        maxAge: refreshTokenExpiry,
+      })
+      .json({
+        message: "Form submitted successfully!",
+        data: {
+          ...createdUser,
+          refreshToken: null,
+          password: null,
+          email: null,
+        },
+      });
   } catch (error) {
     console.log(error);
-    if (error instanceof Error) {
-      if (error.name === "MongoServerError" && (error as any).code === 11000) {
-        res.status(400).json({ error: "User with this email already exists" });
-        return;
-      }
-      res.status(500).json({ error: error.message || "Failed to submit form" });
+    handleError(
+      error,
+      res,
+      "Failed to create a user",
+      "User with this email already exists"
+    );
+  }
+};
+
+const loginUser = async (req: Request, res: Response) => {
+  try {
+    const { email, username, password } = req.body;
+
+    let existingUser: UserDocument | null = null;
+
+    if (email) {
+      const encryptedEmail = await encryptEmail(email.toLowerCase());
+      existingUser = await userModel.findOne({ email: encryptedEmail });
+    } else if (username) {
+      existingUser = await userModel.findOne({ username });
     } else {
-      res.status(500).json({ error: "Failed to submit form" });
+      res.status(400).json({ error: "Email or username is required" });
+      return;
     }
+
+    if (!existingUser || !existingUser.password) {
+      res.status(400).json({ error: "User with this email doesn't exists" });
+      return;
+    }
+
+    if (existingUser.isBlocked) {
+      res.status(400).json({ error: "User is blocked" });
+      return;
+    }
+
+    if (new Date(existingUser.suspension.ends) > new Date()) {
+      res.status(400).json({
+        error: `User is suspended till ${existingUser.suspension.ends} for '${existingUser.suspension.reason}'`,
+      });
+      return;
+    }
+
+    if (!(await existingUser.isPasswordCorrect(password))) {
+      res.status(400).json({ error: "Password is incorrect" });
+      return;
+    }
+
+    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
+      existingUser._id as mongoose.Types.ObjectId
+    );
+
+    if (!accessToken || !refreshToken) {
+      res
+        .status(400)
+        .json({ error: "Failed to generate access and refresh token" });
+      return;
+    }
+
+    res
+      .status(200)
+      .cookie("__accessToken", accessToken, {
+        ...options,
+        maxAge: accessTokenExpiry,
+      })
+      .cookie("__refreshToken", refreshToken, {
+        ...options,
+        maxAge: refreshTokenExpiry,
+      })
+      .json({
+        message: "User logged in successfully!",
+        data: {
+          ...existingUser,
+          refreshToken: null,
+          password: null,
+          email: null,
+        },
+      });
+  } catch (error) {
+    console.log(error);
+    handleError(error, res, "Failed to login");
   }
 };
 
 const getUserData = async (req: Request, res: Response) => {
   try {
-    const { email } = req.params;
+    const { username } = req.params;
 
-    if (!email) {
-      res.status(400).json({ error: "Email is required" });
+    if (!username) {
+      res.status(400).json({ error: "Username is required" });
       return;
     }
 
-    const newEntry = await userModel.findOne({ email });
+    const newEntry = await userModel.findOne({ username });
 
     if (!newEntry) {
-      res.status(400).json({ error: "User with this email does not exist" });
+      res.status(400).json({ error: "User with this username does not exist" });
       return;
     }
 
     await newEntry.save();
     res
       .status(201)
-      .json({ message: "Form fetched successfully!", data: newEntry || "" });
+      .json({ message: "User fetched successfully!", data: newEntry || "" });
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch the form" });
+    res.status(500).json({ error: "Failed to fetch a user" });
   }
 };
 
-export { createUser, getUserData };
+export { registerUser, getUserData, loginUser };
