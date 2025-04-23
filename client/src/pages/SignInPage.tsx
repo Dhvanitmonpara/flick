@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { useState } from "react"
 import { Loader2 } from "lucide-react"
 import { Link } from "react-router-dom"
+import { Button } from "@/components/ui/button"
 
 const signInSchema = z.object({
   email: z.string().email("Email is invalid"),
@@ -71,22 +72,22 @@ function SignInPage() {
           )}
         </div>
 
-        <button
+        <Button
           type="submit"
           disabled={isSubmitting}
-          className={`w-full py-2 font-semibold rounded-md ${isSubmitting ? "bg-zinc-500" : "bg-zinc-800 hover:bg-zinc-700 dark:bg-zinc-200 dark:hover:bg-zinc-300 dark:text-zinc-900"
-            } transition-colors`}
+          className={`w-full py-2 font-semibold rounded-md dark:text-zinc-900 bg-zinc-800 dark:bg-zinc-200 hover:bg-zinc-700 dark:hover:bg-zinc-300 transition-colors ${isSubmitting && "bg-zinc-500 cursor-wait"}`}
         >
-          {isSubmitting 
-          ? <span className="flex justify-center items-center space-x-2">
-            <Loader2 className="animate-spin" />
-            <span className="ml-2">Signing In</span>
-          </span> 
-          : "Sign In"
-          }
-        </button>
+          {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Please wait</> : "Create an Account"}
+        </Button>
       </form>
-      <p className="text-center pt-6 text-sm">Don&apos;t have an account? <Link className="text-blue-600 dark:text-blue-500 hover:underline" to="/auth/signup">Sign Up</Link></p>
+      <p className={`text-center pt-4 ${isSubmitting && "text-zinc-900/50 dark:text-zinc-100/50"}`}>
+        Don&apos;t have an account?{" "}
+        <Link
+          className={isSubmitting ? "pointer-events-none cursor-not-allowed text-blue-600/50 dark:text-blue-500/50" : "hover:underline text-blue-600 dark:text-blue-500 cursor-pointer"}
+          to="/auth/signup">
+          Signup
+        </Link>
+      </p>
     </div>
   )
 }

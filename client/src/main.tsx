@@ -10,6 +10,7 @@ import RootLayout from './layouts/RootLayout'
 import React from 'react'
 import AppLayout from './layouts/AppLayout'
 import FeedPage from './pages/FeedPage'
+import EmailVerificationPage from './pages/EmailVerificationPage'
 
 // Import your Publishable Key
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
@@ -59,6 +60,10 @@ const router = createBrowserRouter([
           {
             path: "signin",
             element: <SignInPage />,
+          },
+          {
+            path: "otp",
+            element: <EmailVerificationPage />,
           },
           {
             path: "signup",

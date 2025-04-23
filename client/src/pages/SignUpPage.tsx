@@ -98,28 +98,20 @@ function SignUpPage() {
           </div>
         </div>
         {errors.confirmPassword && <p className="text-red-500 text-sm !mt-1">{errors.confirmPassword?.message}</p>}
-        {isSubmitting ? (
-          <Button
-            disabled
-            className="w-full py-2 font-semibold rounded-md bg-zinc-500 cursor-wait transition-colors"
-          >
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Please wait
-          </Button>
-        ) : (
-          <Button
-            type="submit"
-            className="w-full py-2 font-semibold rounded-md bg-zinc-800 hover:bg-zinc-700 dark:bg-zinc-200 dark:hover:bg-zinc-300 dark:text-zinc-900 transition-colors"
-          >
-            Create an Account
-          </Button>
-        )}
+        <Button
+          type="submit"
+          disabled={isSubmitting}
+          className={`w-full py-2 font-semibold rounded-md dark:text-zinc-900 bg-zinc-800 dark:bg-zinc-200 hover:bg-zinc-700 dark:hover:bg-zinc-300 transition-colors ${isSubmitting && "bg-zinc-500 cursor-wait"}`}
+        >
+          {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Please wait</> : "Create an Account"}
+        </Button>
       </form>
       {errors.root && <p className="text-red-500 text-sm !mt-1">{errors.root?.message}</p>}
       <p className={`text-center pt-4 ${isSubmitting && "text-zinc-900/50 dark:text-zinc-100/50"}`}>
         Already have an account?{" "}
         <Link
           to="/auth/signin"
-          className={isSubmitting ? "pointer-events-none cursor-not-allowed text-blue-500/50" : "hover:underline text-blue-500 cursor-pointer"}
+          className={isSubmitting ? "pointer-events-none cursor-not-allowed text-blue-600/50 dark:text-blue-500/50" : "hover:underline text-blue-600 dark:text-blue-500 cursor-pointer"}
         >
           Signin
         </Link>
