@@ -1,7 +1,6 @@
-import { useAuth, UserButton } from "@clerk/clerk-react"
 import { Link, NavLink } from "react-router-dom"
 import ThemeToggler from "./ThemeToggler"
-import { Loader2 } from "lucide-react";
+import UserProfile from "./UserProfile";
 
 const navLinks = [
   { to: "/home", label: "Home" },
@@ -9,7 +8,6 @@ const navLinks = [
 ];
 
 function Header() {
-  const { isLoaded, isSignedIn } = useAuth();
 
   return (
     <>
@@ -33,7 +31,7 @@ function Header() {
           </ul>
           <div className="flex gap-4">
             <ThemeToggler />
-            {(isLoaded && isSignedIn) ? <UserButton /> : (isLoaded ? <Link className="bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 hover:text-zinc-800 dark:hover:text-zinc-200 px-3 py-1 rounded-sm transition-colors" to="/auth/signin">Sign in</Link> : <Loader2 className="w-5 h-5 animate-spin" />)}
+            <UserProfile />
           </div>
         </div>
       </nav>
