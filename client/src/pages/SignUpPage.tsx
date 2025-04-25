@@ -6,7 +6,8 @@ import { useState } from "react"
 import { Loader2 } from "lucide-react"
 import { IoMdEye, IoMdEyeOff } from "react-icons/io"
 import { Button } from "@/components/ui/button"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
+import useProfileStore from "@/store/profileStore"
 
 const signInSchema = z.object({
   email: z.string().email("Email is invalid"),
@@ -19,8 +20,11 @@ const inputStyling = "bg-zinc-200 dark:bg-zinc-800 focus:border-zinc-900 focus-v
 type SignInFormData = z.infer<typeof signInSchema>
 
 function SignUpPage() {
+  const { updateProfile } = useProfileStore()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isPasswordShowing, setIsPasswordShowing] = useState(false)
+
+  const navigate = useNavigate()
 
   const {
     register,
@@ -36,6 +40,8 @@ function SignUpPage() {
       console.log("Signing in with", data)
       // TODO: Replace with actual API call
       await new Promise((res) => setTimeout(res, 1000))
+      updateProfile({ email: data.email })
+      navigate("/auth/otp")
     } catch (err) {
       console.error("Sign in error", err)
     } finally {

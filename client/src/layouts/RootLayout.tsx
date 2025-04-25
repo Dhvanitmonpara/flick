@@ -5,7 +5,6 @@ import { Outlet, useLocation } from "react-router-dom"
 function RootLayout() {
 
   const location = useLocation()
-
   const showHeader = !(location.pathname.includes("/interview"))
 
   return (

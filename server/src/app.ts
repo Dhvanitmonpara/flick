@@ -2,7 +2,11 @@ import http from "http";
 import express from "express";
 import cors from "cors";
 import { Server } from "socket.io";
-import { clerkMiddleware } from '@clerk/express'
+import { Redis } from "ioredis";
+
+if (!process.env.ACCESS_CONTROL_ORIGIN) {
+  throw new Error("ACCESS_CONTROL_ORIGIN environment variable not set");
+}
 
 const app = express();
 const server = http.createServer(app);
@@ -11,6 +15,12 @@ const io = new Server(server, {
     origin: process.env.ACCESS_CONTROL_ORIGIN, // Replace with your frontend URL
     methods: ["GET", "POST"],
   },
+});
+
+if (typeof Redis === "undefined") throw new Error("Redis is not installed");
+const redis = new Redis({
+  host: process.env.REDIS_HOST || "localhost",
+  port: parseInt(process.env.REDIS_PORT || "6379"),
 });
 
 const corsOptions = {
@@ -26,7 +36,6 @@ app.use(cors(corsOptions));
 app.use(express.json({ limit: "16kb" }));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(express.static("public"));
-app.use(clerkMiddleware());
 app.options("*", cors());
 
 // Define data structures
@@ -245,7 +254,6 @@ io.on("connection", (socket) => {
         } else {
           console.warn(`Invalid question index: ${data.questionAnswerIndex}`);
         }
-
       }
     } catch (error) {
       handleSocketError(socket, error);
@@ -278,7 +286,7 @@ io.on("connection", (socket) => {
       }
     }
   );
-  
+
   // Store question answer evaluated data
   socket.on("interview-evaluation", (feedback) => {
     try {
@@ -287,16 +295,16 @@ io.on("connection", (socket) => {
         if (!session) {
           throw new Error("Session not found");
         }
-        feedback.map((f: any, i:number) => {
+        feedback.map((f: any, i: number) => {
           session.questions[i].answerReview = f.feedback;
           session.questions[i].score = f.score;
           session.questions[i].correctAnswer = f.correctAnswer;
-        })
+        });
       }
     } catch (error) {
       handleSocketError(socket, error);
     }
-  })
+  });
 
   // Handle interview completion
   socket.on("interview-complete", async () => {
@@ -314,7 +322,7 @@ io.on("connection", (socket) => {
           isError: boolean;
         } = {
           faceExpressions: [],
-          isError: false
+          isError: false,
         };
 
         const faceExpressionPoints = await processAnalyticsData();
@@ -323,9 +331,9 @@ io.on("connection", (socket) => {
           data.faceExpressions = data.faceExpressions;
         } else {
           data.faceExpressions = "Error while processing data";
-          data.isError = false
+          data.isError = false;
         }
-        
+
         socket.emit("interview-analytics", data);
       }
     } catch (error) {
@@ -345,10 +353,10 @@ io.on("connection", (socket) => {
 });
 
 // Import routes
-import sessionRouter from "./routes/post.routes";
-import userRouter from "./routes/user.routes";
+import sessionRouter from "./routes/post.routes.js";
+import userRouter from "./routes/user.routes.js";
 app.use("/api/v1/sessions", sessionRouter);
 app.use("/api/v1/users", userRouter);
 
 // Export server and app
-export { app, server, runningInterviewSession };
+export { app, server, runningInterviewSession, redis };

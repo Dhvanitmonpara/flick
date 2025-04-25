@@ -5,6 +5,9 @@ import mongoose from "mongoose";
 import { encryptEmail } from "../services/encryptor.js";
 import handleError from "../services/HandleError.js";
 import jwt from "jsonwebtoken";
+import sendMail from "../utils/sendMail.js";
+import { redis } from "../app.js";
+import OtpVerifier from "../services/otpVerifier.js";
 
 const options = {
   httpOnly: true,
@@ -62,8 +65,8 @@ const registerUser = async (req: Request, res: Response) => {
     const { username, branch, college, email, password } = req.body;
 
     if (!username || !branch || !college || !email || !password) {
-       res.status(400).json({ error: "All fields are required" });
-       return
+      res.status(400).json({ error: "All fields are required" });
+      return;
     }
 
     const encryptedEmail = await encryptEmail(email.toLowerCase());
@@ -245,8 +248,8 @@ const logoutUser = async (req: Request, res: Response) => {
 
     res
       .status(200)
-      .clearCookie("__accessToken", {...options, maxAge: 0})
-      .clearCookie("__refreshToken", {...options, maxAge: 0})
+      .clearCookie("__accessToken", { ...options, maxAge: 0 })
+      .clearCookie("__refreshToken", { ...options, maxAge: 0 })
       .json({ message: "User logged Out" });
   } catch (error) {
     handleError(error, res, "Failed to logout");
@@ -305,4 +308,53 @@ const refreshAccessToken = async (req: Request, res: Response) => {
   }
 };
 
-export { registerUser, getUserData, loginUser, refreshAccessToken, logoutUser };
+const sendOtp = async (req: Request, res: Response) => {
+  const { email } = req.body;
+
+  if (!email) throw new ApiError(400, "Email is required");
+
+  try {
+    const mailResponse = await sendMail(email, "OTP");
+
+    if (!mailResponse.success) {
+      console.error("Failed to send OTP:", mailResponse.error);
+      throw new ApiError(500, mailResponse.error || "Failed to send OTP");
+    }
+
+    if (!mailResponse.otpCode) throw new ApiError(500, "Failed to send OTP");
+
+    redis.set(`otp:${email}`, mailResponse.otpCode, "EX", 100);
+
+    res.status(200).json({
+      messageId: mailResponse.messageId,
+      message: "OTP sent successfully",
+    });
+  } catch (error) {
+    handleError(error, res, "Failed to send OTP");
+  }
+};
+
+const verifyOtp = async (req: Request, res: Response) => {
+  try {
+    if (!req.body.email || !req.body.otp) throw new ApiError(400, "Email and OTP are required")
+    const result = await OtpVerifier(req.body.email, req.body.otp);
+
+    if (result) {
+      res.status(200).json({ message: "OTP verified successfully" });
+    } else {
+      throw new ApiError(400, "Invalid OTP");
+    }
+  } catch (error) {
+    handleError(error, res, "Failed to verify OTP");
+  }
+};
+
+export {
+  registerUser,
+  getUserData,
+  loginUser,
+  refreshAccessToken,
+  logoutUser,
+  sendOtp,
+  verifyOtp,
+};

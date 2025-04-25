@@ -4,7 +4,7 @@ type profileOptions = "profile" | "settings" | "feedback";
 
 type User = {
   _id: string;
-  email: string;
+  email?: string;
   higherEducation: string;
   college: string;
   achievements: string;
