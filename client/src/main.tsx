@@ -12,13 +12,6 @@ import AppLayout from './layouts/AppLayout'
 import FeedPage from './pages/FeedPage'
 import EmailVerificationPage from './pages/EmailVerificationPage'
 
-// Import your Publishable Key
-const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
-
-if (!PUBLISHABLE_KEY) {
-  throw new Error("Missing Publishable Key")
-}
-
 // router
 const router = createBrowserRouter([
   {

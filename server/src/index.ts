@@ -1,12 +1,11 @@
-import connectDB from "../db/index"
-import dotenv from "dotenv"
-import { server } from "./app"
+import "./config/env.js"
+import connectDB from "./db/index.js"
+import { server } from "./app.js"
+import { EventEmitter } from "node:events";
+
+EventEmitter.defaultMaxListeners = 20; // or whatever makes sense
 
 const port = process.env.HTTP_PORT || 8000
-
-dotenv.config({
-    path: './.env'
-})
 
 connectDB().then(() => {
     server.listen(port, () => {

@@ -5,13 +5,14 @@ import {
   InputOTPSeparator,
   InputOTPSlot,
 } from "@/components/ui/input-otp";
-import axios, { AxiosResponse } from "axios";
+import axios, { AxiosError, AxiosResponse } from "axios";
 import { toast } from 'sonner'
 import useProfileStore from "@/store/profileStore";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
 const OTP_EXPIRE_TIME = 60;
+const MAX_ATTEMPTS = 5;
 
 const EmailVerificationPage = () => {
   const { profile } = useProfileStore()
@@ -19,14 +20,23 @@ const EmailVerificationPage = () => {
   const [timeLeft, setTimeLeft] = useState(OTP_EXPIRE_TIME);
   const [otp, setOtp] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [attempts, setAttempts] = useState(0);
+  const [isOtpInvalid, setIsOtpInvalid] = useState(false);
 
   const navigate = useNavigate()
 
   useEffect(() => {
     if (!profile.email) {
-      navigate("/auth/signin");
+      navigate("/auth/signup");
     }
   }, [navigate, profile.email]);
+
+  const handleOtpChange = (newOtp: string) => {
+    setOtp(newOtp);
+    if (isOtpInvalid) {
+      setIsOtpInvalid(false);  // Clear error when user starts typing
+    }
+  };
 
   useEffect(() => {
     if (timeLeft > 0) {
@@ -52,43 +62,66 @@ const EmailVerificationPage = () => {
   }, [profile.email])
 
   const handleResendOTP = () => {
+    if (attempts >= MAX_ATTEMPTS) {
+      toast.error("You have exceeded the maximum number of attempts.");
+      return;
+    }
     setTimeLeft(OTP_EXPIRE_TIME);
     sendOtp();
   };
 
-  useEffect(() => {
-    const verify = async () => {
+  const verify = async () => {
+    try {
+      setIsLoading(true)
 
-      if (otp.length === 6) {
-        try {
-          setIsLoading(true)
-
-          const response = await axios.post(
-            `${import.meta.env.VITE_SERVER_API_URL}/users/otp/verify`,
-            { email: profile.email, otp },
-            { withCredentials: true }
-          );
-
-          if (response.status !== 200 || !response.data.otp) {
-            toast.error(response.data.message || "failed to verify otp")
-            return
-          }
-
-          if (otp.toString() === response.data.otp.toString()) {
-            toast.success("opt verified");
-            navigate("/")
-          } else {
-            toast.error("wrong otp try again");
-          }
-        } catch (error) {
-          console.error("Error verifying OTP:", error);
-        } finally {
-          setIsLoading(false)
-        }
+      if (!profile.email) {
+        navigate("/auth/signup")
+        return
       }
+
+      const response = await axios.post(
+        `${import.meta.env.VITE_SERVER_API_URL}/users/otp/verify`,
+        { email: profile.email, otp },
+        { withCredentials: true }
+      );
+
+      if (response.status !== 200 && response.status !== 400) {
+        toast.error(response.data.message || "failed to verify otp")
+        return
+      }
+
+      if (response.data.isVerified) {
+        toast.success("OTP verified successfully!");
+        navigate("/");
+      }
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        if (error.response?.status === 400) {
+          toast.warning("wrong otp try again");
+          setIsOtpInvalid(true)
+          setAttempts((prev) => prev + 1);
+        }else {
+          toast.error(error.response?.data.message || "failed to verify otp")
+        }
+      } else {
+        console.error("Error verifying OTP:", error);
+      }
+    } finally {
+      setIsLoading(false)
     }
-    verify()
-  }, [navigate, otp, profile.email]);
+  }
+
+  // More scoped, avoids unnecessary triggers
+  useEffect(() => {
+    if (otp.length !== 6 || attempts >= MAX_ATTEMPTS) return;
+
+    const timer = setTimeout(() => {
+      verify();
+    }, 800);
+
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [otp]);
 
   useEffect(() => {
     sendOtp();
@@ -115,7 +148,7 @@ const EmailVerificationPage = () => {
           )}
           .
         </p>
-        <InputOTP maxLength={6} value={otp} onChange={setOtp}>
+        <InputOTP disabled={isLoading || timeLeft === 0 || attempts >= MAX_ATTEMPTS} maxLength={6} value={otp} onChange={handleOtpChange}>
           <InputOTPGroup>
             <InputOTPSlot autoFocus index={0} />
             <InputOTPSlot index={1} />
@@ -128,9 +161,20 @@ const EmailVerificationPage = () => {
             <InputOTPSlot index={5} />
           </InputOTPGroup>
         </InputOTP>
+        {attempts >= MAX_ATTEMPTS && (
+          <p className="text-sm text-red-500 text-center">
+            You have exceeded the maximum number of attempts. Please try again
+            later.
+          </p>
+        )}
+        {isOtpInvalid && (
+          <p className="text-sm text-red-500 text-center">
+            Invalid OTP. Please try again.
+          </p>
+        )}
         <Button
           type="submit"
-          disabled={isLoading || timeLeft === 0 || !profile.email || otp === "" || otp.length !== 6}
+          disabled={isLoading || otp.length !== 6 || !profile.email || isOtpInvalid}
           className={`w-full py-2 font-semibold rounded-md dark:text-zinc-900 bg-zinc-800 dark:bg-zinc-200 hover:bg-zinc-700 dark:hover:bg-zinc-300 transition-colors disabled:bg-zinc-500 disabled:cursor-wait"}`}
         >
           {isLoading ? "Verifying..." : "Verify Account"}

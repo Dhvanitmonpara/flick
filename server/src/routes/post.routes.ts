@@ -1,18 +1,16 @@
 import { Router } from "express";
 import {
-    createSession,
-    updateSession,
-    deleteSession,
-    getSession,
-    getSessionData,
-    getAllSessions,
-} from "../controllers/post.controller";
+    createPost,
+    deletePost,
+    getPost,
+    getPostsForFeed,
+    updatePost,
+} from "../controllers/post.controller.js";
 
 const router = Router()
 
-router.route('/').post(createSession).delete(deleteSession)
-router.route('/data/:socketId').get(getSessionData)
-router.route('/:userId').get(getSession).patch(updateSession)
-router.route('/all/:email').get(getAllSessions)
+router.route('/').post(createPost).delete(deletePost)
+router.route('/get/:postId').get(getPost)
+router.route('/get/:userId').get(getPostsForFeed).patch(updatePost)
 
 export default router;

@@ -1,5 +1,5 @@
 import Header from "@/components/general/Header"
-import { Toaster } from "@/components/ui/toaster"
+import { Toaster } from "sonner"
 import { Outlet, useLocation } from "react-router-dom"
 
 function RootLayout() {

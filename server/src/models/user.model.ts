@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
 const userSchema = new mongoose.Schema(
@@ -27,7 +27,7 @@ const userSchema = new mongoose.Schema(
       howManyTimes: {
         type: Number,
         default: 0,
-      }
+      },
     },
     isVerified: { type: Boolean, default: false },
     password: { type: String, required: true },
@@ -58,11 +58,11 @@ userSchema.methods.generateAccessToken = function () {
       username: this.username,
       isVerified: this.isVerified,
       isBlocked: this.isBlocked,
-      suspensionEnds: this.suspension.ends
+      suspensionEnds: this.suspension.ends,
     },
     process.env.ACCESS_TOKEN_SECRET,
     {
-      expiresIn: parseInt(process.env.ACCESS_TOKEN_EXPIRY),
+      expiresIn: (process.env.ACCESS_TOKEN_EXPIRY as `${number}m`),
     }
   );
 };
@@ -70,6 +70,7 @@ userSchema.methods.generateAccessToken = function () {
 userSchema.methods.generateRefreshToken = function () {
   if (
     !process.env.REFRESH_TOKEN_SECRET ||
+    !process.env.REFRESH_TOKEN_EXPIRY ||
     typeof process.env.REFRESH_TOKEN_EXPIRY == "undefined"
   ) {
     throw new Error("REFRESH_TOKEN_SECRET environment variable is not set");
@@ -80,7 +81,7 @@ userSchema.methods.generateRefreshToken = function () {
     },
     process.env.REFRESH_TOKEN_SECRET,
     {
-      expiresIn: parseInt(process.env.REFRESH_TOKEN_EXPIRY),
+      expiresIn: (process.env.REFRESH_TOKEN_EXPIRY as `${number}d`),
     }
   );
 };

@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsup src/index.ts --dts",
     "start": "node dist/index.js",
-    "dev": "nodemon --watch 'src/**/*.ts' --exec ts-node src/index.ts"
+    "dev": "tsup src/index.ts --watch --onSuccess 'node dist/index.js' && node dist/index.js"
   },
   "keywords": [],
   "author": "",
@@ -32,6 +32,8 @@
     "@types/nodemailer": "^6.4.17",
     "nodemon": "^3.1.9",
     "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "tsup": "^8.4.0",
     "typescript": "^5.7.3"
   },
   "description": ""

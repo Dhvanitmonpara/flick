@@ -1,5 +1,4 @@
 import { redis } from "../app.js";
-import { ApiError } from "../utils/ApiError.js";
 
 const OtpVerifier = async (email: string, otp: string) => {
   try {
@@ -9,10 +8,10 @@ const OtpVerifier = async (email: string, otp: string) => {
       await redis.del(`otp:${email}`);
       return true;
     } else {
-      throw new ApiError(400, "Invalid OTP");
+      return false
     }
   } catch (error) {
-    return error;
+    return false;
   }
 };
 

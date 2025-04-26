@@ -18,7 +18,7 @@ const options = {
 const accessTokenExpiry = 15 * 60 * 1000; // 15 minutes
 const refreshTokenExpiry = 60 * 60 * 1000 * 24 * 30; // 30 days
 
-interface UserDocument extends Document {
+export interface UserDocument extends Document {
   password: string;
   username: string;
   _id: mongoose.Types.ObjectId | string;
@@ -40,7 +40,7 @@ interface UserDocument extends Document {
   generateRefreshToken(): string;
 }
 
-const generateAccessAndRefreshToken = async (
+export const generateAccessAndRefreshToken = async (
   userId: mongoose.Types.ObjectId
 ) => {
   try {
@@ -60,7 +60,7 @@ const generateAccessAndRefreshToken = async (
   }
 };
 
-const registerUser = async (req: Request, res: Response) => {
+export const registerUser = async (req: Request, res: Response) => {
   try {
     const { username, branch, college, email, password } = req.body;
 
@@ -132,7 +132,7 @@ const registerUser = async (req: Request, res: Response) => {
   }
 };
 
-const loginUser = async (req: Request, res: Response) => {
+export const loginUser = async (req: Request, res: Response) => {
   try {
     const { email, username, password } = req.body;
 
@@ -206,7 +206,7 @@ const loginUser = async (req: Request, res: Response) => {
   }
 };
 
-const getUserData = async (req: Request, res: Response) => {
+export const getUserData = async (req: Request, res: Response) => {
   try {
     if (!req.user || !req.user._id) {
       res.status(400).json({ error: "User not found" });
@@ -227,7 +227,7 @@ const getUserData = async (req: Request, res: Response) => {
   }
 };
 
-const logoutUser = async (req: Request, res: Response) => {
+export const logoutUser = async (req: Request, res: Response) => {
   try {
     if (!req.user || !req.user._id) {
       res.status(400).json({ error: "User not found" });
@@ -256,7 +256,7 @@ const logoutUser = async (req: Request, res: Response) => {
   }
 };
 
-const refreshAccessToken = async (req: Request, res: Response) => {
+export const refreshAccessToken = async (req: Request, res: Response) => {
   const incomingRefreshToken =
     req.cookies.refreshToken || req.body.refreshToken;
 
@@ -308,7 +308,7 @@ const refreshAccessToken = async (req: Request, res: Response) => {
   }
 };
 
-const sendOtp = async (req: Request, res: Response) => {
+export const sendOtp = async (req: Request, res: Response) => {
   const { email } = req.body;
 
   if (!email) throw new ApiError(400, "Email is required");
@@ -323,38 +323,35 @@ const sendOtp = async (req: Request, res: Response) => {
 
     if (!mailResponse.otpCode) throw new ApiError(500, "Failed to send OTP");
 
-    redis.set(`otp:${email}`, mailResponse.otpCode, "EX", 100);
+    const response = await redis.set(`otp:${email}`, mailResponse.otpCode, "EX", 65);
+
+    if (response !== "OK") {
+      console.error("Failed to set OTP in Redis:", res);
+      throw new ApiError(500, "Failed to set OTP in Redis");
+    }
 
     res.status(200).json({
       messageId: mailResponse.messageId,
       message: "OTP sent successfully",
     });
   } catch (error) {
+    console.log(error);
     handleError(error, res, "Failed to send OTP");
   }
 };
 
-const verifyOtp = async (req: Request, res: Response) => {
+export const verifyOtp = async (req: Request, res: Response) => {
   try {
-    if (!req.body.email || !req.body.otp) throw new ApiError(400, "Email and OTP are required")
+    if (!req.body.email || !req.body.otp)
+      throw new ApiError(400, "Email and OTP are required");
     const result = await OtpVerifier(req.body.email, req.body.otp);
 
     if (result) {
-      res.status(200).json({ message: "OTP verified successfully" });
+      res.status(200).json({ message: "OTP verified successfully", isVerified: true });
     } else {
-      throw new ApiError(400, "Invalid OTP");
+      res.status(400).json({ message: "Invalid OTP", isVerified: false });
     }
   } catch (error) {
     handleError(error, res, "Failed to verify OTP");
   }
-};
-
-export {
-  registerUser,
-  getUserData,
-  loginUser,
-  refreshAccessToken,
-  logoutUser,
-  sendOtp,
-  verifyOtp,
 };
