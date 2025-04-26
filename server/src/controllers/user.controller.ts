@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import userModel from "../models/user.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import mongoose from "mongoose";
-import { encryptEmail } from "../services/encryptor.js";
+import { encrypt, hashEmailForLookup, hashOTP } from "../services/cryptographer.js";
 import handleError from "../services/HandleError.js";
 import jwt from "jsonwebtoken";
 import sendMail from "../utils/sendMail.js";
@@ -60,6 +60,64 @@ export const generateAccessAndRefreshToken = async (
   }
 };
 
+export const initializeUser = async (req: Request, res: Response) => {
+  try {
+    const { email, username, password, branch } = req.body;
+
+    if (!email || !username || !password || !branch) {
+      res.status(400).json({ error: "All fields are required" });
+      return;
+    }
+
+    const encryptedEmail = await hashEmailForLookup(email.toLowerCase());
+    const existingUser = await userModel.findOne({ email: encryptedEmail });
+
+    if (existingUser) {
+      res.status(400).json({ error: "User with this email already exists" });
+      return;
+    }
+
+    const user = {
+      email: encryptedEmail,
+      username,
+      password,
+      branch,
+    };
+
+    const tempUser = await redis.set(
+      `pending:${encryptedEmail}`,
+      JSON.stringify(user),
+      "EX",
+      65
+    );
+
+    if (tempUser != "OK") {
+      throw new ApiError(500, "Failed to set user in Redis");
+    }
+
+    const mailResponse = await sendMail(email, "OTP");
+    if (!mailResponse.success)
+      throw new ApiError(500, mailResponse.error || "Failed to send OTP");
+    if (!mailResponse.otpCode) throw new ApiError(500, "Failed to send OTP");
+
+    const encryptedOtp = await hashOTP(mailResponse.otpCode);
+    if (!encryptedOtp) throw new ApiError(500, "Failed to encrypt OTP");
+
+    const otpResponse = await redis.set(`otp:${email}`, encryptedOtp, "EX", 65);
+
+    if (otpResponse !== "OK") {
+      throw new ApiError(500, "Failed to set OTP in Redis");
+    }
+
+    res.status(201).json({
+      message: "User initialized successfully and OTP sent",
+      identifier: encryptedEmail,
+    });
+  } catch (error) {
+    handleError(error, res, "Failed to initialize user");
+  }
+};
+
 export const registerUser = async (req: Request, res: Response) => {
   try {
     const { username, branch, college, email, password } = req.body;
@@ -69,8 +127,9 @@ export const registerUser = async (req: Request, res: Response) => {
       return;
     }
 
-    const encryptedEmail = await encryptEmail(email.toLowerCase());
-    const existingUser = await userModel.findOne({ email: encryptedEmail });
+    const encryptedData = await encrypt(email.toLowerCase());
+    const hashedEmail = await hashEmailForLookup(email.toLowerCase());
+    const existingUser = await userModel.findOne({ email: encryptedData });
 
     if (existingUser) {
       res.status(400).json({ error: "User with this email already exists" });
@@ -80,7 +139,8 @@ export const registerUser = async (req: Request, res: Response) => {
     const createdUser = await userModel.create({
       username,
       branch,
-      email: encryptedEmail,
+      email: encryptedData,
+      lookupEmail: hashedEmail,
       password,
       bookmarks: [],
       college,
@@ -139,7 +199,7 @@ export const loginUser = async (req: Request, res: Response) => {
     let existingUser: UserDocument | null = null;
 
     if (email) {
-      const encryptedEmail = await encryptEmail(email.toLowerCase());
+      const encryptedEmail = await hashEmailForLookup(email.toLowerCase());
       existingUser = await userModel.findOne({ email: encryptedEmail });
     } else if (username) {
       existingUser = await userModel.findOne({ username });
@@ -310,20 +370,23 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
 
 export const sendOtp = async (req: Request, res: Response) => {
   const { email } = req.body;
-
   if (!email) throw new ApiError(400, "Email is required");
 
   try {
     const mailResponse = await sendMail(email, "OTP");
 
-    if (!mailResponse.success) {
-      console.error("Failed to send OTP:", mailResponse.error);
+    if (!mailResponse.success)
       throw new ApiError(500, mailResponse.error || "Failed to send OTP");
-    }
-
     if (!mailResponse.otpCode) throw new ApiError(500, "Failed to send OTP");
 
-    const response = await redis.set(`otp:${email}`, mailResponse.otpCode, "EX", 65);
+    const encryptedEmail = await hashEmailForLookup(email.toLowerCase());
+
+    const response = await redis.set(
+      `otp:${encryptedEmail}`,
+      mailResponse.otpCode,
+      "EX",
+      65
+    );
 
     if (response !== "OK") {
       console.error("Failed to set OTP in Redis:", res);
@@ -343,11 +406,13 @@ export const sendOtp = async (req: Request, res: Response) => {
 export const verifyOtp = async (req: Request, res: Response) => {
   try {
     if (!req.body.email || !req.body.otp)
-      throw new ApiError(400, "Email and OTP are required");
+      throw new ApiError(400, "Email and OTP are required")
     const result = await OtpVerifier(req.body.email, req.body.otp);
 
     if (result) {
-      res.status(200).json({ message: "OTP verified successfully", isVerified: true });
+      res
+        .status(200)
+        .json({ message: "OTP verified successfully", isVerified: true });
     } else {
       res.status(400).json({ message: "Invalid OTP", isVerified: false });
     }

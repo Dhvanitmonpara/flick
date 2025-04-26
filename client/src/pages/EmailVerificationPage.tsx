@@ -7,7 +7,6 @@ import {
 } from "@/components/ui/input-otp";
 import axios, { AxiosError, AxiosResponse } from "axios";
 import { toast } from 'sonner'
-import useProfileStore from "@/store/profileStore";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
@@ -15,8 +14,6 @@ const OTP_EXPIRE_TIME = 60;
 const MAX_ATTEMPTS = 5;
 
 const EmailVerificationPage = () => {
-  const { profile } = useProfileStore()
-
   const [timeLeft, setTimeLeft] = useState(OTP_EXPIRE_TIME);
   const [otp, setOtp] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -46,6 +43,7 @@ const EmailVerificationPage = () => {
   }, [timeLeft]);
 
   const sendOtp = useCallback(async () => {
+    if(!profile.email) navigate("/auth/signup")
     try {
       const mailResponse: AxiosResponse = await axios.post(
         `${import.meta.env.VITE_SERVER_API_URL}/users/otp/send`,
@@ -59,7 +57,7 @@ const EmailVerificationPage = () => {
     } catch (error) {
       console.error("Error sending OTP:", error);
     }
-  }, [profile.email])
+  }, [navigate, profile.email])
 
   const handleResendOTP = () => {
     if (attempts >= MAX_ATTEMPTS) {
