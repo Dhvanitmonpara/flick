@@ -9,9 +9,19 @@ import { Button } from "@/components/ui/button"
 import { Link, useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import axios from "axios"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+
+const branch = z.enum(["CSE", "BCA", "ECE", "IT", "ME"]);
 
 const signInSchema = z.object({
   email: z.string().email("Email is invalid"),
+  branch: branch,
   password: z.string()
     .min(8, "Password must be at least 8 characters")
     .regex(/[a-z]/, "Password must contain at least one lowercase letter")
@@ -45,16 +55,20 @@ function SignUpPage() {
   const onSubmit = async (data: SignInFormData) => {
     setIsSubmitting(true)
     try {
-      console.log("Signing in with", data)
-      
-      await axios.post(
+      const response = await axios.post(
         `${import.meta.env.VITE_SERVER_API_URL}/users/initialize`,
-        { email: data.email, password: data.password },
+        { email: data.email, password: data.password, branch: branch.parse(data.branch) },
         { withCredentials: true }
       )
 
+      if (response.status !== 201) {
+        toast.error("Failed to initialize user")
+        return
+      }
+
       navigate("/auth/otp")
     } catch (err) {
+      toast.error("Error signing in")
       console.error("Sign in error", err)
     } finally {
       setIsSubmitting(false)
@@ -119,6 +133,16 @@ function SignUpPage() {
           </div>
         </div>
         {errors.confirmPassword && <p className="text-red-500 text-sm !mt-1">{errors.confirmPassword?.message}</p>}
+        <Select {...register("branch")}>
+          <SelectTrigger className={inputStyling}>
+            <SelectValue placeholder="Branch" />
+          </SelectTrigger>
+          <SelectContent>
+            {branch.options.map((branch) => (
+              <SelectItem className="focus:bg-zinc-200 dark:focus:bg-zinc-700" key={branch} value={branch}>{branch}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Button
           type="submit"
           disabled={isSubmitting}
