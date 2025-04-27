@@ -160,12 +160,6 @@ export const registerUser = async (req: Request, res: Response) => {
     if (!user) throw new ApiError(400, "User not found");
 
     const encryptedData = await encrypt(email.toLowerCase());
-    const existingUser = await userModel.findOne({ email: encryptedData });
-
-    if (existingUser) {
-      res.status(400).json({ error: "User with this email already exists" });
-      return;
-    }
 
     const { branch, password } = JSON.parse(user) as {
       branch: string;

@@ -1,4 +1,4 @@
-import { useForm } from "react-hook-form"
+import { useForm, Controller } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Input } from "@/components/ui/input"
@@ -40,21 +40,32 @@ type SignInFormData = z.infer<typeof signInSchema>
 
 function SignUpPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isPasswordShowing, setIsPasswordShowing] = useState(false)
+  const [isPasswordShowing, setIsPasswordShowing] = useState(false);
+  const [isConfirmPasswordShowing, setIsConfirmPasswordShowing] = useState(false);
 
   const navigate = useNavigate()
 
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
   } = useForm<SignInFormData>({
     resolver: zodResolver(signInSchema),
+    defaultValues: {
+      branch: "CSE"
+    }
   })
 
   const onSubmit = async (data: SignInFormData) => {
     setIsSubmitting(true)
     try {
+
+      if (!data.email || !data.password || !data.branch) {
+        toast.error("Please fill all the fields")
+        return
+      }
+
       const response = await axios.post(
         `${import.meta.env.VITE_SERVER_API_URL}/users/initialize`,
         { email: data.email, password: data.password, branch: branch.parse(data.branch) },
@@ -66,7 +77,7 @@ function SignUpPage() {
         return
       }
 
-      navigate("/auth/otp")
+      navigate(`/auth/otp/${data.email}`)
     } catch (err) {
       toast.error("Error signing in")
       console.error("Sign in error", err)
@@ -118,7 +129,7 @@ function SignUpPage() {
             id="confirm-password"
             className={inputStyling}
             disabled={isSubmitting}
-            type={isPasswordShowing ? "text" : "password"}
+            type={isConfirmPasswordShowing ? "text" : "password"}
             placeholder="Confirm password"
             {...register("confirmPassword")}
             required
@@ -126,26 +137,39 @@ function SignUpPage() {
           <div
             className="w-12 absolute right-0 flex justify-center items-center h-full cursor-pointer"
             onClick={() => {
-              setIsPasswordShowing((prev) => !prev);
+              setIsConfirmPasswordShowing((prev) => !prev);
             }}
           >
-            {isPasswordShowing ? <IoMdEyeOff /> : <IoMdEye />}
+            {isConfirmPasswordShowing ? <IoMdEyeOff /> : <IoMdEye />}
           </div>
         </div>
         {errors.confirmPassword && <p className="text-red-500 text-sm !mt-1">{errors.confirmPassword?.message}</p>}
-        <Select {...register("branch")}>
-          <SelectTrigger className={inputStyling}>
-            <SelectValue placeholder="Branch" />
-          </SelectTrigger>
-          <SelectContent>
-            {branch.options.map((branch) => (
-              <SelectItem className="focus:bg-zinc-200 dark:focus:bg-zinc-700" key={branch} value={branch}>{branch}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        
+        <Controller
+          control={control}
+          name="branch"
+          render={({ field }) => (
+            <Select
+              disabled={isSubmitting}
+              onValueChange={field.onChange}
+              defaultValue={field.value}
+              value={field.value}
+            >
+              <SelectTrigger className={inputStyling}>
+                <SelectValue placeholder="Branch" />
+              </SelectTrigger>
+              <SelectContent className="bg-zinc-200 dark:bg-zinc-800">
+                {branch.options.map((branchValue) => (
+                  <SelectItem className="focus:bg-zinc-300 dark:focus:bg-zinc-700" key={branchValue} value={branchValue}>{branchValue}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        />
+        {errors.branch && <p className="text-red-500 text-sm !mt-1">{errors.branch.message}</p>}
         <Button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isSubmitting || (errors?.email && errors.email !== undefined) || (errors?.password && errors.password !== undefined) || (errors?.confirmPassword && errors.confirmPassword !== undefined) || (errors?.branch && errors.branch !== undefined)}
           className={`w-full py-2 font-semibold rounded-md dark:text-zinc-900 bg-zinc-800 dark:bg-zinc-200 hover:bg-zinc-700 dark:hover:bg-zinc-300 transition-colors ${isSubmitting && "bg-zinc-500 cursor-wait"}`}
         >
           {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Please wait</> : "Create an Account"}

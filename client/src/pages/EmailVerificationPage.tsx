@@ -91,7 +91,7 @@ const EmailVerificationPage = () => {
 
       if (response.data.isVerified) {
         toast.success("OTP verified successfully!");
-        navigate("/");
+        navigate(`/auth/setup/${email}`);
       }
     } catch (error) {
       if (error instanceof AxiosError) {

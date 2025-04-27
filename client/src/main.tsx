@@ -1,4 +1,4 @@
-import ReactDOM from 'react-dom/client'
+import { createRoot } from 'react-dom/client'
 import './index.css'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import NotFoundPage from './pages/NotFoundPage'
@@ -7,10 +7,11 @@ import SignInPage from './pages/SignInPage'
 import SignUpPage from './pages/SignUpPage'
 import AuthLayout from './layouts/AuthLayout'
 import RootLayout from './layouts/RootLayout'
-import React from 'react'
 import AppLayout from './layouts/AppLayout'
 import FeedPage from './pages/FeedPage'
 import EmailVerificationPage from './pages/EmailVerificationPage'
+import * as React from 'react'
+import SetupUserPage from './pages/SetupUserPage'
 
 // router
 const router = createBrowserRouter([
@@ -29,7 +30,7 @@ const router = createBrowserRouter([
         children: [
           {
             path: "",
-            element: <FeedPage/>,
+            element: <FeedPage />,
           },
           {
             path: "college",
@@ -59,6 +60,10 @@ const router = createBrowserRouter([
             element: <EmailVerificationPage />,
           },
           {
+            path: "setup/:email",
+            element: <SetupUserPage />,
+          },
+          {
             path: "signup",
             element: <SignUpPage />,
           },
@@ -72,8 +77,8 @@ const router = createBrowserRouter([
   },
 ]);
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-      <RouterProvider router={router} />
+    <RouterProvider router={router} />
   </React.StrictMode>,
 )
