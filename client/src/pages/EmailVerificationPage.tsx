@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/input-otp";
 import axios, { AxiosError, AxiosResponse } from "axios";
 import { toast } from 'sonner'
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
 const OTP_EXPIRE_TIME = 60;
@@ -20,13 +20,14 @@ const EmailVerificationPage = () => {
   const [attempts, setAttempts] = useState(0);
   const [isOtpInvalid, setIsOtpInvalid] = useState(false);
 
+  const { email } = useParams()
   const navigate = useNavigate()
 
   useEffect(() => {
-    if (!profile.email) {
+    if (!email) {
       navigate("/auth/signup");
     }
-  }, [navigate, profile.email]);
+  }, [navigate, email]);
 
   const handleOtpChange = (newOtp: string) => {
     setOtp(newOtp);
@@ -43,11 +44,11 @@ const EmailVerificationPage = () => {
   }, [timeLeft]);
 
   const sendOtp = useCallback(async () => {
-    if(!profile.email) navigate("/auth/signup")
+    if (!email) navigate("/auth/signup")
     try {
       const mailResponse: AxiosResponse = await axios.post(
         `${import.meta.env.VITE_SERVER_API_URL}/users/otp/send`,
-        { email: profile.email },
+        { email: email },
         { withCredentials: true }
       );
 
@@ -57,7 +58,7 @@ const EmailVerificationPage = () => {
     } catch (error) {
       console.error("Error sending OTP:", error);
     }
-  }, [navigate, profile.email])
+  }, [navigate, email])
 
   const handleResendOTP = () => {
     if (attempts >= MAX_ATTEMPTS) {
@@ -72,14 +73,14 @@ const EmailVerificationPage = () => {
     try {
       setIsLoading(true)
 
-      if (!profile.email) {
+      if (!email) {
         navigate("/auth/signup")
         return
       }
 
       const response = await axios.post(
         `${import.meta.env.VITE_SERVER_API_URL}/users/otp/verify`,
-        { email: profile.email, otp },
+        { email: email, otp },
         { withCredentials: true }
       );
 
@@ -98,7 +99,7 @@ const EmailVerificationPage = () => {
           toast.warning("wrong otp try again");
           setIsOtpInvalid(true)
           setAttempts((prev) => prev + 1);
-        }else {
+        } else {
           toast.error(error.response?.data.message || "failed to verify otp")
         }
       } else {
@@ -123,14 +124,14 @@ const EmailVerificationPage = () => {
 
   useEffect(() => {
     sendOtp();
-  }, [profile.email, sendOtp]);
+  }, [email, sendOtp]);
 
   return (
     <div className="max-w-md w-full mx-auto px-6 py-8 border dark:border-zinc-800 rounded-lg shadow-lg">
       <h1 className="text-3xl font-semibold mb-6 text-center">Sign Up</h1>
       <form className="space-y-5 flex justify-center items-center flex-col">
         <p className="text-sm text-foreground/60 text-center">
-          Enter the 6-digit code we emailed to <b>{profile.email}</b>. If you did not
+          Enter the 6-digit code we emailed to <b>{email}</b>. If you did not
           receive it, you can request a new one{" "}
           {timeLeft > 0 ? (
             <span>
@@ -172,7 +173,7 @@ const EmailVerificationPage = () => {
         )}
         <Button
           type="submit"
-          disabled={isLoading || otp.length !== 6 || !profile.email || isOtpInvalid}
+          disabled={isLoading || otp.length !== 6 || !email || isOtpInvalid}
           className={`w-full py-2 font-semibold rounded-md dark:text-zinc-900 bg-zinc-800 dark:bg-zinc-200 hover:bg-zinc-700 dark:hover:bg-zinc-300 transition-colors disabled:bg-zinc-500 disabled:cursor-wait"}`}
         >
           {isLoading ? "Verifying..." : "Verify Account"}

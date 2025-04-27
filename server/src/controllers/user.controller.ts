@@ -2,12 +2,18 @@ import { Request, Response } from "express";
 import userModel from "../models/user.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import mongoose from "mongoose";
-import { encrypt, hashEmailForLookup, hashOTP } from "../services/cryptographer.js";
+import {
+  encrypt,
+  hashEmailForLookup,
+  hashOTP,
+} from "../services/cryptographer.js";
 import handleError from "../services/HandleError.js";
-import jwt from "jsonwebtoken";
+import jwt, { JwtPayload } from "jsonwebtoken";
 import sendMail from "../utils/sendMail.js";
 import { redis } from "../app.js";
 import OtpVerifier from "../services/otpVerifier.js";
+import { generateUuidBasedUsername } from "../services/userServices.js";
+import collegeModel from "../models/college.model.js";
 
 const options = {
   httpOnly: true,
@@ -40,7 +46,16 @@ export interface UserDocument extends Document {
   generateRefreshToken(): string;
 }
 
-export const generateAccessAndRefreshToken = async (
+async function isUsernameTaken(username: string) {
+  const existingUser = await userModel.findOne({ username }).exec();
+  return !!existingUser;
+}
+
+const generateUsername = async () => {
+  return generateUuidBasedUsername(isUsernameTaken);
+};
+
+const generateAccessAndRefreshToken = async (
   userId: mongoose.Types.ObjectId
 ) => {
   try {
@@ -60,17 +75,36 @@ export const generateAccessAndRefreshToken = async (
   }
 };
 
+export const heartbeat = async (req: Request, res: Response) => {
+  const token = req.cookies?.__accessToken;
+  if (!token) return res.json({ success: false });
+
+  try {
+    const decodedToken = jwt.verify(
+      token,
+      process.env.ACCESS_TOKEN_SECRET
+    ) as JwtPayload;
+
+    if (!decodedToken || typeof decodedToken == "string") {
+      throw new ApiError(401, "Invalid Access Token");
+    }
+    res.status(200).json({ success: true });
+  } catch {
+    res.status(401).json({ success: false });
+  }
+};
+
 export const initializeUser = async (req: Request, res: Response) => {
   try {
-    const { email, username, password, branch } = req.body;
+    const { email, password, branch } = req.body;
 
-    if (!email || !username || !password || !branch) {
+    if (!email || !password || !branch) {
       res.status(400).json({ error: "All fields are required" });
       return;
     }
 
-    const encryptedEmail = await hashEmailForLookup(email.toLowerCase());
-    const existingUser = await userModel.findOne({ email: encryptedEmail });
+    const hashedEmail = await hashEmailForLookup(email.toLowerCase());
+    const existingUser = await userModel.findOne({ email: hashedEmail });
 
     if (existingUser) {
       res.status(400).json({ error: "User with this email already exists" });
@@ -78,14 +112,12 @@ export const initializeUser = async (req: Request, res: Response) => {
     }
 
     const user = {
-      email: encryptedEmail,
-      username,
       password,
       branch,
     };
 
     const tempUser = await redis.set(
-      `pending:${encryptedEmail}`,
+      `pending:${hashedEmail}`,
       JSON.stringify(user),
       "EX",
       65
@@ -111,7 +143,7 @@ export const initializeUser = async (req: Request, res: Response) => {
 
     res.status(201).json({
       message: "User initialized successfully and OTP sent",
-      identifier: encryptedEmail,
+      identifier: hashedEmail,
     });
   } catch (error) {
     handleError(error, res, "Failed to initialize user");
@@ -120,21 +152,31 @@ export const initializeUser = async (req: Request, res: Response) => {
 
 export const registerUser = async (req: Request, res: Response) => {
   try {
-    const { username, branch, college, email, password } = req.body;
+    const { email } = req.body;
+    if (!email) throw new ApiError(400, "Email is required");
 
-    if (!username || !branch || !college || !email || !password) {
-      res.status(400).json({ error: "All fields are required" });
-      return;
-    }
+    const hashedEmail = await hashEmailForLookup(email.toLowerCase());
+    const user = await redis.get(`pending:${hashedEmail}`);
+    if (!user) throw new ApiError(400, "User not found");
 
     const encryptedData = await encrypt(email.toLowerCase());
-    const hashedEmail = await hashEmailForLookup(email.toLowerCase());
     const existingUser = await userModel.findOne({ email: encryptedData });
 
     if (existingUser) {
       res.status(400).json({ error: "User with this email already exists" });
       return;
     }
+
+    const { branch, password } = JSON.parse(user) as {
+      branch: string;
+      password: string;
+    };
+
+    const username = await generateUsername();
+
+    const collegeDomain = email.split("@")[1].toLowerCase();
+    const college = await collegeModel.findOne({ domain: collegeDomain });
+    if (!college) throw new ApiError(400, "College not found");
 
     const createdUser = await userModel.create({
       username,
@@ -143,7 +185,7 @@ export const registerUser = async (req: Request, res: Response) => {
       lookupEmail: hashedEmail,
       password,
       bookmarks: [],
-      college,
+      college: college._id,
     });
 
     if (!createdUser) {
@@ -406,7 +448,7 @@ export const sendOtp = async (req: Request, res: Response) => {
 export const verifyOtp = async (req: Request, res: Response) => {
   try {
     if (!req.body.email || !req.body.otp)
-      throw new ApiError(400, "Email and OTP are required")
+      throw new ApiError(400, "Email and OTP are required");
     const result = await OtpVerifier(req.body.email, req.body.otp);
 
     if (result) {

@@ -8,6 +8,7 @@ import { IoMdEye, IoMdEyeOff } from "react-icons/io"
 import { Button } from "@/components/ui/button"
 import { Link, useNavigate } from "react-router-dom"
 import { toast } from "sonner"
+import axios from "axios"
 
 const signInSchema = z.object({
   email: z.string().email("Email is invalid"),
@@ -45,8 +46,13 @@ function SignUpPage() {
     setIsSubmitting(true)
     try {
       console.log("Signing in with", data)
-      // TODO: Replace with actual API call to initialize user
-      await new Promise((res) => setTimeout(res, 1000))
+      
+      await axios.post(
+        `${import.meta.env.VITE_SERVER_API_URL}/users/initialize`,
+        { email: data.email, password: data.password },
+        { withCredentials: true }
+      )
+
       navigate("/auth/otp")
     } catch (err) {
       console.error("Sign in error", err)

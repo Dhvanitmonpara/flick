@@ -55,7 +55,7 @@ const router = createBrowserRouter([
             element: <SignInPage />,
           },
           {
-            path: "otp",
+            path: "otp/:email",
             element: <EmailVerificationPage />,
           },
           {
