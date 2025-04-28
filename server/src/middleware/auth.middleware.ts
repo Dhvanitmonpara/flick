@@ -7,10 +7,12 @@ import handleError from "../services/HandleError.js";
 const verifyJWT = async (req: Request, res: Response, next: NextFunction) => {
   try {
     if (!process.env.ACCESS_TOKEN_SECRET) throw new ApiError(500, "ACCESS_TOKEN_SECRET environment variable is not set");
-
     const token =
-      req.cookies?.accessToken ||
-      req.header("Authorization")?.replace("Bearer ", "");
+    req.cookies?.__accessToken ||
+    req.header("Authorization")?.replace("Bearer ", "");
+    
+    console.log(req.cookies)
+    console.log(token)
       
     if (!token) {
       throw new ApiError(401, "Unauthorized request");

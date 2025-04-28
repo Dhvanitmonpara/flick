@@ -16,7 +16,7 @@ const router = Router();
 
 router.route("/register").post(registerUser);
 router.route("/initialize").post(initializeUser);
-router.route("/get").get(verifyJWT, getUserData);
+router.route("/me").get(verifyJWT, getUserData);
 router.route("/login").post(loginUser);
 router.route("/logout").post(verifyJWT, logoutUser);
 router.route("/heartbeat").patch(heartbeat as RequestHandler);

@@ -13,13 +13,12 @@ import sendMail from "../utils/sendMail.js";
 import { redis } from "../app.js";
 import OtpVerifier from "../services/otpVerifier.js";
 import { generateUuidBasedUsername } from "../services/userServices.js";
-import collegeModel from "../models/college.model.js";
 import CollegeModel from "../models/college.model.js";
 
 const options = {
   httpOnly: true,
-  secure: true,
-  sameSite: "strict" as "strict",
+  secure: process.env.ENVIRONMENT === "production" ? true : false,
+  sameSite: "lax" as "lax",
 };
 
 const accessTokenExpiry = 15 * 60 * 1000; // 15 minutes
