@@ -1,4 +1,4 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose from "mongoose";
 
 const collegeSchema = new mongoose.Schema(
   {
@@ -6,6 +6,16 @@ const collegeSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+    },
+    emailDomain: {
+      type: String,
+      required: true,
+      trim: true,
+      lowercase: true,
+      validate: {
+        validator: (v) => /^[a-z0-9.-]+\.[a-z]{2,}$/.test(v),
+        message: "Invalid domain format",
+      }
     },
     city: {
       type: String,
@@ -19,13 +29,17 @@ const collegeSchema = new mongoose.Schema(
     },
     profile: {
       type: String,
-      required: true,
       trim: true,
-    }
+      default: "https://yourcdn.com/default-college-profile.png",
+    },
   },
   { timestamps: true }
 );
 
-const collegeModel = mongoose.model("College", collegeSchema);
+// indexing for faster search
+collegeSchema.index({ name: 1 });
+collegeSchema.index({ city: 1, state: 1 });
 
-export default collegeModel;
+const CollegeModel = mongoose.model("College", collegeSchema);
+
+export default CollegeModel;

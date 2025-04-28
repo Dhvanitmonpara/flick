@@ -1,6 +1,8 @@
 import { Response, Request } from "express";
 import { runningInterviewSession } from "../app.js";
 import { PostModel } from "../models/post.model.js";
+import handleError from "../services/HandleError.js";
+import { ApiError } from "../utils/ApiError.js";
 
 const createPost = async (req: Request, res: Response) => {
   const { title, postedBy, content } = req.body;
@@ -34,28 +36,7 @@ const createPost = async (req: Request, res: Response) => {
       message: "Post created successfully",
     });
   } catch (error) {
-    if (error instanceof Error && (error as any).code === 11000) {
-      res.status(409).json({
-        success: false,
-        message: "A post with same title already exists",
-        error: error.message,
-      });
-      return;
-    }
-    if (error instanceof Error) {
-      res.status(500).json({
-        success: false,
-        message: "Failed to create session in the database",
-        error: error.message,
-      });
-    } else {
-      console.error("Error in sendFeedback:", error);
-      res.status(500).json({
-        success: false,
-        message: "Failed to create session in the database",
-        error: "Unknown error",
-      });
-    }
+    handleError(error as ApiError, res, "Error creating post");
   }
 };
 
@@ -99,20 +80,7 @@ const updatePost = async (req: Request, res: Response) => {
       message: "Post updated successfully",
     });
   } catch (error) {
-    if (error instanceof Error) {
-      res.status(500).json({
-        success: false,
-        message: "Failed to update post in the database",
-        error: error.message,
-      });
-    } else {
-      console.error("Error in sendFeedback:", error);
-      res.status(500).json({
-        success: false,
-        message: "Failed to update post in the database",
-        error: "Unknown error",
-      });
-    }
+    handleError(error as ApiError, res, "Error updating post");
   }
 };
 
@@ -142,20 +110,7 @@ const deletePost = async (req: Request, res: Response) => {
       message: "Post deleted successfully",
     });
   } catch (error) {
-    if (error instanceof Error) {
-      res.status(500).json({
-        success: false,
-        message: "Failed to delete post in the database",
-        error: error.message,
-      });
-    } else {
-      console.error("Error in sendFeedback:", error);
-      res.status(500).json({
-        success: false,
-        message: "Failed to delete post in the database",
-        error: "Unknown error",
-      });
-    }
+    handleError(error as ApiError, res, "Error deleting post");
   }
 };
 

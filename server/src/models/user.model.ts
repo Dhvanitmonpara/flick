@@ -35,6 +35,9 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+userSchema.index({ username: 1 });
+userSchema.index({ email: 1 });
+
 userSchema.pre("save", async function (next) {
   if (this.isModified("password"))
     this.password = await bcrypt.hash(this.password, 12);
@@ -62,7 +65,7 @@ userSchema.methods.generateAccessToken = function () {
     },
     process.env.ACCESS_TOKEN_SECRET,
     {
-      expiresIn: (process.env.ACCESS_TOKEN_EXPIRY as `${number}m`),
+      expiresIn: process.env.ACCESS_TOKEN_EXPIRY as `${number}m`,
     }
   );
 };
@@ -81,7 +84,7 @@ userSchema.methods.generateRefreshToken = function () {
     },
     process.env.REFRESH_TOKEN_SECRET,
     {
-      expiresIn: (process.env.REFRESH_TOKEN_EXPIRY as `${number}d`),
+      expiresIn: process.env.REFRESH_TOKEN_EXPIRY as `${number}d`,
     }
   );
 };

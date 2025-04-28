@@ -146,7 +146,7 @@ export const initializeUser = async (req: Request, res: Response) => {
       identifier: hashedEmail,
     });
   } catch (error) {
-    handleError(error, res, "Failed to initialize user");
+    handleError(error as ApiError, res, "Failed to initialize user");
   }
 };
 
@@ -220,7 +220,7 @@ export const registerUser = async (req: Request, res: Response) => {
   } catch (error) {
     console.log(error);
     handleError(
-      error,
+      error as ApiError,
       res,
       "Failed to create a user",
       "User with this email already exists"
@@ -297,8 +297,7 @@ export const loginUser = async (req: Request, res: Response) => {
         },
       });
   } catch (error) {
-    console.log(error);
-    handleError(error, res, "Failed to login");
+    handleError(error as ApiError, res, "Failed to login");
   }
 };
 
@@ -348,7 +347,7 @@ export const logoutUser = async (req: Request, res: Response) => {
       .clearCookie("__refreshToken", { ...options, maxAge: 0 })
       .json({ message: "User logged Out" });
   } catch (error) {
-    handleError(error, res, "Failed to logout");
+    handleError(error as ApiError, res, "Failed to logout");
   }
 };
 
@@ -400,7 +399,7 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
       })
       .json({ message: "Access token refreshed successfully" });
   } catch (error) {
-    handleError(error, res, "Failed to refresh access token");
+    handleError(error as ApiError, res, "Failed to refresh access token");
   }
 };
 
@@ -434,8 +433,7 @@ export const sendOtp = async (req: Request, res: Response) => {
       message: "OTP sent successfully",
     });
   } catch (error) {
-    console.log(error);
-    handleError(error, res, "Failed to send OTP");
+    handleError(error as ApiError, res, "Failed to send OTP");
   }
 };
 
@@ -453,6 +451,6 @@ export const verifyOtp = async (req: Request, res: Response) => {
       res.status(400).json({ message: "Invalid OTP", isVerified: false });
     }
   } catch (error) {
-    handleError(error, res, "Failed to verify OTP");
+    handleError(error as ApiError, res, "Failed to verify OTP");
   }
 };
