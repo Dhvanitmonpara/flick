@@ -14,6 +14,7 @@ import { redis } from "../app.js";
 import OtpVerifier from "../services/otpVerifier.js";
 import { generateUuidBasedUsername } from "../services/userServices.js";
 import collegeModel from "../models/college.model.js";
+import CollegeModel from "../models/college.model.js";
 
 const options = {
   httpOnly: true,
@@ -75,6 +76,28 @@ const generateAccessAndRefreshToken = async (
   }
 };
 
+function validateStudentEmail(email: string) {
+  if (typeof email !== "string") {
+    throw new ApiError(400, "Invalid email format");
+  }
+
+  const parts = email.split("@");
+  if (parts.length !== 2) {
+    throw new ApiError(400, "Invalid email structure");
+  }
+
+  const [localPart, domain] = parts;
+
+  if (!/^\d+$/.test(localPart)) {
+    throw new ApiError(400, "Enrollment ID must be numeric");
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  if (!emailRegex.test(email)) {
+    throw new ApiError(400, "Invalid email address format");
+  }
+}
+
 export const heartbeat = async (req: Request, res: Response) => {
   const token = req.cookies?.__accessToken;
   if (!token) return res.json({ success: false });
@@ -98,29 +121,33 @@ export const initializeUser = async (req: Request, res: Response) => {
   try {
     const { email, password, branch } = req.body;
 
-    if (!email || !password || !branch) {
-      res.status(400).json({ error: "All fields are required" });
-      return;
-    }
+    if (!email || !password || !branch)
+      throw new ApiError(400, "All fields are required");
+
+    validateStudentEmail(email);
+
+    const college = await CollegeModel.findOne({
+      emailDomain: email.split("@")[1],
+    });
+    if (!college) throw new ApiError(404, "College not found");
 
     const hashedEmail = await hashEmailForLookup(email.toLowerCase());
     const existingUser = await userModel.findOne({ email: hashedEmail });
 
-    if (existingUser) {
-      res.status(400).json({ error: "User with this email already exists" });
-      return;
-    }
+    if (existingUser)
+      throw new ApiError(400, "User with this email already exists");
 
     const user = {
       password,
       branch,
+      college: college._id,
     };
 
     const tempUser = await redis.set(
       `pending:${hashedEmail}`,
       JSON.stringify(user),
       "EX",
-      65
+      300
     );
 
     if (tempUser != "OK") {
@@ -161,16 +188,13 @@ export const registerUser = async (req: Request, res: Response) => {
 
     const encryptedData = await encrypt(email.toLowerCase());
 
-    const { branch, password } = JSON.parse(user) as {
+    const { branch, password, college } = JSON.parse(user) as {
       branch: string;
       password: string;
+      college: string;
     };
 
     const username = await generateUsername();
-
-    const collegeDomain = email.split("@")[1].toLowerCase();
-    const college = await collegeModel.findOne({ domain: collegeDomain });
-    if (!college) throw new ApiError(400, "College not found");
 
     const createdUser = await userModel.create({
       username,
@@ -179,7 +203,7 @@ export const registerUser = async (req: Request, res: Response) => {
       lookupEmail: hashedEmail,
       password,
       bookmarks: [],
-      college: college._id,
+      college,
     });
 
     if (!createdUser) {

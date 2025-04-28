@@ -353,10 +353,12 @@ io.on("connection", (socket) => {
 });
 
 // Import routes
-import sessionRouter from "./routes/post.routes.js";
+import postRouter from "./routes/post.routes.js";
 import userRouter from "./routes/user.routes.js";
-app.use("/api/v1/sessions", sessionRouter);
+import collegeRouter from "./routes/college.routes.js";
+app.use("/api/v1/posts", postRouter);
 app.use("/api/v1/users", userRouter);
+app.use("/api/v1/colleges", collegeRouter);
 
 // Export server and app
 export { app, server, runningInterviewSession, redis };
