@@ -4,8 +4,27 @@ import jwt from "jsonwebtoken";
 
 const userSchema = new mongoose.Schema(
   {
-    username: { type: String, required: true, unique: true, trim: true, index: true },
-    email: { type: String, required: true, unique: true, trim: true, index: true },
+    username: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+      index: true,
+    },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+      index: true,
+    },
+    lookupEmail: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+      index: true,
+    },
     college: { type: Schema.Types.ObjectId, ref: "College", trim: true },
     branch: { type: String, trim: true },
     bookmarks: [

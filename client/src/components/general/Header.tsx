@@ -18,7 +18,7 @@ function Header() {
     try {
       const fetchUser = async () => {
         const user = await axios.get(`${import.meta.env.VITE_SERVER_API_URL}/users/me`,{
-          withCredentials: true
+          withCredentials: true,
         })
 
         if (user.status !== 201) {

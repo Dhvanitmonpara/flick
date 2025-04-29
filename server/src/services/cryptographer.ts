@@ -2,11 +2,9 @@ import crypto from "node:crypto";
 import bcrypt from "bcryptjs";
 
 const PEPPER = process.env.PEPPER || null;
-const key = crypto.randomBytes(32).toString("hex");
+const key = process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString("hex");
 
-if (!PEPPER) {
-  throw new Error("PEPPER environment variable is not set");
-}
+if (!PEPPER) throw new Error("PEPPER environment variable is not set");
 
 // Hash a password using bcrypt with a pepper
 async function hashEmailWithPepper(data: string) {
@@ -20,7 +18,7 @@ async function hashEmailWithPepper(data: string) {
 }
 
 function hashEmailForLookup(email: string) {
-  if(!PEPPER) {
+  if (!PEPPER) {
     throw new Error("PEPPER environment variable is not set");
   }
   return crypto
@@ -77,4 +75,11 @@ async function hashOTP(otp: string) {
   return crypto.createHash("sha256").update(otp).digest("hex");
 }
 
-export { compareEmailWithPepper, hashEmailWithPepper, hashOTP, encrypt, decrypt, hashEmailForLookup };
+export {
+  compareEmailWithPepper,
+  hashEmailWithPepper,
+  hashOTP,
+  encrypt,
+  decrypt,
+  hashEmailForLookup,
+};

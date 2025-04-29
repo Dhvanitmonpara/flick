@@ -17,8 +17,8 @@ import CollegeModel from "../models/college.model.js";
 
 const options = {
   httpOnly: true,
-  secure: process.env.ENVIRONMENT === "production" ? true : false,
-  sameSite: "lax" as "lax",
+  secure: process.env.ENVIRONMENT === "production",
+  sameSite: process.env.NODE_ENV === 'production' ? 'none' as 'none' : "lax" as "lax",
 };
 
 const accessTokenExpiry = 15 * 60 * 1000; // 15 minutes
@@ -259,35 +259,26 @@ export const loginUser = async (req: Request, res: Response) => {
 
     if (email) {
       const encryptedEmail = await hashEmailForLookup(email.toLowerCase());
-      existingUser = await userModel.findOne({ email: encryptedEmail });
+      existingUser = await userModel.findOne({ lookupEmail: encryptedEmail });
     } else if (username) {
       existingUser = await userModel.findOne({ username });
     } else {
-      res.status(400).json({ error: "Email or username is required" });
-      return;
+      throw new ApiError(400, "Email or username is required");
     }
 
-    if (!existingUser || !existingUser.password) {
-      res.status(400).json({ error: "User with this email doesn't exists" });
-      return;
-    }
+    if (!existingUser || !existingUser.password)
+      throw new ApiError(400, "User not found");
 
-    if (existingUser.isBlocked) {
-      res.status(400).json({ error: "User is blocked" });
-      return;
-    }
+    if (existingUser.isBlocked) throw new ApiError(400, "User is blocked");
 
-    if (new Date(existingUser.suspension.ends) > new Date()) {
-      res.status(400).json({
-        error: `User is suspended till ${existingUser.suspension.ends} for '${existingUser.suspension.reason}'`,
-      });
-      return;
-    }
+    if (new Date(existingUser.suspension.ends) > new Date())
+      throw new ApiError(
+        400,
+        `User is suspended till ${existingUser.suspension.ends} for '${existingUser.suspension.reason}'`
+      );
 
-    if (!(await existingUser.isPasswordCorrect(password))) {
-      res.status(400).json({ error: "Password is incorrect" });
-      return;
-    }
+    if (!(await existingUser.isPasswordCorrect(password)))
+      throw new ApiError(400, "Invalid password");
 
     const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
       existingUser._id as mongoose.Types.ObjectId
