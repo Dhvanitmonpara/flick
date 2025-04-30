@@ -5,7 +5,7 @@ import cors from "cors";
 import { Server } from "socket.io";
 import { Redis } from "ioredis";
 import cookieParser from "cookie-parser";
-import './socketHandler.js'
+// import './socketHandler.js'
 
 const app = express();
 const server = http.createServer(app);
@@ -44,6 +44,7 @@ const commonAdminRoute = "/api/admin/v1/"
 import postRouter from "./routes/post.routes.js";
 import userRouter from "./routes/user.routes.js";
 import collegeRouter from "./routes/college.routes.js";
+import adminRouter from "./routes/admin.routes.js";
 
 // public routes
 app.use(`${commonPublicRoute}posts`, postRouter);
@@ -51,8 +52,8 @@ app.use(`${commonPublicRoute}users`, userRouter);
 app.use(`${commonPublicRoute}colleges`, collegeRouter);
 
 // admin routes
-app.use(`${commonAdminRoute}dashboard`, collegeRouter);
 app.use(`${commonAdminRoute}auth`, collegeRouter);
+app.use(`${commonAdminRoute}manage`, adminRouter);
 
 // Export server and app
 export { app, server, io, redis };

@@ -1,6 +1,6 @@
 import mongoose, { Schema } from "mongoose";
 
-const UserSchema = new mongoose.Schema(
+const commentSchema = new mongoose.Schema(
   {
     content: { type: String, required: true, trim: true },
     postId: {
@@ -28,6 +28,4 @@ const UserSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-const userModel = mongoose.model("User", UserSchema);
-
-export default userModel;
+export const CommentModel = mongoose.model("Comment", commentSchema);

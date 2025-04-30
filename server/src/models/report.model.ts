@@ -1,6 +1,6 @@
 import mongoose, { Schema } from "mongoose";
 
-const postSchema = new mongoose.Schema({
+const reportModel = new mongoose.Schema({
   postId: {
     type: Schema.Types.ObjectId,
     ref: "Post",
@@ -18,10 +18,15 @@ const postSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  status: {
+    type: String,
+    enum: ["pending", "resolved", "ignored"],
+    default: "pending",
+  },  
   message: {
     type: String,
     required: true,
   },
 }, {timestamps: true});
 
-export const PostModel = mongoose.model("Post", postSchema);
+export const ReportModel = mongoose.model("Report", reportModel);

@@ -1,5 +1,4 @@
 import { Response, Request } from "express";
-import { runningInterviewSession } from "../app.js";
 import { PostModel } from "../models/post.model.js";
 import handleError from "../services/HandleError.js";
 import { ApiError } from "../utils/ApiError.js";
