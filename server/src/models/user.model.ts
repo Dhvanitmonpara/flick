@@ -1,6 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { env } from "../conf/env.js";
 
 const userSchema = new mongoose.Schema(
   {
@@ -48,6 +49,7 @@ const userSchema = new mongoose.Schema(
         default: 0,
       },
     },
+    refreshToken: { type: String, default: null },
     isVerified: { type: Boolean, default: false },
     password: { type: String, required: true },
   },
@@ -65,12 +67,6 @@ userSchema.methods.isPasswordCorrect = async function (password: string) {
 };
 
 userSchema.methods.generateAccessToken = function () {
-  if (
-    !process.env.ACCESS_TOKEN_SECRET ||
-    typeof process.env.ACCESS_TOKEN_EXPIRY == "undefined"
-  ) {
-    throw new Error("ACCESS_TOKEN_SECRET environment variable is not set");
-  }
   return jwt.sign(
     {
       _id: this._id,
@@ -79,28 +75,21 @@ userSchema.methods.generateAccessToken = function () {
       isBlocked: this.isBlocked,
       suspensionEnds: this.suspension.ends,
     },
-    process.env.ACCESS_TOKEN_SECRET,
+    env.accessTokenSecret,
     {
-      expiresIn: process.env.ACCESS_TOKEN_EXPIRY as `${number}m`,
+      expiresIn: `${parseInt(env.accessTokenExpiry)}m`,
     }
   );
 };
 
 userSchema.methods.generateRefreshToken = function () {
-  if (
-    !process.env.REFRESH_TOKEN_SECRET ||
-    !process.env.REFRESH_TOKEN_EXPIRY ||
-    typeof process.env.REFRESH_TOKEN_EXPIRY == "undefined"
-  ) {
-    throw new Error("REFRESH_TOKEN_SECRET environment variable is not set");
-  }
   return jwt.sign(
     {
       _id: this._id,
     },
-    process.env.REFRESH_TOKEN_SECRET,
+    env.refreshTokenSecret,
     {
-      expiresIn: process.env.REFRESH_TOKEN_EXPIRY as `${number}d`,
+      expiresIn: `${parseInt(env.refreshTokenExpiry)}d`,
     }
   );
 };

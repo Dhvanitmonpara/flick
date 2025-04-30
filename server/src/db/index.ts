@@ -1,9 +1,10 @@
 import mongoose from "mongoose";
 import { DB_NAME } from "../constants.js";
+import { env } from "../conf/env.js";
 
 const connectDB = async () => {
     try {
-        const connectionString = process.env.ENVIRONMENT === "production" ? `${process.env.MONGODB_URI}${DB_NAME}` : process.env.MONGODB_URI
+        const connectionString = env.environment === "production" ? `${env.mongoUrl}${DB_NAME}` : env.mongoUrl
         if(!connectionString) {
             throw new Error("MONGODB_URI is not defined")
         }

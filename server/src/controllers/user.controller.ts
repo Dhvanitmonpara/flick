@@ -14,15 +14,19 @@ import { redis } from "../app.js";
 import OtpVerifier from "../services/otpVerifier.js";
 import { generateUuidBasedUsername } from "../services/userServices.js";
 import CollegeModel from "../models/college.model.js";
+import { env } from "../conf/env.js";
 
 const options = {
   httpOnly: true,
   secure: process.env.ENVIRONMENT === "production",
-  sameSite: process.env.NODE_ENV === 'production' ? 'none' as 'none' : "lax" as "lax",
+  sameSite:
+    process.env.NODE_ENV === "production"
+      ? ("none" as "none")
+      : ("lax" as "lax"),
 };
 
-const accessTokenExpiry = 15 * 60 * 1000; // 15 minutes
-const refreshTokenExpiry = 60 * 60 * 1000 * 24 * 30; // 30 days
+const accessTokenExpiry = 60 * 1000 * parseInt(env.accessTokenExpiry); // 15 minutes
+const refreshTokenExpiry = 60 * 60 * 1000 * 24 * parseInt(env.refreshTokenExpiry); // 28 days
 
 export interface UserDocument extends Document {
   password: string;
@@ -366,21 +370,15 @@ export const logoutUser = async (req: Request, res: Response) => {
 };
 
 export const refreshAccessToken = async (req: Request, res: Response) => {
-  const incomingRefreshToken =
-    req.cookies.refreshToken || req.body.refreshToken;
-
-  if (!incomingRefreshToken) throw new ApiError(401, "Unauthorized request");
-
-  if (!process.env.REFRESH_TOKEN_SECRET)
-    throw new ApiError(
-      500,
-      "REFRESH_TOKEN_SECRET environment variable is not set"
-    );
-
   try {
+    const incomingRefreshToken =
+      req.cookies.__refreshToken || req.body.refreshToken;
+
+    if (!incomingRefreshToken) throw new ApiError(401, "Unauthorized request");
+
     const decodedToken = jwt.verify(
       incomingRefreshToken,
-      process.env.REFRESH_TOKEN_SECRET
+      env.refreshTokenSecret
     );
 
     if (!decodedToken || typeof decodedToken == "string") {
@@ -394,7 +392,7 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
     }
 
     if (incomingRefreshToken !== user?.refreshToken) {
-      throw new ApiError(401, "Refresh Token is expired or used");
+      throw new ApiError(401, "Refresh Token does not match with database");
     }
 
     const { accessToken, refreshToken } = await generateAccessAndRefreshToken(

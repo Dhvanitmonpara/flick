@@ -3,25 +3,34 @@ import userModel from "../models/user.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import handleError from "../services/HandleError.js";
+import { env } from "../conf/env.js";
 
 const verifyJWT = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    if (!process.env.ACCESS_TOKEN_SECRET) throw new ApiError(500, "ACCESS_TOKEN_SECRET environment variable is not set");
     const token =
-    req.cookies?.__accessToken ||
-    req.header("Authorization")?.replace("Bearer ", "");
-    
-    console.log(req.cookies)
-      
+      req.cookies?.__accessToken ||
+      req.header("Authorization")?.replace("Bearer ", "");
+
     if (!token) {
-      throw new ApiError(401, "Unauthorized request");
+      const hasRefreshToken = Boolean(req.cookies?.__refreshToken);
+
+      throw new ApiError(
+        401,
+        hasRefreshToken
+          ? "Access token not found"
+          : "Access and refresh token not found"
+      );
     }
 
-    const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET) as JwtPayload;
+    const decodedToken = jwt.verify(
+      token,
+      env.accessTokenSecret
+    ) as JwtPayload;
 
-    const user = await userModel.findById(decodedToken?._id).select(
-      "-password -refreshToken -email"
-    ).lean();
+    const user = await userModel
+      .findById(decodedToken?._id)
+      .select("-password -refreshToken -email")
+      .lean();
 
     if (!user) {
       throw new ApiError(401, "Invalid Access Token");
@@ -35,11 +44,11 @@ const verifyJWT = async (req: Request, res: Response, next: NextFunction) => {
       suspension: {
         ends: user.suspension?.ends ?? null,
         reason: user.suspension?.reason ?? null,
-        howManyTimes: user.suspension?.howManyTimes ?? 0
+        howManyTimes: user.suspension?.howManyTimes ?? 0,
       },
       refreshToken: null,
       bookmarks: user.bookmarks,
-      branch: user.branch ?? '',
+      branch: user.branch ?? "",
       college: user.college ?? null,
     };
 

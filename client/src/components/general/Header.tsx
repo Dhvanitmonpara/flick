@@ -1,9 +1,10 @@
 import { Link, NavLink } from "react-router-dom"
 import ThemeToggler from "./ThemeToggler"
 import UserProfile from "./UserProfile";
-import { useEffect } from "react";
-import axios from "axios";
+import { useCallback, useEffect } from "react";
+import axios, { isAxiosError } from "axios";
 import useProfileStore from "@/store/profileStore";
+import { toast } from "sonner";
 
 const navLinks = [
   { to: "/home", label: "Home" },
@@ -12,27 +13,59 @@ const navLinks = [
 
 function Header() {
 
-  const { setProfile } = useProfileStore()
+  const { setProfile, removeProfile } = useProfileStore()
+
+  const refreshAccessToken = useCallback(async () => {
+    try {
+
+      const res = await axios.post(`${import.meta.env.VITE_SERVER_API_URL}/users/refresh`, {}, {
+        withCredentials: true,
+      })
+
+      if (res.status !== 200) {
+        toast.error(res.data.message || "Something went wrong while refreshing access token")
+        return
+      }
+
+      setProfile(res.data)
+    } catch (error) {
+      if (isAxiosError(error)) {
+        toast.error(error.response?.data?.error || "Something went wrong while refreshing access token")
+      } else {
+        console.log(error)
+      }
+      removeProfile()
+    }
+  }, [removeProfile, setProfile])
 
   useEffect(() => {
-    try {
-      const fetchUser = async () => {
-        const user = await axios.get(`${import.meta.env.VITE_SERVER_API_URL}/users/me`,{
+    const fetchUser = async () => {
+      try {
+        const user = await axios.get(`${import.meta.env.VITE_SERVER_API_URL}/users/me`, {
           withCredentials: true,
         })
 
         if (user.status !== 201) {
+          toast.error(user.data.message || "Something went wrong while fetching user")
           return
         }
-        console.log(user.data)
 
-        setProfile(user.data)
+        setProfile(user.data.data)
+      } catch (error) {
+        if (isAxiosError(error)) {
+          if (error.response?.status === 401 || error.response?.data?.error === "Access token not found") {
+            await refreshAccessToken()
+          } else {
+            toast.error(error.response?.data?.message || "Something went wrong while fetching user")
+          }
+        } else {
+          console.log(error)
+        }
       }
-      fetchUser()
-    } catch (error) {
-      console.log(error)
     }
-  }, [setProfile])
+
+    fetchUser()
+  }, [refreshAccessToken, setProfile])
 
   return (
     <>

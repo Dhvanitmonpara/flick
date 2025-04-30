@@ -9,5 +9,5 @@
     "rootDir": "src",
     "moduleResolution": "node16",
   },
-  "include": ["src"]
+  "include": ["src", "conf"]
 }

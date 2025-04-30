@@ -1,15 +1,13 @@
-import "./config/env.js"
 import connectDB from "./db/index.js"
 import { server } from "./app.js"
 import { EventEmitter } from "node:events";
+import { env } from "./conf/env.js";
 
 EventEmitter.defaultMaxListeners = 20; // or whatever makes sense
 
-const port = process.env.HTTP_PORT || 8000
-
 connectDB().then(() => {
-    server.listen(port, () => {
-        console.log(`Server is listening to port ${port}`)
+    server.listen(env.port, () => {
+        console.log(`Server is listening to port ${env.port}`)
     })
     server.on("error", (error) => {
         console.log("ERROR: ", error)

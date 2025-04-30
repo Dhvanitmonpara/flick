@@ -1,18 +1,14 @@
-import "../config/env.js"
 import crypto from "crypto";
 import nodemailer from "nodemailer";
-
-if(!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
-  throw new Error("GMAIL_USER or GMAIL_APP_PASSWORD environment variable is not set");
-}
+import { env } from "../conf/env.js";
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
   port: 465,
   secure: true,
   auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_APP_PASSWORD,
+    user: env.gmailUser,
+    pass: env.gmailAppPassword,
   },
   tls: {
     rejectUnauthorized: false,
