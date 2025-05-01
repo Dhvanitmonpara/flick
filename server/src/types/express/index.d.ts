@@ -20,6 +20,10 @@ declare global {
         branch: string;
         college: Types.ObjectId | null;
       };
+      admin?: {
+        _id: Types.ObjectId;
+        email: string;
+      };
     }
   }
 }

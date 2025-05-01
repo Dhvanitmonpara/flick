@@ -12,6 +12,7 @@ export const env = {
   accessTokenSecret: process.env.ACCESS_TOKEN_SECRET,
   refreshTokenSecret: process.env.REFRESH_TOKEN_SECRET,
   encryptionKey: process.env.ENCRYPTION_KEY,
+  adminAccessTokenSecret: process.env.ADMIN_ACCESS_TOKEN_SECRET,
   pepper: process.env.PEPPER,
   gmailUser: process.env.GMAIL_USER,
   gmailAppPassword: process.env.GMAIL_APP_PASSWORD,

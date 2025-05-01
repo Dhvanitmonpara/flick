@@ -41,39 +41,24 @@ const createPost = async (req: Request, res: Response) => {
 };
 
 const updatePost = async (req: Request, res: Response) => {
-  const { title, content, postId } = req.body;
-
-  if (!postId) {
-    return res.status(400).json({
-      success: false,
-      message: "Post id is required",
-    });
-  }
-
-  if (!title && !content) {
-    return res.status(400).json({
-      success: false,
-      message: "At least one field (title or content) must be provided",
-    });
-  }
-
-  const updateFields: any = {};
-  if (title) updateFields.title = title;
-  if (content) updateFields.content = content;
-
   try {
+    const { title, content, postId } = req.body;
+
+    if (!postId) throw new ApiError(400, "Post id is required");
+    if (!title && !content)
+      throw new ApiError(400, "Title or content is required");
+
+    const updateFields: any = {};
+    if (title) updateFields.title = title;
+    if (content) updateFields.content = content;
+
     const response = await PostModel.findOneAndUpdate(
       { _id: new mongoose.Types.ObjectId(postId) },
       { $set: updateFields },
       { new: true }
     );
 
-    if (!response) {
-      return res.status(404).json({
-        success: false,
-        message: "Post not found",
-      });
-    }
+    if (!response) throw new ApiError(404, "Post not found");
 
     res.status(200).json({
       success: true,
@@ -88,11 +73,11 @@ const updatePost = async (req: Request, res: Response) => {
 const deletePost = async (req: Request, res: Response) => {
   const { postId } = req.body;
 
-  if(!postId) {
+  if (!postId) {
     res.status(400).json({
       success: false,
       message: "Post id is required",
-    })
+    });
   }
 
   try {
@@ -116,17 +101,11 @@ const deletePost = async (req: Request, res: Response) => {
 };
 
 const getPostsForFeed = async (req: Request, res: Response) => {
-  // 
+  //
 };
 
 const getPost = async (req: Request, res: Response) => {
-  // 
+  //
 };
 
-export {
-  createPost,
-  updatePost,
-  deletePost,
-  getPost,
-  getPostsForFeed,
-};
+export { createPost, updatePost, deletePost, getPost, getPostsForFeed };
