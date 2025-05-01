@@ -2,6 +2,7 @@ import { Response, Request } from "express";
 import { PostModel } from "../models/post.model.js";
 import handleError from "../services/HandleError.js";
 import { ApiError } from "../utils/ApiError.js";
+import mongoose from "mongoose";
 
 const createPost = async (req: Request, res: Response) => {
   const { title, postedBy, content } = req.body;
@@ -40,42 +41,43 @@ const createPost = async (req: Request, res: Response) => {
 };
 
 const updatePost = async (req: Request, res: Response) => {
-  const { title, postId, content } = req.body;
+  const { title, content, postId } = req.body;
 
-  if(!postId) {
-    res.status(400).json({
+  if (!postId) {
+    return res.status(400).json({
       success: false,
       message: "Post id is required",
     });
-    return;
   }
 
   if (!title && !content) {
-    res.status(400).json({
+    return res.status(400).json({
       success: false,
-      message: "At least one field is required",
+      message: "At least one field (title or content) must be provided",
     });
-    return;
   }
+
+  const updateFields: any = {};
+  if (title) updateFields.title = title;
+  if (content) updateFields.content = content;
 
   try {
     const response = await PostModel.findOneAndUpdate(
-      { postId },
-      { $set: { title, content } },
+      { _id: new mongoose.Types.ObjectId(postId) },
+      { $set: updateFields },
       { new: true }
     );
 
     if (!response) {
-      res.status(404).json({
+      return res.status(404).json({
         success: false,
         message: "Post not found",
       });
-      return;
     }
 
     res.status(200).json({
       success: true,
-      response,
+      post: response,
       message: "Post updated successfully",
     });
   } catch (error) {

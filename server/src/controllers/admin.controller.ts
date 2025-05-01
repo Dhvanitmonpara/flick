@@ -2,8 +2,10 @@ import { Request, Response } from "express";
 import handleError from "../services/HandleError.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ReportModel } from "../models/report.model.js";
+import mongoose from "mongoose";
+import { PostModel } from "../models/post.model.js";
 
-type statusType = "pending" | "resolved" | "ignored";
+const ALLOWED_STATUSES = ["pending", "resolved", "ignored"];
 
 export const createReport = async (req: Request, res: Response) => {
   try {
@@ -33,41 +35,47 @@ export const createReport = async (req: Request, res: Response) => {
 
 export const getReportedPosts = async (req: Request, res: Response) => {
   try {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.max(1, parseInt(req.query.limit as string) || 10);
     const skip = (page - 1) * limit;
 
-    let statusQuery = (req.query.status as string) || "pending";
-
+    const statusQuery = (req.query.status as string) || "pending";
     const requestedStatuses = statusQuery
       .split(",")
       .map((status) => status.trim().toLowerCase())
-      .filter(Boolean);
+      .filter((status) => ALLOWED_STATUSES.includes(status));
 
-    const allowedStatuses = ["pending", "resolved", "ignored"];
-    const validStatuses = requestedStatuses.filter((status) =>
-      allowedStatuses.includes(status)
-    );
+    const finalStatuses = requestedStatuses.length
+      ? requestedStatuses
+      : ["pending"];
 
-    const finalStatuses =
-      validStatuses.length > 0 ? validStatuses : ["pending"];
-
-    const reports = await ReportModel.find({
-      postId: { $exists: true },
+    const filter = {
+      type: "post",
       status: { $in: finalStatuses },
-    })
-      .populate("postId")
-      .populate("reportedBy")
-      .skip(skip)
-      .limit(limit)
-      .sort({ createdAt: -1 });
+    };
+
+    const [reports, totalReports] = await Promise.all([
+      ReportModel.find(filter)
+        .populate({
+          path: "targetId",
+          select: "title slug", // populate post fields only
+        })
+        .populate({
+          path: "reportedBy",
+          select: "name email",
+        })
+        .skip(skip)
+        .limit(limit)
+        .sort({ createdAt: -1 }),
+      ReportModel.countDocuments(filter),
+    ]);
 
     res.status(200).json({
       success: true,
       data: reports,
       page,
       limit,
-      totalReports: reports.length,
+      totalReports,
       appliedFilters: finalStatuses,
       message: reports.length
         ? "Reported posts fetched successfully"
@@ -75,6 +83,94 @@ export const getReportedPosts = async (req: Request, res: Response) => {
     });
   } catch (error) {
     handleError(error as ApiError, res, "Error fetching reported posts");
+  }
+};
+
+export const getReportedComments = async (req: Request, res: Response) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.max(1, parseInt(req.query.limit as string) || 10);
+    const skip = (page - 1) * limit;
+
+    const statusQuery = (req.query.status as string) || "pending";
+    const requestedStatuses = statusQuery
+      .split(",")
+      .map((status) => status.trim().toLowerCase())
+      .filter((status) => ALLOWED_STATUSES.includes(status));
+
+    const finalStatuses = requestedStatuses.length
+      ? requestedStatuses
+      : ["pending"];
+
+    const filter = {
+      type: "comment",
+      status: { $in: finalStatuses },
+    };
+
+    const [reports, totalReports] = await Promise.all([
+      ReportModel.find(filter)
+        .populate({
+          path: "targetId",
+          select: "content postId",
+        })
+        .populate({
+          path: "reportedBy",
+          select: "name email",
+        })
+        .skip(skip)
+        .limit(limit)
+        .sort({ createdAt: -1 }),
+      ReportModel.countDocuments(filter),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: reports,
+      page,
+      limit,
+      totalReports,
+      appliedFilters: finalStatuses,
+      message: reports.length
+        ? "Reported comments fetched successfully"
+        : "No reported comments found",
+    });
+  } catch (error) {
+    handleError(error as ApiError, res, "Error fetching reported comments");
+  }
+};
+
+interface FieldToUpdate {
+  [key: string]: boolean;
+}
+
+const updatePostStatus = async (req: Request, res: Response, fieldToUpdate: FieldToUpdate): Promise<void> => {
+  try {
+    const { postId } = req.params;
+
+    if (!postId || !mongoose.Types.ObjectId.isValid(postId)) {
+      res.status(400).json({ success: false, message: "Valid Post ID is required." });
+      return;
+    }
+
+    const updatedPost = await PostModel.findByIdAndUpdate(
+      postId,
+      { $set: fieldToUpdate },
+      { new: true }
+    );
+
+    if (!updatedPost) {
+      res.status(404).json({ success: false, message: "Post not found." });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Post updated successfully.",
+      post: updatedPost,
+    });
+  } catch (error) {
+    console.error("Error updating post status:", error);
+    res.status(500).json({ success: false, message: "Internal server error." });
   }
 };
 
@@ -141,3 +237,9 @@ export const updateReportStatus = async (req: Request, res: Response) => {
     handleError(error as ApiError, res, "Error updating report status");
   }
 };
+
+// Controller exports
+export const banPost = (req: Request, res: Response) => updatePostStatus(req, res, { isBanned: true });
+export const unbanPost = (req: Request, res: Response) => updatePostStatus(req, res, { isBanned: false });
+export const shadowBanPost = (req: Request, res: Response) => updatePostStatus(req, res, { isShadowBanned: true });
+export const shadowUnbanPost = (req: Request, res: Response) => updatePostStatus(req, res, { isShadowBanned: false });

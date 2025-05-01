@@ -1,13 +1,15 @@
 import mongoose, { Schema } from "mongoose";
 
 const reportModel = new mongoose.Schema({
-  postId: {
-    type: Schema.Types.ObjectId,
-    ref: "Post",
+  type: {
+    type: String,
+    enum: ["post", "comment"],
+    required: true,
   },
-  commentId: {
+  targetId: {
     type: Schema.Types.ObjectId,
-    ref: "Comment",
+    required: true,
+    refPath: "type",
   },
   reportedBy: {
     type: Schema.Types.ObjectId,
