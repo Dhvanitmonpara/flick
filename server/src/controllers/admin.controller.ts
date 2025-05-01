@@ -4,21 +4,33 @@ import { ApiError } from "../utils/ApiError.js";
 import { ReportModel } from "../models/report.model.js";
 import mongoose from "mongoose";
 import { PostModel } from "../models/post.model.js";
+import userModel from "../models/user.model.js";
 
 const ALLOWED_STATUSES = ["pending", "resolved", "ignored"];
+interface FieldToUpdate {
+  [key: string]: boolean;
+}
 
 export const createReport = async (req: Request, res: Response) => {
   try {
-    const { postId, commentId, reportedBy, reason, message } = req.body;
+    const { targetId, type, reason, message } = req.body;
+    const userId = req.user?._id; // Always trust your auth middleware
 
-    if (!reason || !message || !reportedBy || (!postId && !commentId)) {
-      throw new ApiError(400, "All fields are required");
+    if (!targetId || !type || !reason || !message || !userId) {
+      throw new ApiError(
+        400,
+        "All fields (targetId, type, reason, message) are required"
+      );
+    }
+
+    if (!["Post", "Comment"].includes(type)) {
+      throw new ApiError(400, "Invalid report type");
     }
 
     const report = await ReportModel.create({
-      postId,
-      commentId,
-      reportedBy,
+      type,
+      targetId,
+      reportedBy: userId,
       reason,
       message,
     });
@@ -139,16 +151,18 @@ export const getReportedComments = async (req: Request, res: Response) => {
   }
 };
 
-interface FieldToUpdate {
-  [key: string]: boolean;
-}
-
-const updatePostStatus = async (req: Request, res: Response, fieldToUpdate: FieldToUpdate): Promise<void> => {
+const updatePostStatus = async (
+  req: Request,
+  res: Response,
+  fieldToUpdate: FieldToUpdate
+): Promise<void> => {
   try {
     const { postId } = req.params;
 
     if (!postId || !mongoose.Types.ObjectId.isValid(postId)) {
-      res.status(400).json({ success: false, message: "Valid Post ID is required." });
+      res
+        .status(400)
+        .json({ success: false, message: "Valid Post ID is required." });
       return;
     }
 
@@ -177,11 +191,24 @@ const updatePostStatus = async (req: Request, res: Response, fieldToUpdate: Fiel
 export const getUserReports = async (req: Request, res: Response) => {
   try {
     const userId = req.params.userId;
-    const reports = await ReportModel.find({ reportedBy: userId })
-      .populate("postId")
-      .populate("commentId");
 
-    res.status(200).json({ success: true, reports });
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      throw new ApiError(400, "Invalid userId");
+    }
+
+    const reports = await ReportModel.find({ reportedBy: userId });
+
+    const populatedReports = await Promise.all(
+      reports.map(async (report) => {
+        await report.populate("targetId");
+        return report.toObject();
+      })
+    );
+
+    res.status(200).json({
+      success: true,
+      reports: populatedReports,
+    });
   } catch (error) {
     handleError(error as ApiError, res, "Error fetching user reports");
   }
@@ -238,8 +265,89 @@ export const updateReportStatus = async (req: Request, res: Response) => {
   }
 };
 
+export const blockUser = async (req: Request, res: Response) => {
+  try {
+    const userId = req.params.userId;
+
+    // Find the user by ID
+    const user = await userModel.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Block the user
+    user.isBlocked = true;
+    await user.save();
+
+    return res.status(200).json({ message: "User blocked successfully", user });
+  } catch (error) {
+    return res.status(500).json({ message: "Error blocking user", error });
+  }
+}
+
+export const unblockUser = async (req: Request, res: Response) => {
+  try {
+    const userId = req.params.userId;
+
+    // Find the user by ID
+    const user = await userModel.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Unblock the user
+    user.isBlocked = false;
+    await user.save();
+
+    return res.status(200).json({ message: "User unblocked successfully", user });
+  } catch (error) {
+    return res.status(500).json({ message: "Error unblocking user", error });
+  }
+}
+
+export const suspendUser = async (req: Request, res: Response) => {
+  try {
+    const userId = req.params.userId;
+    const { ends, reason } = req.body; // 'ends' should be a date string (ISO format)
+
+    if (!ends || !reason) {
+      return res.status(400).json({ message: "End date and reason are required" });
+    }
+
+    const user = await userModel.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Set suspension details
+    user.suspension = {
+      ends: new Date(ends),
+      reason,
+      howManyTimes: (user.suspension?.howManyTimes || 0) + 1,
+    };
+    user.isBlocked = true; // Block the user during suspension
+    await user.save();
+
+    return res.status(200).json({ message: "User suspended successfully", user });
+  } catch (error) {
+    return res.status(500).json({ message: "Error suspending user", error });
+  }
+}
+
+export const getSuspensionStatus = async (req: Request, res: Response) => {
+  try {
+    const userId = req.params.userId;
+
+    // Find the user by ID
+    const user = await userModel.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    return res.status(200).json({ suspension: user.suspension });
+  } catch (error) {
+    return res.status(500).json({ message: "Error fetching suspension status", error });
+  }
+}
+
 // Controller exports
-export const banPost = (req: Request, res: Response) => updatePostStatus(req, res, { isBanned: true });
-export const unbanPost = (req: Request, res: Response) => updatePostStatus(req, res, { isBanned: false });
-export const shadowBanPost = (req: Request, res: Response) => updatePostStatus(req, res, { isShadowBanned: true });
-export const shadowUnbanPost = (req: Request, res: Response) => updatePostStatus(req, res, { isShadowBanned: false });
+export const banPost = (req: Request, res: Response) =>
+  updatePostStatus(req, res, { isBanned: true });
+export const unbanPost = (req: Request, res: Response) =>
+  updatePostStatus(req, res, { isBanned: false });
+export const shadowBanPost = (req: Request, res: Response) =>
+  updatePostStatus(req, res, { isShadowBanned: true });
+export const shadowUnbanPost = (req: Request, res: Response) =>
+  updatePostStatus(req, res, { isShadowBanned: false });
