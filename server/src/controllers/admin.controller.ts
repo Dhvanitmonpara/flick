@@ -271,17 +271,17 @@ export const blockUser = async (req: Request, res: Response) => {
 
     // Find the user by ID
     const user = await userModel.findById(userId);
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user) throw new ApiError(404, "User not found");
 
     // Block the user
     user.isBlocked = true;
     await user.save();
 
-    return res.status(200).json({ message: "User blocked successfully", user });
+    res.status(200).json({ message: "User blocked successfully", user });
   } catch (error) {
-    return res.status(500).json({ message: "Error blocking user", error });
+    handleError(error as ApiError, res, "Error blocking user");
   }
-}
+};
 
 export const unblockUser = async (req: Request, res: Response) => {
   try {
@@ -289,29 +289,28 @@ export const unblockUser = async (req: Request, res: Response) => {
 
     // Find the user by ID
     const user = await userModel.findById(userId);
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user) throw new ApiError(404, "User not found");
 
     // Unblock the user
     user.isBlocked = false;
     await user.save();
 
-    return res.status(200).json({ message: "User unblocked successfully", user });
+    res.status(200).json({ message: "User unblocked successfully", user });
   } catch (error) {
-    return res.status(500).json({ message: "Error unblocking user", error });
+    handleError(error as ApiError, res, "Error unblocking user");
   }
-}
+};
 
 export const suspendUser = async (req: Request, res: Response) => {
   try {
     const userId = req.params.userId;
     const { ends, reason } = req.body; // 'ends' should be a date string (ISO format)
 
-    if (!ends || !reason) {
-      return res.status(400).json({ message: "End date and reason are required" });
-    }
+    if (!ends || !reason)
+      throw new ApiError(400, "End date and reason are required");
 
     const user = await userModel.findById(userId);
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user) throw new ApiError(404, "User not found");
 
     // Set suspension details
     user.suspension = {
@@ -322,11 +321,11 @@ export const suspendUser = async (req: Request, res: Response) => {
     user.isBlocked = true; // Block the user during suspension
     await user.save();
 
-    return res.status(200).json({ message: "User suspended successfully", user });
+    res.status(200).json({ message: "User suspended successfully", user });
   } catch (error) {
-    return res.status(500).json({ message: "Error suspending user", error });
+    handleError(error as ApiError, res, "Error suspending user");
   }
-}
+};
 
 export const getSuspensionStatus = async (req: Request, res: Response) => {
   try {
@@ -334,13 +333,13 @@ export const getSuspensionStatus = async (req: Request, res: Response) => {
 
     // Find the user by ID
     const user = await userModel.findById(userId);
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user) throw new ApiError(404, "User not found");
 
-    return res.status(200).json({ suspension: user.suspension });
+    res.status(200).json({ suspension: user.suspension });
   } catch (error) {
-    return res.status(500).json({ message: "Error fetching suspension status", error });
+    handleError(error as ApiError, res, "Error fetching suspension status");
   }
-}
+};
 
 // Controller exports
 export const banPost = (req: Request, res: Response) =>

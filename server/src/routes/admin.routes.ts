@@ -10,6 +10,10 @@ import {
   shadowBanPost,
   shadowUnbanPost,
   unbanPost,
+  blockUser,
+  getSuspensionStatus,
+  suspendUser,
+  unblockUser,
   updateReportStatus,
 } from "../controllers/admin.controller.js";
 
@@ -24,5 +28,8 @@ router.route("/reports/posts/shadowunban").patch(shadowUnbanPost)
 router.route("/reports/comments").get(getReportedComments)
 router.route("/reports/many").delete(bulkDeleteReports)
 router.route("/reports/users").get(getUserReports).post(createReport).delete(deleteReport);
+router.route("/reports/users/block").patch(blockUser)
+router.route("/reports/users/unblock").patch(unblockUser)
+router.route("/reports/users/suspension").patch(suspendUser).get(getSuspensionStatus)
 
 export default router;
