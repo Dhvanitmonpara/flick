@@ -38,12 +38,13 @@ app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(express.static("public"));
 app.options("*", cors());
 
-const commonPublicRoute = "/api/public/v1/"
-const commonAdminRoute = "/api/admin/v1/"
+const commonPublicRoute = "/api/public/v1/";
+const commonAdminRoute = "/api/admin/v1/";
 
 import postRouter from "./routes/post.routes.js";
 import userRouter from "./routes/user.routes.js";
 import collegeRouter from "./routes/college.routes.js";
+import reportRouter from "./routes/manage.route.js";
 import adminRouter from "./routes/admin.routes.js";
 
 // public routes
@@ -52,8 +53,8 @@ app.use(`${commonPublicRoute}users`, userRouter);
 app.use(`${commonPublicRoute}colleges`, collegeRouter);
 
 // admin routes
-app.use(`${commonAdminRoute}auth`, collegeRouter);
-app.use(`${commonAdminRoute}manage`, adminRouter);
+app.use(`${commonAdminRoute}routes`, reportRouter);
+app.use(`${commonAdminRoute}auth`, adminRouter);
 
 // Export server and app
 export { app, server, io, redis };
