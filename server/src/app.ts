@@ -54,7 +54,7 @@ app.use(`${commonPublicRoute}users`, userRouter);
 
 // admin routes
 app.use(`${commonAdminRoute}routes`, verifyAdminJWT, reportRouter);
-app.use(`${commonAdminRoute}auth`, verifyAdminJWT, adminRouter);
+app.use(`${commonAdminRoute}auth`, adminRouter);
 app.use(`${commonAdminRoute}colleges`, collegeRouter);
 
 // Export server and app

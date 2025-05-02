@@ -3,7 +3,7 @@ import adminModel from "../models/admin.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import handleError from "../services/HandleError.js";
 import mongoose from "mongoose";
-import { hashEmailForLookup } from "../services/cryptographer.js";
+import { hashEmailForLookup, hashOTP } from "../services/cryptographer.js";
 import sendMail from "../utils/sendMail.js";
 import { redis } from "../app.js";
 import crypto from "crypto";
@@ -34,18 +34,19 @@ const options: CookieOptions = {
 };
 
 async function generateDeviceFingerprint(req: Request) {
-  const userAgent = req.headers['user-agent'] || '';
-  const acceptLanguage = req.headers['accept-language'] || '';
-  const screenResolution = req.body.screenResolution || '';
-  const timezone = req.body.timezone || '';
-  const platform = req.body.platform || '';
+  const userAgent = req.headers["user-agent"] || "";
+  const acceptLanguage = req.headers["accept-language"] || "";
+  const screenResolution = req.body.screenResolution || "";
+  const hardwareConcurrency = req.body.hardwareConcurrency || "";
+  const timezone = req.body.timezone || "";
 
-  const rawFingerprint = `${userAgent}|${acceptLanguage}|${screenResolution}|${timezone}|${platform}`;
+  const rawFingerprint = `${userAgent}|${acceptLanguage}|${screenResolution}|${timezone}|${hardwareConcurrency}`;
 
-  const fingerprintHash = crypto.createHash('sha256')
+  const fingerprintHash = crypto
+    .createHash("sha256")
     .update(rawFingerprint)
-    .digest('hex');
-    
+    .digest("hex");
+
   return fingerprintHash;
 }
 
@@ -98,17 +99,9 @@ export const getAdmin = async (req: Request, res: Response) => {
 
 export const initializeAdmin = async (req: Request, res: Response) => {
   try {
-    const { email, password, deviceInfo } = req.body;
-    if (
-      !email ||
-      !password ||
-      !deviceInfo?.deviceFingerprint ||
-      !deviceInfo?.deviceName
-    ) {
-      throw new ApiError(
-        400,
-        "Email, password, and valid device info are required"
-      );
+    const { email, password } = req.body;
+    if (!email || !password) {
+      throw new ApiError(400, "Email and password are required");
     }
 
     const hashedEmail = await hashEmailForLookup(email.toLowerCase());
@@ -121,8 +114,10 @@ export const initializeAdmin = async (req: Request, res: Response) => {
     const passwordMatches = await admin.isPasswordCorrect(password);
     if (!passwordMatches) throw new ApiError(400, "Invalid password");
 
-    const isAuthorizedDevice = admin.authorizedDevices.some(
-      (device) => device.deviceFingerprint === deviceInfo.deviceFingerprint
+    const deviceFingerprint = await generateDeviceFingerprint(req);
+
+    const isAuthorizedDevice = admin.authorizedDevices.findIndex(
+      (device) => device.deviceFingerprint === deviceFingerprint
     );
 
     if (!isAuthorizedDevice) {
@@ -131,11 +126,13 @@ export const initializeAdmin = async (req: Request, res: Response) => {
         throw new ApiError(500, "Failed to send OTP email");
       }
 
+      const hashedOtp = await hashOTP(mailRes.otpCode);
+
       const redisRes = await redis.set(
         `otp:${hashedEmail}`,
-        mailRes.otpCode,
+        hashedOtp,
         "EX",
-        300
+        65
       );
 
       if (redisRes !== "OK") {
@@ -164,6 +161,7 @@ export const initializeAdmin = async (req: Request, res: Response) => {
           _id: admin._id,
           email: admin.email,
         },
+        statusText: "SESSION_READY",
         message: "Admin logged in successfully",
       });
   } catch (error) {
@@ -171,17 +169,49 @@ export const initializeAdmin = async (req: Request, res: Response) => {
   }
 };
 
+export const resendAdminOtp = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      throw new ApiError(400, "Email is required");
+    }
+
+    const hashedEmail = await hashEmailForLookup(email.toLowerCase());
+
+    const admin = (await adminModel.findOne({
+      email: hashedEmail,
+    })) as AdminDocument;
+    if (!admin) throw new ApiError(404, "Admin not found");
+
+    const mailRes = await sendMail(email, "OTP");
+    if (!mailRes?.success || !mailRes?.otpCode) {
+      throw new ApiError(500, "Failed to send OTP email");
+    }
+
+    const hashedOtp = await hashOTP(mailRes.otpCode);
+
+    const redisRes = await redis.set(`otp:${hashedEmail}`, hashedOtp, "EX", 65);
+
+    if (redisRes !== "OK") {
+      console.error("Failed to set OTP in Redis:", redisRes);
+      throw new ApiError(500, "Failed to store OTP securely");
+    }
+
+    res.status(200).json({
+      success: true,
+      statusText: "OTP_REQUIRED",
+      message: "OTP sent to admin",
+    });
+  } catch (error) {
+    handleError(error as ApiError, res, "Error resending OTP");
+  }
+};
+
 export const verifyAdminOtp = async (req: Request, res: Response) => {
   try {
-    const { email, otpCode } = req.body;
-    if (
-      !email ||
-      !otpCode
-    ) {
-      throw new ApiError(
-        400,
-        "Email, OTP code, and valid device info are required"
-      );
+    const { email, otp } = req.body;
+    if (!email || !otp) {
+      throw new ApiError(400, "Email and OTP are required");
     }
 
     const hashedEmail = await hashEmailForLookup(email.toLowerCase());
@@ -194,7 +224,8 @@ export const verifyAdminOtp = async (req: Request, res: Response) => {
     const redisOtp = await redis.get(`otp:${hashedEmail}`);
     if (!redisOtp) throw new ApiError(400, "OTP expired or invalid");
 
-    if (redisOtp !== otpCode) throw new ApiError(400, "Invalid OTP");
+    const hashedOtp = await hashOTP(otp);
+    if (redisOtp !== hashedOtp) throw new ApiError(400, "Invalid OTP");
 
     const deviceFingerprint = await generateDeviceFingerprint(req);
 
@@ -215,11 +246,18 @@ export const verifyAdminOtp = async (req: Request, res: Response) => {
       admin._id as mongoose.Types.ObjectId
     );
 
-    res.status(200).cookie("__adminAccessToken", accessToken, options).json({
-      success: true,
-      statusText: "SESSION_READY",
-      message: "OTP verified, admin logged in successfully",
-    });
+    res
+      .status(200)
+      .cookie("__adminAccessToken", accessToken, options)
+      .json({
+        success: true,
+        statusText: "SESSION_READY",
+        admin: {
+          _id: admin._id,
+          email: admin.email,
+        },
+        message: "OTP verified, admin logged in successfully",
+      });
   } catch (error) {
     handleError(error as ApiError, res, "Error verifying admin OTP");
   }

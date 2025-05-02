@@ -1,5 +1,5 @@
-import { Router } from "express"
-import { 
+import { Router } from "express";
+import {
   createAdmin,
   deleteAdmin,
   getAdmin,
@@ -9,15 +9,22 @@ import {
   logoutAdmin,
   removeAuthorizedDevice,
   verifyAdminOtp,
- } from "../controllers/admin.controller.js"
+  resendAdminOtp,
+} from "../controllers/admin.controller.js";
 
-const router = Router()
+const router = Router();
 
-router.route("/").post(createAdmin).get(getAdmin).delete(deleteAdmin).patch(updateAdmin)
-router.route("/login/init").post(initializeAdmin)
-router.route("/login").post(verifyAdminOtp)
-router.route("/logout").post(logoutAdmin)
-router.route("/device/remove").post(removeAuthorizedDevice)
-router.route("/all").get(getAllAdmins)
+router
+  .route("/")
+  .post(createAdmin)
+  .get(verifyAdminOtp, getAdmin)
+  .delete(verifyAdminOtp, deleteAdmin)
+  .patch(verifyAdminOtp, updateAdmin);
+router.route("/login/init").post(initializeAdmin);
+router.route("/login/verify").post(verifyAdminOtp);
+router.route("/login/resend").post(resendAdminOtp);
+router.route("/logout").post(verifyAdminOtp, logoutAdmin);
+router.route("/device/remove").post(verifyAdminOtp, removeAuthorizedDevice);
+router.route("/all").get(verifyAdminOtp, getAllAdmins);
 
-export default router
+export default router;
