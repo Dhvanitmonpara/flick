@@ -23,10 +23,7 @@ const verifyJWT = async (req: Request, res: Response, next: NextFunction) => {
       );
     }
 
-    const decodedToken = jwt.verify(
-      token,
-      env.accessTokenSecret
-    ) as JwtPayload;
+    const decodedToken = jwt.verify(token, env.accessTokenSecret) as JwtPayload;
 
     const user = await userModel
       .findById(decodedToken?._id)
@@ -60,26 +57,30 @@ const verifyJWT = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const verifyAdminJWT = async (req: Request, res: Response, next: NextFunction) => {
+const verifyAdminJWT = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const token =
       req.cookies?.__adminAccessToken ||
       req.header("Authorization")?.replace("Bearer ", "");
 
-    if (!token) {
-      throw new ApiError(401, "Admin access token not found");
-    }
+    if (!token) throw new ApiError(401, "Admin access token not found");
 
-    if (!env.adminAccessTokenSecret) {
+    if (!env.adminAccessTokenSecret)
       throw new ApiError(500, "Admin access token secret not found");
-    }
 
     const decodedToken = jwt.verify(
       token,
       env.adminAccessTokenSecret
     ) as JwtPayload;
 
-    const admin = await adminModel.findById(decodedToken?._id).select("-password").lean();
+    const admin = await adminModel
+      .findById(decodedToken?._id)
+      .select("-password")
+      .lean();
 
     if (!admin) {
       throw new ApiError(401, "Invalid Admin Access Token");
@@ -87,7 +88,6 @@ const verifyAdminJWT = async (req: Request, res: Response, next: NextFunction) =
 
     req.admin = {
       _id: admin._id,
-      email: admin.email,
     };
 
     next();

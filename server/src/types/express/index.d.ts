@@ -22,7 +22,6 @@ declare global {
       };
       admin?: {
         _id: Types.ObjectId;
-        email: string;
       };
     }
   }
