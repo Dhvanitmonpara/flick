@@ -13,6 +13,14 @@ const adminSchema = new mongoose.Schema(
       index: true,
     },
     password: { type: String, required: true },
+    authorizedDevices: [
+      {
+        deviceFingerprint: String,
+        deviceName: String,
+        lastSeen: Date,
+        authorizedAt: Date,
+      },
+    ],
   },
   { timestamps: true }
 );

@@ -4,15 +4,24 @@ import { ApiError } from "../utils/ApiError.js";
 import handleError from "../services/HandleError.js";
 import mongoose from "mongoose";
 import { hashEmailForLookup } from "../services/cryptographer.js";
+import sendMail from "../utils/sendMail.js";
+import { redis } from "../app.js";
+import crypto from "crypto";
 
 export interface AdminDocument extends Document {
   password: string;
   email: string;
+  authorizedDevices: {
+    deviceFingerprint: string;
+    deviceName: string;
+    lastSeen: Date;
+    authorizedAt: Date;
+  }[];
   _id: mongoose.Types.ObjectId | string;
   isPasswordCorrect(password: string): Promise<boolean>;
   save({
     validateBeforeSave,
-  }: {
+  }?: {
     validateBeforeSave: boolean;
   }): Promise<AdminDocument>;
   generateAccessToken(): string;
@@ -23,6 +32,22 @@ const options: CookieOptions = {
   sameSite: "none",
   secure: true,
 };
+
+async function generateDeviceFingerprint(req: Request) {
+  const userAgent = req.headers['user-agent'] || '';
+  const acceptLanguage = req.headers['accept-language'] || '';
+  const screenResolution = req.body.screenResolution || '';
+  const timezone = req.body.timezone || '';
+  const platform = req.body.platform || '';
+
+  const rawFingerprint = `${userAgent}|${acceptLanguage}|${screenResolution}|${timezone}|${platform}`;
+
+  const fingerprintHash = crypto.createHash('sha256')
+    .update(rawFingerprint)
+    .digest('hex');
+    
+  return fingerprintHash;
+}
 
 const generateAccessToken = async (userId: mongoose.Types.ObjectId) => {
   const admin = (await adminModel.findById(userId)) as AdminDocument;
@@ -71,11 +96,19 @@ export const getAdmin = async (req: Request, res: Response) => {
   }
 };
 
-export const login = async (req: Request, res: Response) => {
+export const initializeAdmin = async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body;
-    if (!email || !password) {
-      throw new ApiError(400, "Email and password are required");
+    const { email, password, deviceInfo } = req.body;
+    if (
+      !email ||
+      !password ||
+      !deviceInfo?.deviceFingerprint ||
+      !deviceInfo?.deviceName
+    ) {
+      throw new ApiError(
+        400,
+        "Email, password, and valid device info are required"
+      );
     }
 
     const hashedEmail = await hashEmailForLookup(email.toLowerCase());
@@ -83,24 +116,166 @@ export const login = async (req: Request, res: Response) => {
     const admin = (await adminModel.findOne({
       email: hashedEmail,
     })) as AdminDocument;
-
     if (!admin) throw new ApiError(404, "Admin not found");
 
-    if (!(await admin.isPasswordCorrect(password))) {
-      throw new ApiError(400, "Invalid password");
+    const passwordMatches = await admin.isPasswordCorrect(password);
+    if (!passwordMatches) throw new ApiError(400, "Invalid password");
+
+    const isAuthorizedDevice = admin.authorizedDevices.some(
+      (device) => device.deviceFingerprint === deviceInfo.deviceFingerprint
+    );
+
+    if (!isAuthorizedDevice) {
+      const mailRes = await sendMail(email, "OTP");
+      if (!mailRes?.success || !mailRes?.otpCode) {
+        throw new ApiError(500, "Failed to send OTP email");
+      }
+
+      const redisRes = await redis.set(
+        `otp:${hashedEmail}`,
+        mailRes.otpCode,
+        "EX",
+        300
+      );
+
+      if (redisRes !== "OK") {
+        console.error("Failed to set OTP in Redis:", redisRes);
+        throw new ApiError(500, "Failed to store OTP securely");
+      }
+
+      res.status(200).json({
+        success: true,
+        statusText: "OTP_REQUIRED",
+        message: "OTP sent to admin",
+      });
+      return;
     }
 
     const accessToken = await generateAccessToken(
       admin._id as mongoose.Types.ObjectId
     );
 
+    res
+      .status(200)
+      .cookie("__adminAccessToken", accessToken, options)
+      .json({
+        success: true,
+        admin: {
+          _id: admin._id,
+          email: admin.email,
+        },
+        message: "Admin logged in successfully",
+      });
+  } catch (error) {
+    handleError(error as ApiError, res, "Error initializing admin");
+  }
+};
+
+export const verifyAdminOtp = async (req: Request, res: Response) => {
+  try {
+    const { email, otpCode } = req.body;
+    if (
+      !email ||
+      !otpCode
+    ) {
+      throw new ApiError(
+        400,
+        "Email, OTP code, and valid device info are required"
+      );
+    }
+
+    const hashedEmail = await hashEmailForLookup(email.toLowerCase());
+
+    const admin = (await adminModel.findOne({
+      email: hashedEmail,
+    })) as AdminDocument;
+    if (!admin) throw new ApiError(404, "Admin not found");
+
+    const redisOtp = await redis.get(`otp:${hashedEmail}`);
+    if (!redisOtp) throw new ApiError(400, "OTP expired or invalid");
+
+    if (redisOtp !== otpCode) throw new ApiError(400, "Invalid OTP");
+
+    const deviceFingerprint = await generateDeviceFingerprint(req);
+
+    // OTP is valid - authorize device
+    admin.authorizedDevices.push({
+      deviceFingerprint: deviceFingerprint,
+      deviceName: req.body.platform,
+      authorizedAt: new Date(),
+      lastSeen: new Date(),
+    });
+    await admin.save();
+
+    // Delete OTP from Redis
+    await redis.del(`otp:${hashedEmail}`);
+
+    // Generate session
+    const accessToken = await generateAccessToken(
+      admin._id as mongoose.Types.ObjectId
+    );
+
     res.status(200).cookie("__adminAccessToken", accessToken, options).json({
       success: true,
-      admin,
-      message: "Admin logged in successfully",
+      statusText: "SESSION_READY",
+      message: "OTP verified, admin logged in successfully",
     });
   } catch (error) {
-    handleError(error as ApiError, res, "Error logging in admin");
+    handleError(error as ApiError, res, "Error verifying admin OTP");
+  }
+};
+
+export const logoutAdmin = async (req: Request, res: Response) => {
+  try {
+    res.clearCookie("__adminAccessToken", {
+      httpOnly: true,
+      secure: true,
+      sameSite: "strict",
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Admin logged out successfully",
+    });
+  } catch (error) {
+    handleError(error as ApiError, res, "Error logging out admin");
+  }
+};
+
+export const removeAuthorizedDevice = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      throw new ApiError(400, "Email and device ID are required");
+    }
+
+    const hashedEmail = await hashEmailForLookup(email.toLowerCase());
+
+    const admin = (await adminModel.findOne({
+      email: hashedEmail,
+    })) as AdminDocument;
+    if (!admin) throw new ApiError(404, "Admin not found");
+
+    const initialLength = admin.authorizedDevices.length;
+
+    const deviceFingerprint = await generateDeviceFingerprint(req);
+
+    admin.authorizedDevices = admin.authorizedDevices.filter(
+      (device) => device.deviceFingerprint !== deviceFingerprint
+    );
+
+    if (admin.authorizedDevices.length === initialLength) {
+      throw new ApiError(404, "Device not found");
+    }
+
+    await admin.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Device removed successfully",
+    });
+  } catch (error) {
+    handleError(error as ApiError, res, "Error removing device");
   }
 };
 
