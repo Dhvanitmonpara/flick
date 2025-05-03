@@ -32,7 +32,7 @@ function Header() {
 
       setProfile(user.data.data)
     } catch (error) {
-      handleError(error as AxiosError | Error, "Something went wrong while fetching user", fetchUser, true)
+      handleError(error as AxiosError | Error, "Something went wrong while fetching user")
     }
   }, [handleError, setProfile])
 

@@ -57,7 +57,7 @@ function CreatePostButton() {
       form.reset();
       setOpen(false);
     } catch (error) {
-      handleError(error as AxiosError | Error, "Failed to create post", onSubmit, true);
+      handleError(error as AxiosError | Error, "Failed to create post");
     }
   };
 
