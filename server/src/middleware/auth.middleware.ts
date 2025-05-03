@@ -17,9 +17,7 @@ const verifyJWT = async (req: Request, res: Response, next: NextFunction) => {
 
       throw new ApiError(
         401,
-        hasRefreshToken
-          ? "Access token not found"
-          : "Access and refresh token not found"
+        "Unauthorized"
       );
     }
 

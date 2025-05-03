@@ -1,3 +1,4 @@
+import { env } from "@/conf/env";
 import axios from "axios";
 import { Loader2 } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
@@ -17,7 +18,7 @@ function SetupUserPage() {
         navigate("/auth/signup")
         return
       }
-      const response = await axios(`${import.meta.env.VITE_SERVER_API_URL}/users/register`, {
+      const response = await axios(`${env.serverApiEndpoint}/users/register`, {
         method: "POST",
         data: {
           email

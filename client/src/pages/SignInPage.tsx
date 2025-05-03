@@ -8,6 +8,7 @@ import { Link, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import axios, { isAxiosError } from "axios"
 import { toast } from "sonner"
+import { env } from "@/conf/env"
 
 const signInSchema = z.object({
   email: z.string().email("Email is invalid"),
@@ -33,7 +34,7 @@ function SignInPage() {
   const onSubmit = async (data: SignInFormData) => {
     setIsSubmitting(true)
     try {
-      const res = await axios.post(`${import.meta.env.VITE_SERVER_API_URL}/users/login`, data, {
+      const res = await axios.post(`${env.serverApiEndpoint}/users/login`, data, {
         withCredentials: true
       })
 

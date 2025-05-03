@@ -53,7 +53,7 @@ app.use(`${commonPublicRoute}posts`, postRouter);
 app.use(`${commonPublicRoute}users`, userRouter);
 
 // admin routes
-app.use(`${commonAdminRoute}routes`, verifyAdminJWT, reportRouter);
+app.use(`${commonAdminRoute}reports`, verifyAdminJWT, reportRouter);
 app.use(`${commonAdminRoute}auth`, adminRouter);
 app.use(`${commonAdminRoute}colleges`, collegeRouter);
 

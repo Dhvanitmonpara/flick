@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { env } from "@/conf/env"
 
 const branch = z.enum(["CSE", "BCA", "ECE", "IT", "ME"]);
 
@@ -67,7 +68,7 @@ function SignUpPage() {
       }
 
       const response = await axios.post(
-        `${import.meta.env.VITE_SERVER_API_URL}/users/initialize`,
+        `${env.serverApiEndpoint}/users/initialize`,
         { email: data.email, password: data.password, branch: branch.parse(data.branch) },
         { withCredentials: true }
       )

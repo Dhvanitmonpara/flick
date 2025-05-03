@@ -122,10 +122,6 @@ const EmailVerificationPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [otp]);
 
-  useEffect(() => {
-    sendOtp();
-  }, [email, sendOtp]);
-
   return (
     <div className="max-w-md w-full mx-auto px-6 py-8 border dark:border-zinc-800 rounded-lg shadow-lg">
       <h1 className="text-3xl font-semibold mb-6 text-center">Sign Up</h1>

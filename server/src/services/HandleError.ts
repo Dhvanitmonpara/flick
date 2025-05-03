@@ -13,19 +13,20 @@ function handleError(
   fallbackMessage: string,
   duplicationErrorMessage?: string
 ) {
-  if (process.env.NODE_ENV === "development") {
-    console.error("Detailed Error:", error);
-  } else {
-    console.error(fallbackMessage, error);
-  }
+  console.error(fallbackMessage, error);
 
   // Handle Mongo duplicate key error first
   if (isMongoDuplicateError(error)) {
-    return res.status(400).json({ error: duplicationErrorMessage || "Duplicate key error" });
+    return res
+      .status(400)
+      .json({ error: duplicationErrorMessage || "Duplicate key error" });
   }
 
   // Handle known API errors
   if (error instanceof ApiError) {
+    if (error.statusCode === 401 && error.message === "Access token not found" || error.message === "Access and refresh token not found") {
+      return res.status(401).json({ error: "Unauthorized", hasRefreshToken: error.message === "Access token not found" });
+    }
     return res
       .status(error.statusCode || 500)
       .json({ error: error.message || fallbackMessage });
