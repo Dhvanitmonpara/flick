@@ -13,8 +13,6 @@ const verifyJWT = async (req: Request, res: Response, next: NextFunction) => {
       req.header("Authorization")?.replace("Bearer ", "");
 
     if (!token) {
-      const hasRefreshToken = Boolean(req.cookies?.__refreshToken);
-
       throw new ApiError(
         401,
         "Unauthorized"

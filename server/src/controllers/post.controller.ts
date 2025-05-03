@@ -19,7 +19,7 @@ const createPost = async (req: Request, res: Response) => {
     const response = await PostModel.create({
       title,
       content,
-      postedBy,
+      postedBy: new mongoose.Schema.Types.ObjectId(postedBy),
       likes: [],
     });
 

@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import axios, { AxiosError } from "axios";
 import { useErrorHandler } from "@/hooks/useErrorHandler";
 import { env } from "@/conf/env";
+import useProfileStore from "@/store/profileStore";
 
 const postSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters."),
@@ -31,6 +32,7 @@ type PostFormValues = z.infer<typeof postSchema>;
 function CreatePostButton() {
   const [open, setOpen] = useState(false);
 
+  const { profile } = useProfileStore()
   const { handleError } = useErrorHandler()
 
   const form = useForm<PostFormValues>({
@@ -43,7 +45,11 @@ function CreatePostButton() {
 
   const onSubmit = async (data: PostFormValues) => {
     try {
-      const res = await axios.post(`${env.serverApiEndpoint}/posts}`, data, {
+
+      const postedBy = profile?._id
+      if (!postedBy) throw new Error("User not found");
+
+      const res = await axios.post(`${env.serverApiEndpoint}/posts`, {...data, postedBy}, {
         withCredentials: true,
         headers: {
           "Content-Type": "application/json",

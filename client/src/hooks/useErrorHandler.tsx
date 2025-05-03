@@ -1,9 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { env } from "@/conf/env";
 import useProfileStore from "@/store/profileStore";
 import axios, { AxiosError } from "axios";
 import { toast } from "sonner";
 
-let isRefreshing = false;
+let globalRefreshPromise: Promise<any> | null = null;
 
 export const useErrorHandler = () => {
   const { setProfile, removeProfile } = useProfileStore();
@@ -23,9 +24,10 @@ export const useErrorHandler = () => {
       );
       setProfile(data);
       return data;
-    } finally {
-      // Always reset the flag when refresh completes or fails
-      isRefreshing = false;
+    } catch (error) {
+      // If refresh fails, clear the profile and rethrow
+      removeProfile();
+      throw error;
     }
   };
 
@@ -33,7 +35,7 @@ export const useErrorHandler = () => {
   const extractErrorMessage = (
     error: AxiosError | Error,
     fallback: string
-  ) => {
+  ): string => {
     if (axios.isAxiosError(error)) {
       return (
         error.response?.data?.message ||
@@ -47,23 +49,45 @@ export const useErrorHandler = () => {
   
   const handleError = async (
     error: AxiosError | Error,
-    fallbackMessage: string
-  ): Promise<void> => {
+    fallbackMessage: string,
+    originalReq?: () => Promise<any>,
+    hasRetried = false
+  ): Promise<any> => {
     // Only axios 401s can trigger refresh
     if (axios.isAxiosError(error) && error.response?.status === 401) {
-      const canRefresh = !!error.response.data?.hasRefreshToken;
+      // Check if we should try to refresh the token
+      const shouldRefresh = error.response.data?.error === "Unauthorized" && !hasRetried;
 
-      if (canRefresh && !isRefreshing) {
-        // Set flag to prevent multiple refreshes
-        isRefreshing = true;
-        
+      if (shouldRefresh) {
         try {
-          await refreshAccessToken();
-          toast.success("Session refreshed successfully");
+          // If there's already a refresh in progress, wait for it instead of starting a new one
+          if (!globalRefreshPromise) {
+            globalRefreshPromise = refreshAccessToken().finally(() => {
+              globalRefreshPromise = null; // Clear the promise when done
+            });
+          }
+          
+          // Wait for the refresh to complete
+          await globalRefreshPromise;
+          
+          // If we have an original request function, retry it
+          if (originalReq) {
+            try {
+              return await originalReq();
+            } catch (retryError) {
+              // If the retry fails after a token refresh, handle it as a new error
+              // but with hasRetried=true to prevent infinite loops
+              return handleError(
+                retryError as AxiosError | Error, 
+                fallbackMessage, 
+                undefined, // No further retries
+                true // Mark as retried
+              );
+            }
+          }
           return;
         } catch (refreshError) {
-          // Refresh itself failed → logout
-          removeProfile();
+          // Refresh itself failed → show error (removeProfile already called in refreshAccessToken)
           const msg = extractErrorMessage(
             refreshError as AxiosError | Error,
             "Session expired, please log in again."
@@ -72,12 +96,14 @@ export const useErrorHandler = () => {
           return;
         }
       } else {
+        // Either unauthorized without the right condition or already retried → logout
         removeProfile();
         toast.error("Session expired, please log in again.");
         return;
       }
     }
 
+    // Any other error: just show it
     const message = extractErrorMessage(error, fallbackMessage);
     toast.error(message);
   };

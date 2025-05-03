@@ -32,13 +32,14 @@ function Header() {
 
       setProfile(user.data.data)
     } catch (error) {
-      handleError(error as AxiosError | Error, "Something went wrong while fetching user")
+      handleError(error as AxiosError | Error, "Something went wrong while fetching user", fetchUser)
     }
   }, [handleError, setProfile])
 
   useEffect(() => {
     fetchUser()
-  }, [fetchUser, handleError, setProfile])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <>
