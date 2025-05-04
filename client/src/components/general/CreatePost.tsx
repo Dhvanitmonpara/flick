@@ -22,6 +22,7 @@ import { env } from "@/conf/env";
 import useProfileStore from "@/store/profileStore";
 import { highlightBannedWords, validatePost } from "@/utils/moderator";
 import { Textarea } from "../ui/textarea";
+import { Loader2 } from "lucide-react";
 
 const postSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters."),
@@ -32,6 +33,7 @@ type PostFormValues = z.infer<typeof postSchema>;
 
 function CreatePost() {
   const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const { profile } = useProfileStore()
@@ -47,7 +49,8 @@ function CreatePost() {
 
   const onSubmit = async (data: PostFormValues) => {
     try {
-
+      setLoading(true);
+      
       const postedBy = profile?._id
       if (!postedBy) throw new Error("User not found");
 
@@ -69,16 +72,18 @@ function CreatePost() {
       setOpen(false);
     } catch (error) {
       handleError(error as AxiosError | Error, "Failed to create post", setError);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <DialogTrigger className="flex items-center cursor-pointer space-x-2 px-4 py-2 rounded-md bg-zinc-200 hover:bg-zinc-300 text-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-700/70 active:scale-95 transition-all dark:text-zinc-200">
+        <Button className="flex items-center cursor-pointer space-x-2 px-4 py-2 rounded-md bg-zinc-200 hover:bg-zinc-300 text-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-700/70 active:scale-95 transition-all dark:text-zinc-200">
           <FaPlus />
           <span>create</span>
-        </DialogTrigger>
+        </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -90,6 +95,7 @@ function CreatePost() {
             <FormField
               control={form.control}
               name="title"
+              disabled={loading}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Title</FormLabel>
@@ -103,6 +109,7 @@ function CreatePost() {
 
             <FormField
               control={form.control}
+              disabled={loading}
               name="content"
               render={({ field }) => {
                 const banned = validatePost(field.value);
@@ -116,6 +123,10 @@ function CreatePost() {
                         <Textarea
                           placeholder="Write your post..."
                           {...field}
+                          onChange={(e) => {
+                            setError("");
+                            field.onChange(e);
+                          }}
                           className={hasBanned ? "border-red-500" : ""}
                         />
                         {field.value && (
@@ -137,8 +148,8 @@ function CreatePost() {
               }}
             />
 
-            <Button type="submit" className="w-full">
-              Submit
+            <Button disabled={loading || Boolean(error)} type="submit" className="w-full">
+              {loading ? <><Loader2 className="animate-spin"/> Creating...</> : "Create"}
             </Button>
             {error && <p className="text-red-500 text-sm">{error}</p>}
           </form>
