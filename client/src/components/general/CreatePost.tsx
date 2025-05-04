@@ -67,7 +67,6 @@ function CreatePost() {
       if (res.status !== 201) throw new Error("Failed to create post");
 
       toast.success("Post created successfully!");
-
       form.reset();
       setOpen(false);
     } catch (error) {
