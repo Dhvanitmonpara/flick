@@ -3,19 +3,26 @@ import { PostModel } from "../models/post.model.js";
 import handleError from "../services/HandleError.js";
 import { ApiError } from "../utils/ApiError.js";
 import mongoose from "mongoose";
+import { validatePost } from "../utils/moderator.js";
 
 const createPost = async (req: Request, res: Response) => {
   const { title, postedBy, content } = req.body;
 
-  if (!postedBy || !title || !content) {
-    res.status(400).json({
-      success: false,
-      message: "All fields are required",
-    });
-    return;
-  }
-
   try {
+    if (!postedBy || !title || !content) {
+      throw new ApiError(400, "All fields are required");
+    }
+
+    const result = await validatePost(content);
+    if (!result.allowed) {
+      const msg =
+        result.reasons.length === 1
+          ? result.reasons[0]
+          : result.reasons.slice(0, -1).join(", ") + " and " + result.reasons.at(-1);
+
+      throw new ApiError(400, `Your post was blocked because ${msg}.`);
+    }
+
     const response = await PostModel.create({
       title,
       content,
@@ -24,10 +31,7 @@ const createPost = async (req: Request, res: Response) => {
     });
 
     if (!response) {
-      res.status(500).json({
-        success: false,
-        message: "Failed to create post in the database",
-      });
+      throw new ApiError(500, "Failed to create post in database");
     }
 
     res.status(200).json({

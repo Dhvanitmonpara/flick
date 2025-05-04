@@ -14,6 +14,7 @@ export const env = {
   encryptionKey: process.env.ENCRYPTION_KEY,
   adminAccessTokenSecret: process.env.ADMIN_ACCESS_TOKEN_SECRET,
   pepper: process.env.PEPPER,
+  perspectiveApiKey: process.env.PERSPECTIVE_API_KEY,
   gmailUser: process.env.GMAIL_USER,
   gmailAppPassword: process.env.GMAIL_APP_PASSWORD,
   accessControlOrigin:
@@ -40,6 +41,10 @@ if (!env.encryptionKey) {
 
 if (!env.pepper) {
   throw new Error("PEPPER environment variable is not set");
+}
+
+if(!env.perspectiveApiKey) {
+  throw new Error("PERSPECTIVE_API_KEY environment variable is not set");
 }
 
 if (!env.gmailUser) {

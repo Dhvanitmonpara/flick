@@ -5,7 +5,7 @@ import { useCallback, useEffect } from "react";
 import axios, { AxiosError } from "axios";
 import useProfileStore from "@/store/profileStore";
 import { toast } from "sonner";
-import CreatePostButton from "./CreatePostButton";
+import CreatePost from "./CreatePost";
 import { useErrorHandler } from "@/hooks/useErrorHandler";
 import { env } from "@/conf/env";
 
@@ -16,7 +16,7 @@ const navLinks = [
 
 function Header() {
 
-  const { setProfile } = useProfileStore()
+  const { setProfile, profile } = useProfileStore()
   const { handleError } = useErrorHandler()
 
   const fetchUser = useCallback(async () => {
@@ -46,7 +46,7 @@ function Header() {
       <nav className="fixed h-14 z-50 bg-zinc-100 dark:bg-zinc-900 dark:border-b-2 dark:border-zinc-800 top-0 left-0 shadow-md w-full">
         <div className="max-w-[88rem] flex justify-between mx-auto items-center px-4">
           <Link to="/">
-            <img className="h-14 w-14" src="/Logo.png" alt="logo" />
+            <img className="h-14 w-14 p-2" src={profile.theme === "dark" ? "/logo-b.png" : "/logo-w.png"} alt="logo" />
           </Link>
           <ul className="flex gap-4 h-14">
             {navLinks.map(({ to, label }) => (
@@ -62,7 +62,7 @@ function Header() {
             ))}
           </ul>
           <div className="flex gap-4">
-            <CreatePostButton />
+            <CreatePost />
             <ThemeToggler />
             <UserProfile />
           </div>

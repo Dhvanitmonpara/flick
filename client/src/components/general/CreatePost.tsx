@@ -14,13 +14,14 @@ import {
 } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import axios, { AxiosError } from "axios";
 import { useErrorHandler } from "@/hooks/useErrorHandler";
 import { env } from "@/conf/env";
 import useProfileStore from "@/store/profileStore";
+import { highlightBannedWords, validatePost } from "@/utils/moderator";
+import { Textarea } from "../ui/textarea";
 
 const postSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters."),
@@ -29,8 +30,9 @@ const postSchema = z.object({
 
 type PostFormValues = z.infer<typeof postSchema>;
 
-function CreatePostButton() {
+function CreatePost() {
   const [open, setOpen] = useState(false);
+  const [error, setError] = useState("");
 
   const { profile } = useProfileStore()
   const { handleError } = useErrorHandler()
@@ -49,7 +51,10 @@ function CreatePostButton() {
       const postedBy = profile?._id
       if (!postedBy) throw new Error("User not found");
 
-      const res = await axios.post(`${env.serverApiEndpoint}/posts`, {...data, postedBy}, {
+      const { allowed, reason } = validatePost(data.content);
+      if (!allowed) throw new Error(`Your post is not allowed it ${reason}`);
+
+      const res = await axios.post(`${env.serverApiEndpoint}/posts`, { ...data, postedBy }, {
         withCredentials: true,
         headers: {
           "Content-Type": "application/json",
@@ -63,7 +68,7 @@ function CreatePostButton() {
       form.reset();
       setOpen(false);
     } catch (error) {
-      handleError(error as AxiosError | Error, "Failed to create post");
+      handleError(error as AxiosError | Error, "Failed to create post", setError);
     }
   };
 
@@ -99,20 +104,43 @@ function CreatePostButton() {
             <FormField
               control={form.control}
               name="content"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Content</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="Write your post..." {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              render={({ field }) => {
+                const banned = validatePost(field.value);
+                const hasBanned = !banned.allowed;
+
+                return (
+                  <FormItem>
+                    <FormLabel>Content</FormLabel>
+                    <FormControl>
+                      <>
+                        <Textarea
+                          placeholder="Write your post..."
+                          {...field}
+                          className={hasBanned ? "border-red-500" : ""}
+                        />
+                        {field.value && (
+                          <div className="mt-2 text-sm">
+                            <span className="font-semibold">Preview:</span>
+                            {highlightBannedWords(field.value)}
+                          </div>
+                        )}
+                        {hasBanned && (
+                          <p className="text-red-500 text-xs mt-1">
+                            {banned.reason}
+                          </p>
+                        )}
+                      </>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
 
             <Button type="submit" className="w-full">
               Submit
             </Button>
+            {error && <p className="text-red-500 text-sm">{error}</p>}
           </form>
         </Form>
       </DialogContent>
@@ -120,4 +148,4 @@ function CreatePostButton() {
   );
 }
 
-export default CreatePostButton;
+export default CreatePost;

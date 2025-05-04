@@ -50,63 +50,68 @@ export const useErrorHandler = () => {
   const handleError = async (
     error: AxiosError | Error,
     fallbackMessage: string,
+    setError?: (errorMsg: string) => void,
     originalReq?: () => Promise<any>,
     hasRetried = false
   ): Promise<any> => {
-    // Only axios 401s can trigger refresh
     if (axios.isAxiosError(error) && error.response?.status === 401) {
-      // Check if we should try to refresh the token
       const shouldRefresh = error.response.data?.error === "Unauthorized" && !hasRetried;
-
+  
       if (shouldRefresh) {
         try {
-          // If there's already a refresh in progress, wait for it instead of starting a new one
           if (!globalRefreshPromise) {
             globalRefreshPromise = refreshAccessToken().finally(() => {
-              globalRefreshPromise = null; // Clear the promise when done
+              globalRefreshPromise = null;
             });
           }
-          
-          // Wait for the refresh to complete
+  
           await globalRefreshPromise;
-          
-          // If we have an original request function, retry it
+  
           if (originalReq) {
             try {
               return await originalReq();
             } catch (retryError) {
-              // If the retry fails after a token refresh, handle it as a new error
-              // but with hasRetried=true to prevent infinite loops
               return handleError(
-                retryError as AxiosError | Error, 
-                fallbackMessage, 
-                undefined, // No further retries
-                true // Mark as retried
+                retryError as AxiosError | Error,
+                fallbackMessage,
+                setError,
+                undefined,
+                true
               );
             }
           }
           return;
         } catch (refreshError) {
-          // Refresh itself failed → show error (removeProfile already called in refreshAccessToken)
           const msg = extractErrorMessage(
             refreshError as AxiosError | Error,
             "Session expired, please log in again."
           );
-          toast.error(msg);
+          if (setError) {
+            setError(msg);
+          } else {
+            toast.error(msg);
+          }
           return;
         }
       } else {
-        // Either unauthorized without the right condition or already retried → logout
         removeProfile();
-        toast.error("Session expired, please log in again.");
+        const msg = "Session expired, please log in again.";
+        if (setError) {
+          setError(msg);
+        } else {
+          toast.error(msg);
+        }
         return;
       }
     }
-
-    // Any other error: just show it
+  
     const message = extractErrorMessage(error, fallbackMessage);
-    toast.error(message);
-  };
+    if (setError) {
+      setError(message);
+    } else {
+      toast.error(message);
+    }
+  };  
 
   return { handleError };
 };
