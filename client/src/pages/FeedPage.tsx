@@ -35,6 +35,7 @@ function FeedPage() {
       if (res.status !== 200) {
         throw new Error("Failed to fetch posts")
       }
+      console.log(res.data.posts)
       setPosts(res.data.posts)
     } catch (error) {
       handleError(error as AxiosError | Error, "Error fetching posts")
@@ -88,7 +89,8 @@ function FeedPage() {
                   avatarFallback=""
                   company="Unknown"
                   createdAt={formatDate(post.createdAt)}
-                  likesCount={post.likes.length}
+                  upvoteCount={post.upvoteCount}
+                  downvoteCount={post.downvoteCount}
                   commentsCount={0}
                 />
               )
@@ -107,7 +109,8 @@ function FeedPage() {
                 content={post.content}
                 avatarFallback=""
                 createdAt={formatDate(post.createdAt)}
-                likesCount={post.likes.length}
+                upvoteCount={post.upvoteCount}
+                downvoteCount={post.downvoteCount}
                 commentsCount={0}
               />
             )

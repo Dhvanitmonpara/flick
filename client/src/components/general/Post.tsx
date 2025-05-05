@@ -1,5 +1,5 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { FaHeart, FaComment, FaEye } from 'react-icons/fa';
+import { FaComment, FaEye, FaThumbsDown } from 'react-icons/fa';
 import { BsDot } from "react-icons/bs";
 import { HiDotsHorizontal } from "react-icons/hi";
 import {
@@ -10,7 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { FaRegBookmark } from "react-icons/fa6";
+import { FaRegBookmark, FaThumbsUp } from "react-icons/fa6";
 import { TbMessageReport } from "react-icons/tb";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden"
 import { useState } from "react";
@@ -28,7 +28,8 @@ interface PostProps {
   company: string
   title: string
   content: string
-  likesCount: number
+  upvoteCount: number
+  downvoteCount: number
   commentsCount: number
   viewsCount: number
   usernameOrDisplayName: string
@@ -38,7 +39,7 @@ interface PostProps {
   }
 }
 
-function Post({ avatar, avatarFallback, createdAt, company, title, content, likesCount, commentsCount, viewsCount, usernameOrDisplayName, branch, topic }: PostProps) {
+function Post({ avatar, avatarFallback, createdAt, company, title, content, upvoteCount, downvoteCount, commentsCount, viewsCount, usernameOrDisplayName, branch, topic }: PostProps) {
   console.log(topic)
   return (
     <Card className="dark:bg-transparent bg-transparent border-x-0 border-t-0 border-b-zinc-300/60 dark:border-b-zinc-700/50 shadow-none rounded-none">
@@ -82,56 +83,99 @@ function Post({ avatar, avatarFallback, createdAt, company, title, content, like
         <p className="text-zinc-600 dark:text-zinc-400 pt-1">{content}</p>
       </CardContent>
       <CardFooter>
-        <EngagementComponent initialCounts={{ likes: likesCount, comments: commentsCount, views: viewsCount }} initialLiked key={title} show={['likes', 'comments', 'views']} />
+        <EngagementComponent initialCounts={{ upvotes: upvoteCount, downvotes: downvoteCount, comments: commentsCount, views: viewsCount }} key={title} show={['upvotes', "downvotes", 'comments', 'views']} />
       </CardFooter>
     </Card>
   )
 }
 
-type EngagementType = 'likes' | 'comments' | 'views';
+type EngagementType = 'upvotes' | 'downvotes' | 'comments' | 'views';
 
 type EngagementComponentProps = {
   initialCounts: {
-    likes?: number;
+    upvotes?: number;
+    downvotes?: number;
     comments?: number;
     views?: number;
   };
-  initialLiked?: boolean;
+  initialUpvoted?: boolean;
+  initialDownvoted?: boolean;
   show?: EngagementType[];
 };
 
 const EngagementComponent = ({
-  initialCounts = { likes: 0, comments: 0, views: 0 },
-  initialLiked = false,
-  show = ['likes', 'comments', 'views'],
+  initialCounts = { upvotes: 0, downvotes: 0, comments: 0, views: 0 },
+  initialUpvoted = false,
+  initialDownvoted = false,
+  show = ['upvotes', 'downvotes', 'comments', 'views'],
 }: EngagementComponentProps) => {
   const [counts, setCounts] = useState({
-    likes: initialCounts.likes || 0,
+    upvotes: initialCounts.upvotes || 0,
+    downvotes: initialCounts.downvotes || 0,
     comments: initialCounts.comments || 0,
     views: initialCounts.views || 0,
   });
-  const [liked, setLiked] = useState(initialLiked);
 
-  const handleLike = () => {
-    setLiked(!liked);
+  const [upvoted, setUpvoted] = useState(initialUpvoted);
+  const [downvoted, setDownvoted] = useState(initialDownvoted);
+
+  const handleUpvote = () => {
+    if (downvoted) {
+      setDownvoted(false);
+      setCounts(prev => ({
+        ...prev,
+        downvotes: prev.downvotes - 1
+      }));
+    }
+
+    setUpvoted(!upvoted);
     setCounts(prev => ({
       ...prev,
-      likes: liked ? prev.likes - 1 : prev.likes + 1
+      upvotes: upvoted ? prev.upvotes - 1 : prev.upvotes + 1
+    }));
+  };
+
+  const handleDownvote = () => {
+    if (upvoted) {
+      setUpvoted(false);
+      setCounts(prev => ({
+        ...prev,
+        upvotes: prev.upvotes - 1
+      }));
+    }
+
+    setDownvoted(!downvoted);
+    setCounts(prev => ({
+      ...prev,
+      downvotes: downvoted ? prev.downvotes - 1 : prev.downvotes + 1
     }));
   };
 
   return (
     <div className="flex flex-wrap items-center gap-5">
-      {show.includes('likes') && (
+      {show.includes('upvotes') && (
         <div className="flex items-center gap-1">
           <button
-            onClick={handleLike}
-            aria-label={liked ? 'Unlike' : 'Like'}
+            onClick={handleUpvote}
+            aria-label={upvoted ? 'Remove upvote' : 'Upvote'}
             className="p-0.5 focus:outline-none"
           >
-            <FaHeart className={`${liked ? "text-red-500" : "text-gray-400"} hover:scale-110 transition-all text-lg`} />
+            <FaThumbsUp className={`${upvoted ? "text-blue-500" : "text-gray-400"} hover:scale-110 transition-all text-lg`} />
           </button>
-          <span onClick={handleLike} className="text-sm text-gray-600 dark:text-gray-400 w-3 cursor-pointer select-none">{counts.likes}</span>
+          <span className="text-sm text-gray-600 dark:text-gray-400 w-3 cursor-pointer select-none">{counts.upvotes}</span>
+        </div>
+      )}
+
+      {show.includes('downvotes') && (
+        <div className="flex items-center gap-1">
+          <button
+            onClick={handleDownvote}
+            aria-label={downvoted ? 'Remove downvote' : 'Downvote'}
+            className="p-0.5 focus:outline-none"
+          >
+            <FaThumbsDown className={`${downvoted ? "text-red-500" : "text-gray-400"} hover:scale-110 transition-all text-lg`} />
+          </button>
+          <span className="text-sm text-gray-600 dark:text-gray-400 w-3 cursor-pointer select-none">{counts.downvotes}</span>
         </div>
       )}
 

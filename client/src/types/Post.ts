@@ -7,7 +7,9 @@ export interface IPost extends Document {
   postedBy: string | IUser;
   isBanned: boolean;
   isShadowBanned: boolean;
-  likes: string[];
+  karma: number;
+  upvoteCount: number;
+  downvoteCount: number;
   views: number;
   createdAt: string;
   updatedAt: string;

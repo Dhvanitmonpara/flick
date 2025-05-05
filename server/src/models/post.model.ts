@@ -14,6 +14,7 @@ const postSchema = new mongoose.Schema({
     ref: "User",
     required: true,
   },
+  karma: { type: Number, default: 0 },
   isBanned: {
     type: Boolean,
     default: false,
@@ -22,12 +23,6 @@ const postSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
-  likes: [
-    {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-    },
-  ],
   views: {
     type: Number,
     default: 0,

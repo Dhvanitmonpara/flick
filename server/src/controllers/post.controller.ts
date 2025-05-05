@@ -111,24 +111,134 @@ const getPostsForFeed = async (req: Request, res: Response) => {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
 
-    const user = req.user
+    const user = req.user;
 
-    const posts = await PostModel.find({
-      isBanned: false,
-      isShadowBanned: false,
-    })
-      .populate({
-        path: "postedBy",
-        select: "username _id college branch bookmarks",
-        populate: {
-          path: "college",
-          select: "name _id profile email",
+    const posts = await PostModel.aggregate([
+      {
+        $match: {
+          isBanned: false,
+          isShadowBanned: false,
         },
-      })
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit);
-
+      },
+      {
+        $sort: { createdAt: -1 },
+      },
+      {
+        $skip: (page - 1) * limit,
+      },
+      {
+        $limit: limit,
+      },
+      // Lookup postedBy user
+      {
+        $lookup: {
+          from: "users", // your User collection name (make sure it's correct)
+          localField: "postedBy",
+          foreignField: "_id",
+          as: "postedBy",
+        },
+      },
+      {
+        $unwind: {
+          path: "$postedBy",
+          preserveNullAndEmptyArrays: true, // in case poster got deleted
+        },
+      },
+      // Lookup college inside postedBy
+      {
+        $lookup: {
+          from: "colleges", // your College collection name
+          localField: "postedBy.college",
+          foreignField: "_id",
+          as: "postedBy.college",
+        },
+      },
+      {
+        $unwind: {
+          path: "$postedBy.college",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      // Lookup votes to count upvotes and downvotes
+      {
+        $lookup: {
+          from: "votes", // Reference to the votes collection
+          localField: "_id", // The post _id field
+          foreignField: "postId", // The postId in the votes collection
+          as: "votes", // Alias for the lookup result
+        },
+      },
+      // Add fields for counting upvotes and downvotes
+      {
+        $addFields: {
+          upvoteCount: {
+            $size: {
+              $filter: {
+                input: "$votes",
+                as: "vote",
+                cond: { $eq: ["$$vote.voteType", "upvote"] }, // Filter for upvotes
+              },
+            },
+          },
+          downvoteCount: {
+            $size: {
+              $filter: {
+                input: "$votes",
+                as: "vote",
+                cond: { $eq: ["$$vote.voteType", "downvote"] }, // Filter for downvotes
+              },
+            },
+          },
+          karma: {
+            $subtract: [
+              {
+                $size: {
+                  $filter: {
+                    input: "$votes",
+                    as: "vote",
+                    cond: { $eq: ["$$vote.voteType", "upvote"] }, // Count of upvotes
+                  },
+                },
+              },
+              {
+                $size: {
+                  $filter: {
+                    input: "$votes",
+                    as: "vote",
+                    cond: { $eq: ["$$vote.voteType", "downvote"] }, // Count of downvotes
+                  },
+                },
+              },
+            ],
+          },
+        },
+      },
+      // Project final output fields
+      {
+        $project: {
+          title: 1,
+          content: 1,
+          views: 1,
+          createdAt: 1,
+          karma: 1,
+          upvoteCount: 1,
+          downvoteCount: 1,
+          postedBy: {
+            _id: 1,
+            username: 1,
+            branch: 1,
+            bookmarks: 1,
+            college: {
+              _id: 1,
+              name: 1,
+              profile: 1,
+              email: 1,
+            },
+          },
+        },
+      },
+    ]);
+    
     res.status(200).json({ success: true, posts });
   } catch (error) {
     handleError(error as ApiError, res, "Error getting posts");
