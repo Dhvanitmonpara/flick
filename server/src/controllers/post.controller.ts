@@ -18,7 +18,9 @@ const createPost = async (req: Request, res: Response) => {
       const msg =
         result.reasons.length === 1
           ? result.reasons[0]
-          : result.reasons.slice(0, -1).join(", ") + " and " + result.reasons.at(-1);
+          : result.reasons.slice(0, -1).join(", ") +
+            " and " +
+            result.reasons.at(-1);
 
       throw new ApiError(400, `Your post was blocked because ${msg}.`);
     }
@@ -105,7 +107,32 @@ const deletePost = async (req: Request, res: Response) => {
 };
 
 const getPostsForFeed = async (req: Request, res: Response) => {
-  //
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+
+    const user = req.user
+
+    const posts = await PostModel.find({
+      isBanned: false,
+      isShadowBanned: false,
+    })
+      .populate({
+        path: "postedBy",
+        select: "username _id college branch bookmarks",
+        populate: {
+          path: "college",
+          select: "name _id profile email",
+        },
+      })
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit);
+
+    res.status(200).json({ success: true, posts });
+  } catch (error) {
+    handleError(error as ApiError, res, "Error getting posts");
+  }
 };
 
 const getPost = async (req: Request, res: Response) => {

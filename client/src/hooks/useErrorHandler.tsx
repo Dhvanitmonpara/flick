@@ -2,6 +2,7 @@
 import { env } from "@/conf/env";
 import useProfileStore from "@/store/profileStore";
 import axios, { AxiosError } from "axios";
+import { useCallback } from "react";
 import { toast } from "sonner";
 
 let globalRefreshPromise: Promise<any> | null = null;
@@ -10,7 +11,7 @@ export const useErrorHandler = () => {
   const { setProfile, removeProfile } = useProfileStore();
 
   // 1) Refresh endpoint
-  const refreshAccessToken = async () => {
+  const refreshAccessToken = useCallback(async () => {
     if (!env.serverApiEndpoint) {
       console.error("Missing VITE_SERVER_API_ENDPOINT env variable");
       throw new Error("Server API URL is not defined");
@@ -29,7 +30,7 @@ export const useErrorHandler = () => {
       removeProfile();
       throw error;
     }
-  };
+  }, [removeProfile, setProfile])
 
   // 2) Pull a human‑friendly message out of any Error/AxiosError
   const extractErrorMessage = (
@@ -47,7 +48,7 @@ export const useErrorHandler = () => {
     return error.message || fallback;
   };
   
-  const handleError = async (
+  const handleError = useCallback(async (
     error: AxiosError | Error,
     fallbackMessage: string,
     setError?: (errorMsg: string) => void,
@@ -111,7 +112,7 @@ export const useErrorHandler = () => {
     } else {
       toast.error(message);
     }
-  };  
+  }, [removeProfile, refreshAccessToken]);
 
   return { handleError };
 };
