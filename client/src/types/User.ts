@@ -5,6 +5,7 @@ export interface IUser {
   _id: string
   email?: string
   lookupEmail?: string
+  username: string
   branch: string
   college: string | ICollege
   bookmarks: string[] | IPost[]

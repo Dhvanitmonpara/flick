@@ -9,6 +9,6 @@ export interface IPost extends Document {
   isShadowBanned: boolean;
   likes: string[];
   views: number;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
