@@ -110,10 +110,9 @@ const getPostsForFeed = async (req: Request, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
+    const userId = req.query.user as string || null; 
 
-    const user = req.user;
-
-    const posts = await PostModel.aggregate([
+    const aggregationPipeline: any[] = [
       {
         $match: {
           isBanned: false,
@@ -129,10 +128,9 @@ const getPostsForFeed = async (req: Request, res: Response) => {
       {
         $limit: limit,
       },
-      // Lookup postedBy user
       {
         $lookup: {
-          from: "users", // your User collection name (make sure it's correct)
+          from: "users",
           localField: "postedBy",
           foreignField: "_id",
           as: "postedBy",
@@ -141,13 +139,12 @@ const getPostsForFeed = async (req: Request, res: Response) => {
       {
         $unwind: {
           path: "$postedBy",
-          preserveNullAndEmptyArrays: true, // in case poster got deleted
+          preserveNullAndEmptyArrays: true,
         },
       },
-      // Lookup college inside postedBy
       {
         $lookup: {
-          from: "colleges", // your College collection name
+          from: "colleges",
           localField: "postedBy.college",
           foreignField: "_id",
           as: "postedBy.college",
@@ -159,16 +156,14 @@ const getPostsForFeed = async (req: Request, res: Response) => {
           preserveNullAndEmptyArrays: true,
         },
       },
-      // Lookup votes to count upvotes and downvotes
       {
         $lookup: {
-          from: "votes", // Reference to the votes collection
-          localField: "_id", // The post _id field
-          foreignField: "postId", // The postId in the votes collection
-          as: "votes", // Alias for the lookup result
+          from: "votes",
+          localField: "_id",
+          foreignField: "postId",
+          as: "votes",
         },
       },
-      // Add fields for counting upvotes and downvotes
       {
         $addFields: {
           upvoteCount: {
@@ -176,7 +171,7 @@ const getPostsForFeed = async (req: Request, res: Response) => {
               $filter: {
                 input: "$votes",
                 as: "vote",
-                cond: { $eq: ["$$vote.voteType", "upvote"] }, // Filter for upvotes
+                cond: { $eq: ["$$vote.voteType", "upvote"] },
               },
             },
           },
@@ -185,13 +180,51 @@ const getPostsForFeed = async (req: Request, res: Response) => {
               $filter: {
                 input: "$votes",
                 as: "vote",
-                cond: { $eq: ["$$vote.voteType", "downvote"] }, // Filter for downvotes
+                cond: { $eq: ["$$vote.voteType", "downvote"] },
               },
             },
           },
         },
       },
-      // Project final output fields
+    ];
+
+    // 👉 If user exists, push userVote lookup
+    if (userId) {
+      aggregationPipeline.push(
+        {
+          $lookup: {
+            from: "votes",
+            let: { postId: "$_id", userId: new mongoose.Types.ObjectId(userId) },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $and: [
+                      { $eq: ["$postId", "$$postId"] },
+                      { $eq: ["$userId", "$$userId"] },
+                    ],
+                  },
+                },
+              },
+              {
+                $project: {
+                  _id: 0,
+                  voteType: 1,
+                },
+              },
+            ],
+            as: "userVote",
+          },
+        },
+        {
+          $addFields: {
+            userVote: { $arrayElemAt: ["$userVote.voteType", 0] },
+          },
+        }
+      );
+    }
+
+    aggregationPipeline.push(
       {
         $project: {
           title: 1,
@@ -200,6 +233,7 @@ const getPostsForFeed = async (req: Request, res: Response) => {
           createdAt: 1,
           upvoteCount: 1,
           downvoteCount: 1,
+          userVote: 1,
           postedBy: {
             _id: 1,
             username: 1,
@@ -213,8 +247,10 @@ const getPostsForFeed = async (req: Request, res: Response) => {
             },
           },
         },
-      },
-    ]);
+      }
+    );
+
+    const posts = await PostModel.aggregate(aggregationPipeline);
 
     res.status(200).json({ success: true, posts });
   } catch (error) {

@@ -1,6 +1,7 @@
 import Post from "@/components/general/Post"
 import { env } from "@/conf/env"
 import { useErrorHandler } from "@/hooks/useErrorHandler"
+import useProfileStore from "@/store/profileStore"
 import { ICollege } from "@/types/College"
 import { IPost } from "@/types/Post"
 import { IUser } from "@/types/User"
@@ -18,19 +19,20 @@ function isUser(obj: unknown): obj is IUser {
 
 function isCollege(obj: unknown): obj is ICollege {
   return typeof obj === "object" && obj !== null && "profile" in obj && "name" in obj;
-}  
+}
 
 function FeedPage() {
 
   const [posts, setPosts] = useState<IPost[] | null>(null)
   const [loading, setLoading] = useState(false)
   const { handleError } = useErrorHandler()
+  const { profile } = useProfileStore()
 
   const fetchPosts = useCallback(async () => {
     try {
       setLoading(true)
 
-      const res = await axios.get(`${env.serverApiEndpoint}/posts/feed`)
+      const res = await axios.get(`${env.serverApiEndpoint}/posts/feed?user=${profile._id}`)
 
       if (res.status !== 200) {
         throw new Error("Failed to fetch posts")
@@ -42,7 +44,7 @@ function FeedPage() {
     } finally {
       setLoading(false)
     }
-  }, [handleError])
+  }, [handleError, profile._id])
 
   useEffect(() => {
     document.title = "Feed | Flick"
@@ -80,7 +82,9 @@ function FeedPage() {
               return (
                 <Post
                   key={post._id}
+                  _id={post._id}
                   avatar=""
+                  userVote={post.userVote ?? null}
                   usernameOrDisplayName="Unknown"
                   title={post.title}
                   branch="Unknown"
@@ -92,17 +96,19 @@ function FeedPage() {
                   upvoteCount={post.upvoteCount}
                   downvoteCount={post.downvoteCount}
                   commentsCount={0}
-                />
-              )
-            }
+                  />
+                )
+              }
 
             // postedBy is a full IUser object here
             return (
               <Post
-                key={post._id}
+              key={post._id}
+                _id={post._id}
                 avatar={isCollege(postedBy.college) ? postedBy.college.profile : ""}
-                company={isCollege(postedBy.college) ? postedBy.college.name : "Unknown College"}                             
+                company={isCollege(postedBy.college) ? postedBy.college.name : "Unknown College"}
                 usernameOrDisplayName={postedBy.username}
+                userVote={post.userVote ?? null}
                 title={post.title}
                 branch={postedBy.branch}
                 viewsCount={post.views}

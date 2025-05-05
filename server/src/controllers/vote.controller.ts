@@ -9,6 +9,7 @@ import { CommentModel } from "../models/comments.model.js";
 export const createVote = async (req: Request, res: Response) => {
   try {
     const { voteType, targetId, targetType } = req.body;
+    console.log(voteType, targetId, targetType)
 
     if (!voteType || !targetId || !targetType) {
       throw new ApiError(
@@ -30,6 +31,7 @@ export const createVote = async (req: Request, res: Response) => {
       commentId: targetType === "comment" ? targetId : null,
       userId: req.user?._id,
       voteType,
+      type: targetType
     });
 
     if (!vote) throw new ApiError(500, "Failed to create vote");

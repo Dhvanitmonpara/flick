@@ -1,5 +1,5 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { FaComment, FaEye, FaThumbsDown } from 'react-icons/fa';
+import { FaComment, FaEye } from 'react-icons/fa';
 import { BsDot } from "react-icons/bs";
 import { HiDotsHorizontal } from "react-icons/hi";
 import {
@@ -10,27 +10,33 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { FaRegBookmark, FaThumbsUp } from "react-icons/fa6";
+import { FaRegBookmark } from "react-icons/fa6";
 import { TbMessageReport } from "react-icons/tb";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden"
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { PiArrowFatUpFill, PiArrowFatDownFill } from "react-icons/pi";
+import axios, { AxiosError } from "axios";
+import { env } from "@/conf/env";
+import { useErrorHandler } from "@/hooks/useErrorHandler";
 
 interface PostProps {
   avatar: string,
   avatarFallback: string
   createdAt: string
   company: string
+  _id: string
   title: string
   content: string
   upvoteCount: number
   downvoteCount: number
   commentsCount: number
+  userVote: "upvote" | "downvote" | null
   viewsCount: number
   usernameOrDisplayName: string
   branch: string
@@ -39,7 +45,7 @@ interface PostProps {
   }
 }
 
-function Post({ avatar, avatarFallback, createdAt, company, title, content, upvoteCount, downvoteCount, commentsCount, viewsCount, usernameOrDisplayName, branch, topic }: PostProps) {
+function Post({ avatar, userVote, avatarFallback, _id, createdAt, company, title, content, upvoteCount, downvoteCount, commentsCount, viewsCount, usernameOrDisplayName, branch, topic }: PostProps) {
   console.log(topic)
   return (
     <Card className="dark:bg-transparent bg-transparent border-x-0 border-t-0 border-b-zinc-300/60 dark:border-b-zinc-700/50 shadow-none rounded-none">
@@ -83,7 +89,7 @@ function Post({ avatar, avatarFallback, createdAt, company, title, content, upvo
         <p className="text-zinc-600 dark:text-zinc-400 pt-1">{content}</p>
       </CardContent>
       <CardFooter>
-        <EngagementComponent initialCounts={{ upvotes: upvoteCount, downvotes: downvoteCount, comments: commentsCount, views: viewsCount }} key={title} show={['upvotes', "downvotes", 'comments', 'views']} />
+        <EngagementComponent userVote={userVote} _id={_id} targetType="post" initialCounts={{ upvotes: upvoteCount, downvotes: downvoteCount, comments: commentsCount, views: viewsCount }} key={title} show={['upvotes', "downvotes", 'comments', 'views']} />
       </CardFooter>
     </Card>
   )
@@ -91,105 +97,137 @@ function Post({ avatar, avatarFallback, createdAt, company, title, content, upvo
 
 type EngagementType = 'upvotes' | 'downvotes' | 'comments' | 'views';
 
+type Count = {
+  upvotes?: number;
+  downvotes?: number;
+  comments?: number;
+  views?: number;
+}
+
 type EngagementComponentProps = {
-  initialCounts: {
-    upvotes?: number;
-    downvotes?: number;
-    comments?: number;
-    views?: number;
-  };
+  initialCounts: Count;
+  _id: string
+  targetType: 'post' | 'comment'
   initialUpvoted?: boolean;
   initialDownvoted?: boolean;
+  userVote: "upvote" | "downvote" | null
   show?: EngagementType[];
 };
 
 const EngagementComponent = ({
   initialCounts = { upvotes: 0, downvotes: 0, comments: 0, views: 0 },
-  initialUpvoted = false,
-  initialDownvoted = false,
+  _id,
+  userVote,
+  targetType = 'post',
   show = ['upvotes', 'downvotes', 'comments', 'views'],
 }: EngagementComponentProps) => {
-  const [counts, setCounts] = useState({
-    upvotes: initialCounts.upvotes || 0,
-    downvotes: initialCounts.downvotes || 0,
-    comments: initialCounts.comments || 0,
-    views: initialCounts.views || 0,
-  });
+  const [isVoting, setIsVoting] = useState(false);
+  const [optimisticCounts, setOptimisticCounts] = useState(initialCounts);
 
-  const [upvoted, setUpvoted] = useState(initialUpvoted);
-  const [downvoted, setDownvoted] = useState(initialDownvoted);
+  const [upvoted, setUpvoted] = useState(userVote === 'upvote');
+  const [downvoted, setDownvoted] = useState(userVote === 'downvote');
 
-  const handleUpvote = () => {
-    if (downvoted) {
-      setDownvoted(false);
-      setCounts(prev => ({
-        ...prev,
-        downvotes: prev.downvotes - 1
-      }));
+  const { handleError } = useErrorHandler()
+
+  useEffect(() => {
+    setUpvoted(userVote === 'upvote');
+    setDownvoted(userVote === 'downvote');
+  }, [userVote]);
+
+  const getUpdatedCounts = (prevCounts: Count, upvoted: boolean, downvoted: boolean, type: 'upvote' | 'downvote') => {
+    const newCounts = { ...prevCounts };
+    if (type === 'upvote') {
+      if (downvoted) newCounts.downvotes = (newCounts.downvotes ?? 0) - 1;
+      newCounts.upvotes = (newCounts.upvotes ?? 0) + (upvoted ? -1 : 1);
+    } else {
+      if (upvoted) newCounts.upvotes = (newCounts.upvotes ?? 0) - 1;
+      newCounts.downvotes = (newCounts.downvotes ?? 0) + (downvoted ? -1 : 1);
     }
-
-    setUpvoted(!upvoted);
-    setCounts(prev => ({
-      ...prev,
-      upvotes: upvoted ? prev.upvotes - 1 : prev.upvotes + 1
-    }));
+    return newCounts;
   };
 
-  const handleDownvote = () => {
-    if (upvoted) {
-      setUpvoted(false);
-      setCounts(prev => ({
-        ...prev,
-        upvotes: prev.upvotes - 1
-      }));
+  const handleVote = async (type: 'upvote' | 'downvote') => {
+    if (isVoting) return;
+
+    const previousCounts = optimisticCounts;
+    const prevUpvoted = upvoted;
+    const prevDownvoted = downvoted;
+
+    let action: 'post' | 'delete' = 'post'
+
+    if (type === 'upvote') {
+      if (upvoted) action = 'delete';
+      else if (downvoted) action = 'delete';
+    } else {
+      if (downvoted) action = 'delete';
+      else if (upvoted) action = 'delete';
     }
 
-    setDownvoted(!downvoted);
-    setCounts(prev => ({
-      ...prev,
-      downvotes: downvoted ? prev.downvotes - 1 : prev.downvotes + 1
-    }));
+    setOptimisticCounts(prev => getUpdatedCounts(prev, upvoted, downvoted, type));
+
+    if (type === 'upvote') {
+      if (downvoted) setDownvoted(false);
+      setUpvoted(!upvoted);
+    } else {
+      if (upvoted) setUpvoted(false);
+      setDownvoted(!downvoted);
+    }
+
+    setIsVoting(true);
+    try {
+      if (action === 'post') {
+        await axios.post(`${env.serverApiEndpoint}/votes`, {
+          voteType: type,
+          targetId: _id,
+          targetType
+        }, { withCredentials: true });
+      } else if (action === 'delete') {
+        await axios.delete(`${env.serverApiEndpoint}/votes`, {
+          data: { targetId: _id, targetType },
+          withCredentials: true,
+        });
+      }
+    } catch (error) {
+      handleError(error as AxiosError | Error, "Failed to update vote");
+      setOptimisticCounts(previousCounts);
+      setUpvoted(prevUpvoted);
+      setDownvoted(prevDownvoted);
+    } finally {
+      setIsVoting(false);
+    }
   };
 
   return (
     <div className="flex flex-wrap items-center gap-5">
       {show.includes('upvotes') && (
         <div className="flex items-center gap-1">
-          <button
-            onClick={handleUpvote}
-            aria-label={upvoted ? 'Remove upvote' : 'Upvote'}
-            className="p-0.5 focus:outline-none"
-          >
-            <FaThumbsUp className={`${upvoted ? "text-blue-500" : "text-gray-400"} hover:scale-110 transition-all text-lg`} />
+          <button disabled={isVoting} onClick={() => handleVote("upvote")} aria-label={upvoted ? 'Remove upvote' : 'Upvote'} className="p-0.5 focus:outline-none">
+            <PiArrowFatUpFill className={`${upvoted ? "text-blue-500" : "text-gray-400"} hover:scale-110 transition-all text-lg`} />
           </button>
-          <span className="text-sm text-gray-600 dark:text-gray-400 w-3 cursor-pointer select-none">{counts.upvotes}</span>
+          <span className="text-sm text-gray-600 dark:text-gray-400 w-3 cursor-pointer select-none">{optimisticCounts.upvotes}</span>
         </div>
       )}
 
       {show.includes('downvotes') && (
         <div className="flex items-center gap-1">
-          <button
-            onClick={handleDownvote}
-            aria-label={downvoted ? 'Remove downvote' : 'Downvote'}
-            className="p-0.5 focus:outline-none"
-          >
-            <FaThumbsDown className={`${downvoted ? "text-red-500" : "text-gray-400"} hover:scale-110 transition-all text-lg`} />
+          <button disabled={isVoting} onClick={() => handleVote("downvote")} aria-label={downvoted ? 'Remove downvote' : 'Downvote'} className="p-0.5 focus:outline-none">
+            <PiArrowFatDownFill className={`${downvoted ? "text-red-500" : "text-gray-400"} hover:scale-110 transition-all text-lg`} />
           </button>
-          <span className="text-sm text-gray-600 dark:text-gray-400 w-3 cursor-pointer select-none">{counts.downvotes}</span>
+          <span className="text-sm text-gray-600 dark:text-gray-400 w-3 cursor-pointer select-none">{optimisticCounts.downvotes}</span>
         </div>
       )}
 
       {show.includes('comments') && (
         <div className="flex items-center gap-1">
           <FaComment className="text-gray-400 text-lg m-0.5" />
-          <span className="text-sm text-gray-600 dark:text-gray-400 w-3">{counts.comments}</span>
+          <span className="text-sm text-gray-600 dark:text-gray-400 w-3">{optimisticCounts.comments}</span>
         </div>
       )}
 
       {show.includes('views') && (
         <div className="flex items-center gap-1">
           <FaEye className="text-gray-400 text-lg m-0.5" />
-          <span className="text-sm text-gray-600 dark:text-gray-400 w-3">{counts.views}</span>
+          <span className="text-sm text-gray-600 dark:text-gray-400 w-3">{optimisticCounts.views}</span>
         </div>
       )}
     </div>
