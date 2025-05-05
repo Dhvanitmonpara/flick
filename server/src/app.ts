@@ -43,6 +43,7 @@ const commonAdminRoute = "/api/admin/v1/";
 
 import postRouter from "./routes/post.routes.js";
 import userRouter from "./routes/user.routes.js";
+import voteRouter from "./routes/vote.routes.js";
 import collegeRouter from "./routes/college.routes.js";
 import reportRouter from "./routes/manage.route.js";
 import adminRouter from "./routes/admin.routes.js";
@@ -51,6 +52,7 @@ import { verifyAdminJWT } from "./middleware/auth.middleware.js";
 // public routes
 app.use(`${commonPublicRoute}posts`, postRouter);
 app.use(`${commonPublicRoute}users`, userRouter);
+app.use(`${commonPublicRoute}votes`, voteRouter);
 
 // admin routes
 app.use(`${commonAdminRoute}reports`, verifyAdminJWT, reportRouter);

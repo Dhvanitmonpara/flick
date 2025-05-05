@@ -14,7 +14,6 @@ const postSchema = new mongoose.Schema({
     ref: "User",
     required: true,
   },
-  karma: { type: Number, default: 0 },
   isBanned: {
     type: Boolean,
     default: false,

@@ -189,28 +189,6 @@ const getPostsForFeed = async (req: Request, res: Response) => {
               },
             },
           },
-          karma: {
-            $subtract: [
-              {
-                $size: {
-                  $filter: {
-                    input: "$votes",
-                    as: "vote",
-                    cond: { $eq: ["$$vote.voteType", "upvote"] }, // Count of upvotes
-                  },
-                },
-              },
-              {
-                $size: {
-                  $filter: {
-                    input: "$votes",
-                    as: "vote",
-                    cond: { $eq: ["$$vote.voteType", "downvote"] }, // Count of downvotes
-                  },
-                },
-              },
-            ],
-          },
         },
       },
       // Project final output fields
@@ -220,7 +198,6 @@ const getPostsForFeed = async (req: Request, res: Response) => {
           content: 1,
           views: 1,
           createdAt: 1,
-          karma: 1,
           upvoteCount: 1,
           downvoteCount: 1,
           postedBy: {
@@ -238,7 +215,7 @@ const getPostsForFeed = async (req: Request, res: Response) => {
         },
       },
     ]);
-    
+
     res.status(200).json({ success: true, posts });
   } catch (error) {
     handleError(error as ApiError, res, "Error getting posts");

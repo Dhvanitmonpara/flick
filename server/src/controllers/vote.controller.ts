@@ -1,42 +1,109 @@
-// 1. Get the post and comment karma
-const post = await PostModel.findById(postId);
-const comment = commentId ? await CommentModel.findById(commentId) : null;
+import { Request, Response } from "express";
+import handleError from "../services/HandleError.js";
+import { ApiError } from "../utils/ApiError.js";
+import VoteModel from "../models/vote.model.js";
+import userModel from "../models/user.model.js"
+import { PostModel } from "../models/post.model.js";
+import { CommentModel } from "../models/comments.model.js";
 
-// 2. Update karma based on voteType
-let karmaChange = 0;
-if (voteType === "upvote") karmaChange = 1;
-else if (voteType === "downvote") karmaChange = -1;
+export const createVote = async (req: Request, res: Response) => {
+  try {
+    const { voteType, targetId, targetType } = req.body;
 
-// 3. Update post karma
-await PostModel.findByIdAndUpdate(postId, { 
-  $inc: { karma: karmaChange },
-});
+    if (!voteType || !targetId || !targetType) {
+      throw new ApiError(
+        400,
+        "Vote type, targetId, and targetType are required"
+      );
+    }
 
-// If it’s a comment, update comment karma too
-if (comment) {
-  await CommentModel.findByIdAndUpdate(commentId, { 
-    $inc: { karma: karmaChange },
-  });
-}
+    if (!["upvote", "downvote"].includes(voteType)) {
+      throw new ApiError(400, "Invalid vote type");
+    }
 
-// 4. Update user karma
-const user = await UserModel.findById(post.postedBy);
+    if (!["post", "comment"].includes(targetType)) {
+      throw new ApiError(400, "Invalid target type");
+    }
 
-// Calculate total karma for the user by summing all posts and comments karma
-const totalPostKarma = await PostModel.aggregate([
-  { $match: { postedBy: user._id } },
-  { $group: { _id: null, totalKarma: { $sum: "$karma" } } },
-]);
+    const vote = await VoteModel.create({
+      postId: targetType === "post" ? targetId : null,
+      commentId: targetType === "comment" ? targetId : null,
+      userId: req.user?._id,
+      voteType,
+    });
 
-const totalCommentKarma = await CommentModel.aggregate([
-  { $match: { postedBy: user._id } },
-  { $group: { _id: null, totalKarma: { $sum: "$karma" } } },
-]);
+    if (!vote) throw new ApiError(500, "Failed to create vote");
 
-// Sum total karma
-const totalKarma = (totalPostKarma[0]?.totalKarma || 0) + (totalCommentKarma[0]?.totalKarma || 0);
+    let target: any = null;
+    if (targetType === "post") {
+      target = await PostModel.findById(targetId).select("postedBy");
+    } else {
+      target = await CommentModel.findById(targetId).select("postedBy");
+    }
 
-// 5. Update user karma
-await UserModel.findByIdAndUpdate(user._id, {
-  karma: totalKarma,
-});
+    if (!target) throw new ApiError(404, `${targetType} not found`);
+
+    const ownerId = target.postedBy;
+    const karmaChange = voteType === "upvote" ? 1 : -1;
+
+    await userModel.findByIdAndUpdate(ownerId, {
+      $inc: { karma: karmaChange },
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Vote created successfully",
+    });
+
+  } catch (error) {
+    handleError(error as ApiError, res, "Failed to vote");
+  }
+};
+
+export const deleteVote = async (req: Request, res: Response) => {
+  try {
+    const { targetId, targetType } = req.body;
+
+    if (!targetId || !targetType) {
+      throw new ApiError(400, "targetId and targetType are required");
+    }
+
+    if (!["post", "comment"].includes(targetType)) {
+      throw new ApiError(400, "Invalid target type");
+    }
+
+    const existingVote = await VoteModel.findOneAndDelete({
+      userId: req.user?._id,
+      postId: targetType === "post" ? targetId : undefined,
+      commentId: targetType === "comment" ? targetId : undefined,
+    });
+
+    if (!existingVote) {
+      throw new ApiError(404, "Vote not found");
+    }
+
+    let target: any = null;
+    if (targetType === "post") {
+      target = await PostModel.findById(targetId).select("postedBy");
+    } else {
+      target = await CommentModel.findById(targetId).select("postedBy");
+    }
+
+    if (!target) throw new ApiError(404, `${targetType} not found`);
+
+    const ownerId = target.postedBy;
+    const karmaChange = existingVote.voteType === "upvote" ? -1 : 1; 
+
+    await userModel.findByIdAndUpdate(ownerId, {
+      $inc: { karma: karmaChange },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Vote deleted and karma updated successfully",
+    });
+
+  } catch (error) {
+    handleError(error as ApiError, res, "Failed to delete vote");
+  }
+};
