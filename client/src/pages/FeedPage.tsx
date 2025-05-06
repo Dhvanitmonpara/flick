@@ -1,32 +1,18 @@
 import Post from "@/components/general/Post"
 import { env } from "@/conf/env"
 import { useErrorHandler } from "@/hooks/useErrorHandler"
+import usePostStore from "@/store/postStore"
 import useProfileStore from "@/store/profileStore"
-import { ICollege } from "@/types/College"
-import { IPost } from "@/types/Post"
-import { IUser } from "@/types/User"
+import { formatDate, isCollege, isUser } from "@/utils/helpers"
 import axios, { AxiosError } from "axios"
 import { useCallback, useEffect, useState } from "react"
 
-function formatDate(dateString: string) {
-  const date = new Date(dateString);
-  return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
-}
-
-function isUser(obj: unknown): obj is IUser {
-  return typeof obj === "object" && obj !== null && "college" in obj && "branch" in obj;
-}
-
-function isCollege(obj: unknown): obj is ICollege {
-  return typeof obj === "object" && obj !== null && "profile" in obj && "name" in obj;
-}
-
 function FeedPage() {
 
-  const [posts, setPosts] = useState<IPost[] | null>(null)
   const [loading, setLoading] = useState(false)
   const { handleError } = useErrorHandler()
   const { profile } = useProfileStore()
+  const { setPosts, posts } = usePostStore()
 
   const fetchPosts = useCallback(async () => {
     try {
@@ -44,7 +30,7 @@ function FeedPage() {
     } finally {
       setLoading(false)
     }
-  }, [handleError, profile._id])
+  }, [handleError, profile._id, setPosts])
 
   useEffect(() => {
     document.title = "Feed | Flick"
@@ -96,14 +82,14 @@ function FeedPage() {
                   upvoteCount={post.upvoteCount}
                   downvoteCount={post.downvoteCount}
                   commentsCount={0}
-                  />
-                )
-              }
+                />
+              )
+            }
 
             // postedBy is a full IUser object here
             return (
               <Post
-              key={post._id}
+                key={post._id}
                 _id={post._id}
                 avatar={isCollege(postedBy.college) ? postedBy.college.profile : ""}
                 company={isCollege(postedBy.college) ? postedBy.college.name : "Unknown College"}

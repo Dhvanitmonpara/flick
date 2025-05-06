@@ -12,6 +12,7 @@ import FeedPage from './pages/FeedPage'
 import EmailVerificationPage from './pages/EmailVerificationPage'
 import * as React from 'react'
 import SetupUserPage from './pages/SetupUserPage'
+import PostPage from './pages/PostPage'
 
 // router
 const router = createBrowserRouter([
@@ -28,6 +29,10 @@ const router = createBrowserRouter([
         path: "",
         element: <AppLayout />,
         children: [
+          {
+            path: "/p/:id",
+            element: <PostPage />,
+          },
           {
             path: "",
             element: <FeedPage />,

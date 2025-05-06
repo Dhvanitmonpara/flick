@@ -110,7 +110,7 @@ const getPostsForFeed = async (req: Request, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
-    const userId = req.query.user as string || null; 
+    const userId = (req.query.user as string) || null;
 
     const aggregationPipeline: any[] = [
       {
@@ -194,7 +194,10 @@ const getPostsForFeed = async (req: Request, res: Response) => {
         {
           $lookup: {
             from: "votes",
-            let: { postId: "$_id", userId: new mongoose.Types.ObjectId(userId) },
+            let: {
+              postId: "$_id",
+              userId: new mongoose.Types.ObjectId(userId),
+            },
             pipeline: [
               {
                 $match: {
@@ -224,35 +227,39 @@ const getPostsForFeed = async (req: Request, res: Response) => {
       );
     }
 
-    aggregationPipeline.push(
-      {
-        $project: {
-          title: 1,
-          content: 1,
-          views: 1,
-          createdAt: 1,
-          upvoteCount: 1,
-          downvoteCount: 1,
-          userVote: 1,
-          postedBy: {
+    aggregationPipeline.push({
+      $project: {
+        title: 1,
+        content: 1,
+        views: 1,
+        createdAt: 1,
+        upvoteCount: 1,
+        downvoteCount: 1,
+        userVote: 1,
+        postedBy: {
+          _id: 1,
+          username: 1,
+          branch: 1,
+          bookmarks: 1,
+          college: {
             _id: 1,
-            username: 1,
-            branch: 1,
-            bookmarks: 1,
-            college: {
-              _id: 1,
-              name: 1,
-              profile: 1,
-              email: 1,
-            },
+            name: 1,
+            profile: 1,
+            email: 1,
           },
         },
-      }
-    );
+      },
+    });
 
     const posts = await PostModel.aggregate(aggregationPipeline);
 
-    res.status(200).json({ success: true, posts });
+    res.status(200).json({
+      posts,
+      meta: {
+        page,
+        limit,
+      },
+    });
   } catch (error) {
     handleError(error as ApiError, res, "Error getting posts");
   }

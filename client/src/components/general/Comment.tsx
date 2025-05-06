@@ -1,6 +1,3 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { BsDot } from "react-icons/bs";
-import { HiDotsHorizontal } from "react-icons/hi";
 import {
   Card,
   CardContent,
@@ -9,47 +6,41 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { FaRegBookmark } from "react-icons/fa6";
-import { TbMessageReport } from "react-icons/tb";
-import { VisuallyHidden } from "@radix-ui/react-visually-hidden"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { BsDot } from "react-icons/bs";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useNavigate } from "react-router-dom";
+import { TbMessageReport } from "react-icons/tb";
 import EngagementComponent from "./EngagementComponent";
+import { HiDotsHorizontal } from "react-icons/hi";
 
-interface PostProps {
-  avatar: string,
-  avatarFallback: string
-  createdAt: string
-  company: string
+interface CommentProps {
   _id: string
-  title: string
+  createdAt: string
   content: string
+  commentedBy: string
+  avatar: string
+  avatarFallback: string
+  userVote: "upvote" | "downvote" | null
+  college: string
+  branch: string
   upvoteCount: number
   downvoteCount: number
-  commentsCount: number
-  userVote: "upvote" | "downvote" | null
-  viewsCount: number
-  usernameOrDisplayName: string
-  branch: string
-  topic?: {
-    industry: string
-  }
 }
 
-function Post({ avatar, userVote, avatarFallback, _id, createdAt, company, title, content, upvoteCount, downvoteCount, commentsCount, viewsCount, usernameOrDisplayName, branch, topic }: PostProps) {
-  console.log(topic)
-  const navigate = useNavigate()
+function Comment({ avatar, avatarFallback, _id, userVote, createdAt, college, content, branch, commentedBy, upvoteCount, downvoteCount }: CommentProps) {
   return (
-    <Card onClick={() => navigate(`/p/${_id}`)} className="dark:bg-transparent bg-transparent border-x-0 border-t-0 border-b-zinc-300/60 dark:border-b-zinc-700/50 shadow-none rounded-none">
+    <Card className="dark:bg-transparent bg-transparent border-x-0 border-t-0 border-b-zinc-300/60 dark:border-b-zinc-700/50 shadow-none rounded-none">
       <CardHeader className="flex-row justify-between space-x-2 p-4">
         <div className="flex space-x-4">
           <VisuallyHidden>
-            <CardTitle>{title}</CardTitle>
+            <CardTitle>{college}</CardTitle>
             <CardDescription>{content}</CardDescription>
           </VisuallyHidden>
           <Avatar>
@@ -57,9 +48,9 @@ function Post({ avatar, userVote, avatarFallback, _id, createdAt, company, title
             <AvatarFallback>{avatarFallback}</AvatarFallback>
           </Avatar>
           <div>
-            <h2>{company}</h2>
+            <h2>{college}</h2>
             <p className="flex space-x-0.5 text-xs text-zinc-600 dark:text-zinc-400">
-              <span>{usernameOrDisplayName}</span>
+              <span>{commentedBy}</span>
               <BsDot size={16} />
               <span>{branch}</span>
               <BsDot size={16} />
@@ -82,14 +73,13 @@ function Post({ avatar, userVote, avatarFallback, _id, createdAt, company, title
         </DropdownMenu>
       </CardHeader>
       <CardContent>
-        <h2 className="text-xl font-semibold">{title}</h2>
         <p className="text-zinc-600 dark:text-zinc-400 pt-1">{content}</p>
       </CardContent>
       <CardFooter>
-        <EngagementComponent userVote={userVote} _id={_id} targetType="post" initialCounts={{ upvotes: upvoteCount, downvotes: downvoteCount, comments: commentsCount, views: viewsCount }} key={title} show={['upvotes', "downvotes", 'comments', 'views']} />
+        <EngagementComponent userVote={userVote} _id={_id} targetType="comment" initialCounts={{ upvotes: upvoteCount, downvotes: downvoteCount }} key={_id} show={['upvotes', "downvotes"]} />
       </CardFooter>
     </Card>
   )
 }
 
-export default Post
+export default Comment
