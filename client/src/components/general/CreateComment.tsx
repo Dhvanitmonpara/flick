@@ -20,7 +20,7 @@ const commentSchema = z.object({
 
 type CommentFormValues = z.infer<typeof commentSchema>;
 
-function CreateComment({ parentCommentId, setComments }: { parentCommentId?: string, setComments: React.Dispatch<React.SetStateAction<IComment[]>> }) {
+function CreateComment({ parentCommentId, setComments, defaultData }: { parentCommentId?: string, setComments?: React.Dispatch<React.SetStateAction<IComment[]>>, defaultData?: CommentFormValues }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const { handleError } = useErrorHandler();
@@ -29,7 +29,7 @@ function CreateComment({ parentCommentId, setComments }: { parentCommentId?: str
 
   const form = useForm<CommentFormValues>({
     resolver: zodResolver(commentSchema),
-    defaultValues: {
+    defaultValues: defaultData ?? {
       content: "",
     },
   });
@@ -52,7 +52,7 @@ function CreateComment({ parentCommentId, setComments }: { parentCommentId?: str
       if (res.status !== 201) throw new Error("Failed to create post");
 
       toast.success("Post created successfully!");
-      setComments((prev) => [...prev, res.data.comment]);
+      if (setComments) setComments((prev) => [...prev, res.data.comment]);
       form.reset();
 
     } catch (error) {

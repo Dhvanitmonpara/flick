@@ -28,8 +28,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage, Form } from "../ui/form";
 import { Input } from "../ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { CreatePostForm } from "../general/CreatePost";
+import CreateComment from "../general/CreateComment";
 
-type DialogType = "DELETE" | "REPORT" | "SAVE" | null;
+type DialogType = "DELETE" | "REPORT" | "EDIT" | "SAVE" | null;
 
 const ReportReasons = [
   "INAPPROPRIATE",
@@ -51,7 +53,7 @@ const reportSchema = z.object({
 
 type ReportFormValues = z.infer<typeof reportSchema>;
 
-function PostDropdown({ type, id }: { type: "post" | "comment", id: string }) {
+function PostDropdown({ type, id, editableData }: { type: ("post" | "comment"), id: string, editableData?: { title: string, content: string } }) {
   const [dialogType, setDialogType] = useState<DialogType>(null);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -67,7 +69,6 @@ function PostDropdown({ type, id }: { type: "post" | "comment", id: string }) {
     resolver: zodResolver(reportSchema),
     defaultValues: {
       message: "",
-      reason: ReportReasons[0],
     },
   });
 
@@ -128,7 +129,7 @@ function PostDropdown({ type, id }: { type: "post" | "comment", id: string }) {
             <span>Report</span>
           </DropdownMenuItem>
           {/* TODO: Add a component that asks for money when user wants to use this feature */}
-          <DropdownMenuItem>
+          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openDialog("EDIT") }}>
             <RiEdit2Fill />
             <span>Edit</span>
           </DropdownMenuItem>
@@ -182,8 +183,8 @@ function PostDropdown({ type, id }: { type: "post" | "comment", id: string }) {
                         <FormLabel>Reason</FormLabel>
                         <Select value={field.value} onValueChange={field.onChange} disabled={loading}>
                           <FormControl>
-                            <SelectTrigger className="w-[180px]">
-                              <SelectValue placeholder="Theme" />
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a reason" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -219,6 +220,15 @@ function PostDropdown({ type, id }: { type: "post" | "comment", id: string }) {
               </Form>
             </>
           )}
+          {dialogType === "EDIT" &&
+            <>
+              <DialogHeader>
+                <DialogTitle>Edit Post</DialogTitle>
+                <DialogDescription>Edit this post.</DialogDescription>
+              </DialogHeader>
+              {type === "post" ? <CreatePostForm defaultData={{title: editableData?.title || "", content: editableData?.content || ""}} /> : <CreateComment defaultData={{content: editableData?.content || ""}} />}
+            </>
+          }
         </DialogContent>
       </Dialog>
     </>

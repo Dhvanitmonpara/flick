@@ -50,7 +50,7 @@ function Comment({ avatar, avatarFallback, _id, userVote, createdAt, college, co
             </p>
           </div>
         </div>
-        <PostDropdown />
+        <PostDropdown id={_id} type="comment" key={_id} editableData={{ title: "", content }} />
       </CardHeader>
       <CardContent>
         <p className="text-zinc-600 dark:text-zinc-400 pt-1">{content}</p>

@@ -59,7 +59,7 @@ function Post({ avatar, userVote, avatarFallback, _id, createdAt, company, title
             </p>
           </div>
         </div>
-        <PostDropdown id={_id} type="post" key={_id} />
+        <PostDropdown id={_id} type="post" key={_id} editableData={{ title, content }} />
       </CardHeader>
       <CardContent>
         <h2 className="text-xl font-semibold">{title}</h2>
