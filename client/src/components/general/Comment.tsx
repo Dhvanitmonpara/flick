@@ -7,18 +7,10 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
-import { FaRegBookmark } from "react-icons/fa6";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { BsDot } from "react-icons/bs";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { TbMessageReport } from "react-icons/tb";
 import EngagementComponent from "./EngagementComponent";
-import { HiDotsHorizontal } from "react-icons/hi";
+import PostDropdown from "../actions/PostDropdown";
 
 interface CommentProps {
   _id: string
@@ -58,19 +50,7 @@ function Comment({ avatar, avatarFallback, _id, userVote, createdAt, college, co
             </p>
           </div>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger className="rounded-full p-2 text-lg transition-colors hover:bg-zinc-300/60 dark:hover:bg-zinc-700/60"><HiDotsHorizontal /></DropdownMenuTrigger>
-          <DropdownMenuContent>
-            <DropdownMenuItem>
-              <TbMessageReport />
-              <span>Report</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <FaRegBookmark />
-              <span>Save</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <PostDropdown />
       </CardHeader>
       <CardContent>
         <p className="text-zinc-600 dark:text-zinc-400 pt-1">{content}</p>

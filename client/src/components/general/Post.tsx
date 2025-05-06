@@ -1,6 +1,5 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { BsDot } from "react-icons/bs";
-import { HiDotsHorizontal } from "react-icons/hi";
 import {
   Card,
   CardContent,
@@ -9,17 +8,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { FaRegBookmark } from "react-icons/fa6";
-import { TbMessageReport } from "react-icons/tb";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { useNavigate } from "react-router-dom";
 import EngagementComponent from "./EngagementComponent";
+import PostDropdown from "../actions/PostDropdown";
 
 interface PostProps {
   avatar: string,
@@ -67,19 +59,7 @@ function Post({ avatar, userVote, avatarFallback, _id, createdAt, company, title
             </p>
           </div>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger className="rounded-full p-2 text-lg transition-colors hover:bg-zinc-300/60 dark:hover:bg-zinc-700/60"><HiDotsHorizontal /></DropdownMenuTrigger>
-          <DropdownMenuContent>
-            <DropdownMenuItem>
-              <TbMessageReport />
-              <span>Report</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <FaRegBookmark />
-              <span>Save</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <PostDropdown id={_id} type="post" key={_id} />
       </CardHeader>
       <CardContent>
         <h2 className="text-xl font-semibold">{title}</h2>
