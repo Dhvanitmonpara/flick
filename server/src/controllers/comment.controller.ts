@@ -3,6 +3,8 @@ import { CommentModel } from "../models/comments.model.js";
 import mongoose from "mongoose";
 import { ApiError } from "../utils/ApiError.js";
 import handleError from "../services/HandleError.js";
+import VoteModel from "../models/vote.model.js";
+import { toObjectId } from "../utils/toObject.js";
 
 export const getCommentsByPostId = async (req: Request, res: Response) => {
   try {
@@ -192,5 +194,63 @@ export const createComment = async (req: Request, res: Response) => {
       .json({ message: "Comment created successfully.", comment: newComment });
   } catch (error) {
     handleError(error as ApiError, res, "Error creating comment");
+  }
+};
+
+export const updateComment = async (req: Request, res: Response) => {
+  try {
+    const content = req.body.content?.trim();
+    const { commentId } = req.params;
+
+    if (!content) {
+      throw new ApiError(400, "Content is required and cannot be empty");
+    }
+
+    const updatedComment = await CommentModel.findByIdAndUpdate(
+      toObjectId(commentId),
+      { $set: { content: content.trim() } },
+      { new: true }
+    );
+
+    if (!updatedComment) {
+      throw new ApiError(
+        404,
+        "Comment not found or you are not authorized to update it"
+      );
+    }
+
+    res.status(200).json({
+      success: true,
+      comment: updatedComment,
+      message: "Comment updated successfully",
+    });
+  } catch (error) {
+    handleError(error as ApiError, res, "Error updating comment");
+  }
+};
+
+export const deleteComment = async (req: Request, res: Response) => {
+  try {
+    const { commentId } = req.params;
+    if (!commentId) throw new ApiError(400, "Comment ID is required");
+    if (!req.user) throw new ApiError(401, "Unauthorized");
+
+    const objectCommentId = toObjectId(commentId)
+
+    const comment = await CommentModel.findById(objectCommentId);
+    if (!comment) throw new ApiError(404, "Comment not found");
+
+    if (!comment.commentedBy.equals(req.user._id)) {
+      throw new ApiError(403, "You are not authorized to delete this comment");
+    }
+
+    await VoteModel.deleteMany({ commentId });
+    await CommentModel.findByIdAndDelete(objectCommentId);
+
+    res
+      .status(200)
+      .json({ success: true, message: "Comment deleted successfully" });
+  } catch (error) {
+    handleError(error as ApiError, res, "Error deleting comment");
   }
 };

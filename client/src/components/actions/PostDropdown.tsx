@@ -77,7 +77,7 @@ function PostDropdown({ type, id, editableData }: { type: ("post" | "comment"), 
       setLoading(true);
 
       const res = await axios.delete(
-        `${env.serverApiEndpoint}/${type}s/delete`,
+        `${env.serverApiEndpoint}/${type}s/${id}`,
         { withCredentials: true }
       )
 
