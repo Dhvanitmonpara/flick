@@ -30,7 +30,7 @@ function FeedPage() {
       console.log(res.data.posts)
       setPosts(res.data.posts)
     } catch (error) {
-      handleError(error as AxiosError | Error, "Error fetching posts")
+      await handleError(error as AxiosError | Error, "Error fetching posts", undefined, () => fetchPosts(), "Failed to fetch posts")
     } finally {
       setLoading(false)
     }

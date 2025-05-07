@@ -25,14 +25,14 @@ function Header() {
         withCredentials: true,
       })
 
-      if (user.status !== 201) {
+      if (user.status !== 200) {
         toast.error(user.data.message || "Something went wrong while fetching user")
         return
       }
 
       setProfile(user.data.data)
     } catch (error) {
-      handleError(error as AxiosError | Error, "Something went wrong while fetching user", undefined, fetchUser)
+      handleError(error as AxiosError | Error, "Something went wrong while fetching user", undefined, () => fetchUser(), "Failed to fetch user")
     }
   }, [handleError, setProfile])
 

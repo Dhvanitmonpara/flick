@@ -40,7 +40,7 @@ function PostPage() {
       }
       setComments(res.data.comments)
     } catch (error) {
-      handleError(error as AxiosError | Error, "Error fetching comments")
+      await handleError(error as AxiosError | Error, "Error fetching comments", undefined, fetchComments, "Failed to fetch comments")
     } finally {
       setLoading(false)
     }

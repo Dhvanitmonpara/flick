@@ -112,7 +112,7 @@ export const CreatePostForm = ({ setOpen, defaultData, id }: { setOpen?: React.D
 
       if (setOpen) setOpen(false);
     } catch (error) {
-      await handleError(error as AxiosError | Error, "Failed to create post", setError, () => onSubmit(data));
+      await handleError(error as AxiosError | Error, "Failed to create post", setError, () => onSubmit(data), "Failed to create post");
     } finally {
       setLoading(false);
     }

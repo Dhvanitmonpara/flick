@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import axios, { isAxiosError } from "axios"
 import { toast } from "sonner"
 import { env } from "@/conf/env"
+import { IoMdEye, IoMdEyeOff } from "react-icons/io"
 
 const signInSchema = z.object({
   email: z.string().email("Email is invalid"),
@@ -21,6 +22,7 @@ type SignInFormData = z.infer<typeof signInSchema>
 
 function SignInPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isPasswordShowing, setIsPasswordShowing] = useState(false);
   const navigate = useNavigate()
 
   const {
@@ -74,18 +76,28 @@ function SignInPage() {
           )}
         </div>
 
-        <div>
+        <div className="w-full flex relative">
           <Input
+            id="password"
             className={inputStyling}
-            type="password"
             disabled={isSubmitting}
+            type={isPasswordShowing ? "text" : "password"}
             placeholder="••••••••"
             {...register("password")}
+            required
           />
-          {errors.password && (
-            <p className="text-sm text-red-500 mt-1">{errors.password.message}</p>
-          )}
+          <div
+            className="w-12 absolute right-0 flex justify-center items-center h-full cursor-pointer"
+            onClick={() => {
+              setIsPasswordShowing((prev) => !prev);
+            }}
+          >
+            {isPasswordShowing ? <IoMdEyeOff /> : <IoMdEye />}
+          </div>
         </div>
+        {errors.password && (
+          <p className="text-sm text-red-500 mt-1">{errors.password.message}</p>
+        )}
 
         <Button
           type="submit"

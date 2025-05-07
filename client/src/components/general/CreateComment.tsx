@@ -79,7 +79,7 @@ function CreateComment({ parentCommentId, defaultData, commentId, setOpen }: { p
 
       if (setOpen) setOpen(false);
     } catch (error) {
-      handleError(error as AxiosError | Error, "Failed to create comment", setError);
+      await handleError(error as AxiosError | Error, "Failed to create comment", setError, () => onSubmit(data), "Failed to create comment");
     } finally {
       setLoading(false);
     }

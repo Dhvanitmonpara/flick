@@ -71,8 +71,8 @@ export const useErrorHandler = () => {
     fallbackMessage: string,
     setError?: (errorMsg: string) => void,
     originalReq?: () => Promise<any>,
+    refreshFailMessage = "Session expired, please log in again.",
     hasRetried = false,
-    refreshFailMessage = "Session expired, please log in again."
   ): Promise<any> => {
     if (axios.isAxiosError(error) && error.response?.status === 401) {
       const shouldRefresh = error.response.data?.error === "Unauthorized" && !hasRetried;
@@ -101,8 +101,8 @@ export const useErrorHandler = () => {
                 fallbackMessage,
                 setError,
                 undefined,
+                refreshFailMessage,
                 true,
-                refreshFailMessage
               );
             }
           }

@@ -333,7 +333,7 @@ export const getUserData = async (req: Request, res: Response) => {
     };
 
     res
-      .status(201)
+      .status(200)
       .json({ message: "User fetched successfully!", data: user || "" });
   } catch (error) {
     handleError(error, res, "Failed to fetch a user");

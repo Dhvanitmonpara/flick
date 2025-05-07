@@ -92,7 +92,7 @@ function PostDropdown({ type, id, editableData }: { type: ("post" | "comment"), 
       if (type === "comment") removeComment(id);
 
     } catch (error) {
-      handleError(error as AxiosError | Error, `Failed to delete ${type}`)
+      handleError(error as AxiosError | Error, `Failed to delete ${type}`, undefined, () => handleDelete(), `Failed to delete ${type}`)
     } finally {
       setLoading(false)
       setOpen(false)
@@ -118,7 +118,7 @@ function PostDropdown({ type, id, editableData }: { type: ("post" | "comment"), 
       toast.success(`Successfully reported ${type}`)
 
     } catch (error) {
-      handleError(error as AxiosError | Error, `Failed to report ${type}`)
+      await handleError(error as AxiosError | Error, `Failed to report ${type}`, undefined, () => handleReport(data), `Failed to report ${type}`)
     } finally {
       setLoading(false)
       setOpen(false)
