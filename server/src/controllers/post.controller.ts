@@ -5,6 +5,8 @@ import { ApiError } from "../utils/ApiError.js";
 import mongoose from "mongoose";
 import { validatePost } from "../utils/moderator.js";
 import { toObjectId } from "../utils/toObject.js";
+import { CommentModel } from "../models/comments.model.js";
+import VoteModel from "../models/vote.model.js";
 
 const createPost = async (req: Request, res: Response) => {
   const { title, postedBy, content } = req.body;
@@ -79,32 +81,40 @@ const updatePost = async (req: Request, res: Response) => {
 };
 
 const deletePost = async (req: Request, res: Response) => {
-  const { postId } = req.params;
-
-  if (!postId) {
-    res.status(400).json({
-      success: false,
-      message: "Post id is required",
-    });
-  }
-
   try {
-    const response = await PostModel.findByIdAndDelete(toObjectId(postId));
-    if (!response) {
-      res.status(404).json({
-        success: false,
-        message: "Post not found",
-      });
-      return;
+    const { postId } = req.params;
+    if (!postId) throw new ApiError(400, "Post ID is required");
+
+    const objectPostId = toObjectId(postId);
+
+    const post = await PostModel.findById(objectPostId);
+    if (!post) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Post not found" });
     }
 
-    res.status(200).json({
-      success: true,
-      response,
-      message: "Post deleted successfully",
-    });
+    const commentIds = (
+      await CommentModel.find({ postId: objectPostId }, { _id: 1 })
+    ).map((c) => c._id);
+
+    if (commentIds.length > 0) {
+      await VoteModel.deleteMany({
+        $or: [{ commentId: { $in: commentIds } }, { postId: objectPostId }],
+      });
+    } else {
+      await VoteModel.deleteMany({ postId: objectPostId });
+    }
+
+    await CommentModel.deleteMany({ postId: objectPostId });
+
+    await post.deleteOne();
+
+    res
+      .status(200)
+      .json({ success: true, message: "Post deleted successfully" });
   } catch (error) {
-    handleError(error as ApiError, res, "Error deleting post");
+    handleError(error, res, "Error deleting post");
   }
 };
 

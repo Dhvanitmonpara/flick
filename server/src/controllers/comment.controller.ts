@@ -235,7 +235,7 @@ export const deleteComment = async (req: Request, res: Response) => {
     if (!commentId) throw new ApiError(400, "Comment ID is required");
     if (!req.user) throw new ApiError(401, "Unauthorized");
 
-    const objectCommentId = toObjectId(commentId)
+    const objectCommentId = toObjectId(commentId);
 
     const comment = await CommentModel.findById(objectCommentId);
     if (!comment) throw new ApiError(404, "Comment not found");
@@ -245,7 +245,7 @@ export const deleteComment = async (req: Request, res: Response) => {
     }
 
     await VoteModel.deleteMany({ commentId });
-    await CommentModel.findByIdAndDelete(objectCommentId);
+    await comment.deleteOne();
 
     res
       .status(200)
