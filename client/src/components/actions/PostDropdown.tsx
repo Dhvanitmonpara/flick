@@ -88,7 +88,7 @@ function PostDropdown({ type, id, editableData }: { type: ("post" | "comment"), 
       handleError(error as AxiosError | Error, `Failed to delete ${type}`)
     } finally {
       setLoading(false)
-      setDialogType(null)
+      setOpen(false)
     }
   }
 
@@ -97,7 +97,7 @@ function PostDropdown({ type, id, editableData }: { type: ("post" | "comment"), 
       setLoading(true)
 
       const res = await axios.post(
-        `${env.serverApiEndpoint}/${type}s/report`,
+        `${env.serverApiEndpoint}/reports`,
         {
           targetId: id,
           type,
@@ -107,14 +107,14 @@ function PostDropdown({ type, id, editableData }: { type: ("post" | "comment"), 
         { withCredentials: true }
       )
 
-      if (res.status !== 200) throw new Error(`Failed to report ${type}`)
+      if (res.status !== 201) throw new Error(`Failed to report ${type}`)
       toast.success(`Successfully reported ${type}`)
 
     } catch (error) {
       handleError(error as AxiosError | Error, `Failed to report ${type}`)
     } finally {
       setLoading(false)
-      setDialogType(null)
+      setOpen(false)
       form.reset()
     }
   }

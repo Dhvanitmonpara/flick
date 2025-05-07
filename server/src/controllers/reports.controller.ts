@@ -14,7 +14,7 @@ interface FieldToUpdate {
 export const createReport = async (req: Request, res: Response) => {
   try {
     const { targetId, type, reason, message } = req.body;
-    const userId = req.user?._id; // Always trust your auth middleware
+    const userId = req.user?._id;
 
     if (!targetId || !type || !reason || !message || !userId) {
       throw new ApiError(
@@ -23,7 +23,7 @@ export const createReport = async (req: Request, res: Response) => {
       );
     }
 
-    if (!["Post", "Comment"].includes(type)) {
+    if (!["post", "comment"].includes(type)) {
       throw new ApiError(400, "Invalid report type");
     }
 
@@ -34,6 +34,8 @@ export const createReport = async (req: Request, res: Response) => {
       reason,
       message,
     });
+
+    if(!report) throw new ApiError(500, "Failed to create report")
 
     res.status(201).json({
       success: true,

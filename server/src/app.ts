@@ -46,7 +46,8 @@ import commentRouter from "./routes/comment.routes.js";
 import userRouter from "./routes/user.routes.js";
 import voteRouter from "./routes/vote.routes.js";
 import collegeRouter from "./routes/college.routes.js";
-import reportRouter from "./routes/manage.route.js";
+import manageRouter from "./routes/manage.route.js";
+import reportRouter from "./routes/report.routes.js";
 import adminRouter from "./routes/admin.routes.js";
 import { verifyAdminJWT } from "./middleware/auth.middleware.js";
 
@@ -55,11 +56,12 @@ app.use(`${commonPublicRoute}posts`, postRouter);
 app.use(`${commonPublicRoute}users`, userRouter);
 app.use(`${commonPublicRoute}votes`, voteRouter);
 app.use(`${commonPublicRoute}comments`, commentRouter);
+app.use(`${commonPublicRoute}reports`, reportRouter);
 
 // admin routes
-app.use(`${commonAdminRoute}reports`, verifyAdminJWT, reportRouter);
+app.use(`${commonAdminRoute}reports`, verifyAdminJWT, manageRouter);
+app.use(`${commonAdminRoute}colleges`, verifyAdminJWT, collegeRouter);
 app.use(`${commonAdminRoute}auth`, adminRouter);
-app.use(`${commonAdminRoute}colleges`, collegeRouter);
 
 // Export server and app
 export { app, server, io, redis };
