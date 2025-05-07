@@ -37,7 +37,7 @@ const createPost = async (req: Request, res: Response) => {
       throw new ApiError(500, "Failed to create post in database");
     }
 
-    res.status(200).json({
+    res.status(201).json({
       success: true,
       response,
       message: "Post created successfully",
@@ -49,7 +49,8 @@ const createPost = async (req: Request, res: Response) => {
 
 const updatePost = async (req: Request, res: Response) => {
   try {
-    const { title, content, postId } = req.body;
+    const { title, content } = req.body;
+    const { postId } = req.params;
 
     if (!postId) throw new ApiError(400, "Post id is required");
     if (!title && !content)

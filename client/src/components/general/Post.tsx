@@ -17,7 +17,7 @@ interface PostProps {
   avatar: string,
   avatarFallback: string
   createdAt: string
-  company: string
+  college: string
   _id: string
   title: string
   content: string
@@ -26,14 +26,14 @@ interface PostProps {
   commentsCount: number
   userVote: "upvote" | "downvote" | null
   viewsCount: number
-  usernameOrDisplayName: string
+  username: string
   branch: string
   topic?: {
     industry: string
   }
 }
 
-function Post({ avatar, userVote, avatarFallback, _id, createdAt, company, title, content, upvoteCount, downvoteCount, commentsCount, viewsCount, usernameOrDisplayName, branch, topic }: PostProps) {
+function Post({ avatar, userVote, avatarFallback, _id, createdAt, college, title, content, upvoteCount, downvoteCount, commentsCount, viewsCount, username, branch, topic }: PostProps) {
   console.log(topic)
   const navigate = useNavigate()
   return (
@@ -49,9 +49,9 @@ function Post({ avatar, userVote, avatarFallback, _id, createdAt, company, title
             <AvatarFallback>{avatarFallback}</AvatarFallback>
           </Avatar>
           <div>
-            <h2>{company}</h2>
+            <h2>{college}</h2>
             <p className="flex space-x-0.5 text-xs text-zinc-600 dark:text-zinc-400">
-              <span>{usernameOrDisplayName}</span>
+              <span>{username}</span>
               <BsDot size={16} />
               <span>{branch}</span>
               <BsDot size={16} />

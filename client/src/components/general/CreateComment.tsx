@@ -20,7 +20,7 @@ const commentSchema = z.object({
 
 type CommentFormValues = z.infer<typeof commentSchema>;
 
-function CreateComment({ parentCommentId, defaultData, commentId }: { parentCommentId?: string, defaultData?: CommentFormValues, commentId?: string }) {
+function CreateComment({ parentCommentId, defaultData, commentId, setOpen }: { parentCommentId?: string, defaultData?: CommentFormValues, commentId?: string, setOpen?: React.Dispatch<React.SetStateAction<boolean>> }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const { handleError } = useErrorHandler();
@@ -68,12 +68,16 @@ function CreateComment({ parentCommentId, defaultData, commentId }: { parentComm
       if (res.status !== (isUpdating ? 200 : 201)) throw new Error("Failed to create/update comment");
       toast.success(`Comment ${isUpdating ? "updated" : "created"} successfully!`);
 
-      if (isUpdating) updateComment(res.data.comment._id, res.data.comment)
-      else addComment(res.data.comment);
-
       setError("");
       form.reset();
 
+      if (isUpdating) {
+        updateComment(res.data.comment._id, res.data.comment)
+      } else {
+        addComment(res.data.comment);
+      }
+
+      if (setOpen) setOpen(false);
     } catch (error) {
       handleError(error as AxiosError | Error, "Failed to create comment", setError);
     } finally {

@@ -87,7 +87,7 @@ function PostDropdown({ type, id, editableData }: { type: ("post" | "comment"), 
 
       if (res.status !== 200) throw new Error(`Failed to delete ${type}`)
       toast.success(`Successfully deleted ${type}`)
-    
+
       if (type === "post") removePost(id);
       if (type === "comment") removeComment(id);
 
@@ -238,6 +238,7 @@ function PostDropdown({ type, id, editableData }: { type: ("post" | "comment"), 
                   defaultData={{ title: editableData?.title || "", content: editableData?.content || "" }}
                 />
                 : <CreateComment
+                  commentId={id}
                   defaultData={{ content: editableData?.content || "" }}
                 />
               }

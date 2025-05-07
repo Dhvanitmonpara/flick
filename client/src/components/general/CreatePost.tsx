@@ -21,6 +21,8 @@ import useProfileStore from "@/store/profileStore";
 import { highlightBannedWords, validatePost } from "@/utils/moderator";
 import { Textarea } from "../ui/textarea";
 import { Loader2 } from "lucide-react";
+import { useParams } from "react-router-dom";
+import usePostStore from "@/store/postStore";
 
 const postSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters."),
@@ -55,7 +57,11 @@ export const CreatePostForm = ({ setOpen, defaultData }: { setOpen?: React.Dispa
   const [error, setError] = useState("");
 
   const { profile } = useProfileStore()
+  const { addPost, updatePost  } = usePostStore()
   const { handleError } = useErrorHandler()
+  const { id } = useParams()
+
+  const isUpdating = !!defaultData
 
   const form = useForm<PostFormValues>({
     resolver: zodResolver(postSchema),
@@ -71,21 +77,41 @@ export const CreatePostForm = ({ setOpen, defaultData }: { setOpen?: React.Dispa
 
       const postedBy = profile?._id
       if (!postedBy) throw new Error("User not found");
+      
+      if(isUpdating && !id) throw new Error("Post id not found")
 
       const { allowed, reason } = validatePost(data.content);
       if (!allowed) throw new Error(`Your post is not allowed it ${reason}`);
 
-      const res = await axios.post(`${env.serverApiEndpoint}/posts`, { ...data, postedBy }, {
-        withCredentials: true,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      let res = null
 
-      if (res.status !== 201) throw new Error("Failed to create post");
+      if (isUpdating) {
+        res = await axios.patch(`${env.serverApiEndpoint}/posts/update/${id}`, data, {
+          withCredentials: true,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        })
+      } else {
+        res = await axios.post(`${env.serverApiEndpoint}/posts`, { ...data, postedBy }, {
+          withCredentials: true,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+      }
+
+      if (res.status !== (isUpdating ? 200 : 201)) throw new Error("Failed to create post");
 
       toast.success("Post created successfully!");
       form.reset();
+
+      if (isUpdating && id) {
+        updatePost(id, res.data.post)
+      } else {
+        addPost(res.data.post)
+      }
+
       if (setOpen) setOpen(false);
     } catch (error) {
       handleError(error as AxiosError | Error, "Failed to create post", setError);

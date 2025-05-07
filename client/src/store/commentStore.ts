@@ -6,11 +6,13 @@ interface CommentState {
   setComments: (comments: IComment[]) => void;
   removeComment: (id: string) => void;
   addComment: (comment: IComment) => void;
+  resetComments: () => void;
   updateComment: (id: string, updatedPost: Partial<IComment>) => void;
 }
 
 const useCommentStore = create<CommentState>((set) => ({
   comments: null,
+  resetComments: () => set({ comments: null }),
   setComments: (comments) => set({ comments }),
   removeComment: (id) =>
     set((state) => ({
