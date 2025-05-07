@@ -4,6 +4,7 @@ import handleError from "../services/HandleError.js";
 import { ApiError } from "../utils/ApiError.js";
 import mongoose from "mongoose";
 import { validatePost } from "../utils/moderator.js";
+import { toObjectId } from "../utils/toObject.js";
 
 const createPost = async (req: Request, res: Response) => {
   const { title, postedBy, content } = req.body;
@@ -28,7 +29,7 @@ const createPost = async (req: Request, res: Response) => {
     const response = await PostModel.create({
       title,
       content,
-      postedBy: new mongoose.Schema.Types.ObjectId(postedBy),
+      postedBy: toObjectId(postedBy),
       likes: [],
     });
 
@@ -58,8 +59,8 @@ const updatePost = async (req: Request, res: Response) => {
     if (title) updateFields.title = title;
     if (content) updateFields.content = content;
 
-    const response = await PostModel.findOneAndUpdate(
-      { _id: new mongoose.Types.ObjectId(postId) },
+    const response = await PostModel.findByIdAndUpdate(
+      toObjectId(postId),
       { $set: updateFields },
       { new: true }
     );
@@ -77,7 +78,7 @@ const updatePost = async (req: Request, res: Response) => {
 };
 
 const deletePost = async (req: Request, res: Response) => {
-  const { postId } = req.body;
+  const { postId } = req.params;
 
   if (!postId) {
     res.status(400).json({
@@ -87,7 +88,7 @@ const deletePost = async (req: Request, res: Response) => {
   }
 
   try {
-    const response = await PostModel.findOneAndDelete({ postId });
+    const response = await PostModel.findByIdAndDelete(toObjectId(postId));
     if (!response) {
       res.status(404).json({
         success: false,

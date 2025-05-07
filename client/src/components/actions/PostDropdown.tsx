@@ -30,6 +30,8 @@ import { Input } from "../ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { CreatePostForm } from "../general/CreatePost";
 import CreateComment from "../general/CreateComment";
+import usePostStore from "@/store/postStore";
+import useCommentStore from "@/store/commentStore";
 
 type DialogType = "DELETE" | "REPORT" | "EDIT" | "SAVE" | null;
 
@@ -59,6 +61,8 @@ function PostDropdown({ type, id, editableData }: { type: ("post" | "comment"), 
   const [loading, setLoading] = useState(false);
 
   const { handleError } = useErrorHandler()
+  const { removePost } = usePostStore()
+  const { removeComment } = useCommentStore()
 
   const openDialog = (type: DialogType) => {
     setDialogType(type);
@@ -77,12 +81,15 @@ function PostDropdown({ type, id, editableData }: { type: ("post" | "comment"), 
       setLoading(true);
 
       const res = await axios.delete(
-        `${env.serverApiEndpoint}/${type}s/${id}`,
+        `${env.serverApiEndpoint}/${type}s/delete/${id}`,
         { withCredentials: true }
       )
 
       if (res.status !== 200) throw new Error(`Failed to delete ${type}`)
       toast.success(`Successfully deleted ${type}`)
+    
+      if (type === "post") removePost(id);
+      if (type === "comment") removeComment(id);
 
     } catch (error) {
       handleError(error as AxiosError | Error, `Failed to delete ${type}`)
@@ -226,7 +233,14 @@ function PostDropdown({ type, id, editableData }: { type: ("post" | "comment"), 
                 <DialogTitle>Edit Post</DialogTitle>
                 <DialogDescription>Edit this post.</DialogDescription>
               </DialogHeader>
-              {type === "post" ? <CreatePostForm defaultData={{title: editableData?.title || "", content: editableData?.content || ""}} /> : <CreateComment defaultData={{content: editableData?.content || ""}} />}
+              {type === "post"
+                ? <CreatePostForm
+                  defaultData={{ title: editableData?.title || "", content: editableData?.content || "" }}
+                />
+                : <CreateComment
+                  defaultData={{ content: editableData?.content || "" }}
+                />
+              }
             </>
           }
         </DialogContent>

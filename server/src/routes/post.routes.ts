@@ -10,7 +10,8 @@ import { verifyJWT } from "../middleware/auth.middleware.js";
 
 const router = Router()
 
-router.route('/').post(verifyJWT, createPost).delete(verifyJWT, deletePost)
+router.route('/').post(verifyJWT, createPost)
+router.route('/delete/:postId').delete(verifyJWT, deletePost)
 router.route('/get/post/:postId').get(getPost)
 router.route('/feed').get(getPostsForFeed)
 router.route('/update/:postId').patch(verifyJWT, updatePost)

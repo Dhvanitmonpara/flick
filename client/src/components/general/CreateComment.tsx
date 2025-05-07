@@ -3,7 +3,7 @@ import { Form, FormControl, FormField, FormItem, FormMessage } from "@/component
 import { Textarea } from "@/components/ui/textarea";
 import { env } from "@/conf/env";
 import { useErrorHandler } from "@/hooks/useErrorHandler";
-import { IComment } from "@/types/Comment";
+import useCommentStore from "@/store/commentStore";
 import { highlightBannedWords, validatePost } from "@/utils/moderator";
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios, { AxiosError } from "axios";
@@ -15,17 +15,19 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 const commentSchema = z.object({
-  content: z.string().min(3, "Content must be at least 10 characters."),
+  content: z.string().min(3, "Content must be at least 3 characters."),
 });
 
 type CommentFormValues = z.infer<typeof commentSchema>;
 
-function CreateComment({ parentCommentId, setComments, defaultData }: { parentCommentId?: string, setComments?: React.Dispatch<React.SetStateAction<IComment[]>>, defaultData?: CommentFormValues }) {
+function CreateComment({ parentCommentId, defaultData, commentId }: { parentCommentId?: string, defaultData?: CommentFormValues, commentId?: string }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const { handleError } = useErrorHandler();
 
+  const { addComment, updateComment } = useCommentStore()
   const { id } = useParams()
+  const isUpdating = !!defaultData && !!commentId;
 
   const form = useForm<CommentFormValues>({
     resolver: zodResolver(commentSchema),
@@ -39,24 +41,41 @@ function CreateComment({ parentCommentId, setComments, defaultData }: { parentCo
       setLoading(true);
       if (!id) throw new Error("Post id not found")
 
-      const res = await axios.post(`${env.serverApiEndpoint}/comments/create/${id}`,
-        { ...data, parentCommentId: parentCommentId ?? null },
-        {
-          withCredentials: true,
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      )
+      let res = null
 
-      if (res.status !== 201) throw new Error("Failed to create post");
+      if (isUpdating) {
+        res = await axios.patch(`${env.serverApiEndpoint}/comments/update/${commentId}`,
+          data,
+          {
+            withCredentials: true,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        )
+      } else {
+        res = await axios.post(`${env.serverApiEndpoint}/comments/create/${id}`,
+          { ...data, parentCommentId: parentCommentId ?? null },
+          {
+            withCredentials: true,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        )
+      }
 
-      toast.success("Post created successfully!");
-      if (setComments) setComments((prev) => [...prev, res.data.comment]);
+      if (res.status !== (isUpdating ? 200 : 201)) throw new Error("Failed to create/update comment");
+      toast.success(`Comment ${isUpdating ? "updated" : "created"} successfully!`);
+
+      if (isUpdating) updateComment(res.data.comment._id, res.data.comment)
+      else addComment(res.data.comment);
+
+      setError("");
       form.reset();
 
     } catch (error) {
-      handleError(error as AxiosError | Error, "Failed to create post", setError);
+      handleError(error as AxiosError | Error, "Failed to create comment", setError);
     } finally {
       setLoading(false);
     }
@@ -67,7 +86,6 @@ function CreateComment({ parentCommentId, setComments, defaultData }: { parentCo
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <FormField
           control={form.control}
-          disabled={loading}
           name="content"
           render={({ field }) => {
             const banned = validatePost(field.value);
@@ -79,6 +97,7 @@ function CreateComment({ parentCommentId, setComments, defaultData }: { parentCo
                   <>
                     <Textarea
                       placeholder="Post comment..."
+                      disabled={loading}
                       {...field}
                       onChange={(e) => {
                         setError("");
@@ -106,7 +125,7 @@ function CreateComment({ parentCommentId, setComments, defaultData }: { parentCo
         />
 
         <Button disabled={loading || Boolean(error)} type="submit" className="w-full">
-          {loading ? <><Loader2 className="animate-spin" /> Creating...</> : "Create"}
+          {loading ? <><Loader2 className="animate-spin" /> {isUpdating ? "Updating..." : "Creating..."}</> : (isUpdating ? "Update" : "Create")}
         </Button>
         {error && <p className="text-red-500 text-sm">{error}</p>}
       </form>
