@@ -23,7 +23,7 @@ export const createReport = async (req: Request, res: Response) => {
       );
     }
 
-    if (!["post", "comment"].includes(type)) {
+    if (!["Post", "Comment"].includes(type)) {
       throw new ApiError(400, "Invalid report type");
     }
 
@@ -35,7 +35,7 @@ export const createReport = async (req: Request, res: Response) => {
       message,
     });
 
-    if(!report) throw new ApiError(500, "Failed to create report")
+    if (!report) throw new ApiError(500, "Failed to create report");
 
     res.status(201).json({
       success: true,
@@ -49,54 +49,92 @@ export const createReport = async (req: Request, res: Response) => {
 
 export const getReportedPosts = async (req: Request, res: Response) => {
   try {
-    const page = Math.max(1, parseInt(req.query.page as string) || 1);
-    const limit = Math.max(1, parseInt(req.query.limit as string) || 10);
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.max(1, Number(req.query.limit) || 10);
     const skip = (page - 1) * limit;
 
-    const statusQuery = (req.query.status as string) || "pending";
+    const statusQuery =
+      typeof req.query.status === "string" ? req.query.status : "";
     const requestedStatuses = statusQuery
       .split(",")
-      .map((status) => status.trim().toLowerCase())
-      .filter((status) => ALLOWED_STATUSES.includes(status));
+      .map((s) => s.trim().toLowerCase())
+      .filter((s) => ALLOWED_STATUSES.includes(s));
 
-    const finalStatuses = requestedStatuses.length
-      ? requestedStatuses
-      : ["pending"];
+    const statuses = requestedStatuses.length ? requestedStatuses : ["pending"];
 
-    const filter = {
-      type: "post",
-      status: { $in: finalStatuses },
-    };
+    const pipeline: mongoose.PipelineStage[] = [
+      {
+        $match: {
+          type: "Post",
+          status: { $in: statuses },
+        },
+      },
+      {
+        $lookup: {
+          from: "posts",
+          localField: "targetId",
+          foreignField: "_id",
+          as: "postDetails",
+        },
+      },
+      { $unwind: "$postDetails" },
+      {
+        $lookup: {
+          from: "users",
+          localField: "reportedBy",
+          foreignField: "_id",
+          as: "reporterDetails",
+        },
+      },
+      { $unwind: "$reporterDetails" },
+      {
+        $project: {
+          _id: 1,
+          reason: 1,
+          message: 1,
+          status: 1,
+          createdAt: 1,
+          post: {
+            _id: "$postDetails._id",
+            title: "$postDetails.title",
+            content: "$postDetails.content",
+            postedBy: "$postDetails.postedBy",
+            isBanned: "$postDetails.isBanned",
+            isShadowBanned: "$postDetails.isShadowBanned",
+          },
+          reporter: {
+            _id: "$reporterDetails._id",
+            username: "$reporterDetails.username",
+            isBlocked: "$reporterDetails.isBlocked",
+            suspension: "$reporterDetails.suspension",
+          },
+        },
+      },
+      { $sort: { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limit },
+    ];
 
-    const [reports, totalReports] = await Promise.all([
-      ReportModel.find(filter)
-        .populate({
-          path: "targetId",
-          select: "title slug", // populate post fields only
-        })
-        .populate({
-          path: "reportedBy",
-          select: "name email",
-        })
-        .skip(skip)
-        .limit(limit)
-        .sort({ createdAt: -1 }),
-      ReportModel.countDocuments(filter),
+    const [reports, totalReportsAgg] = await Promise.all([
+      ReportModel.aggregate(pipeline),
+      ReportModel.countDocuments({
+        type: "Post",
+        status: { $in: statuses },
+      }),
     ]);
 
     res.status(200).json({
       success: true,
       data: reports,
-      page,
-      limit,
-      totalReports,
-      appliedFilters: finalStatuses,
+      pagination: { page, limit, totalReports: totalReportsAgg },
+      filters: { statuses },
       message: reports.length
-        ? "Reported posts fetched successfully"
-        : "No reported posts found",
+        ? "Reported posts fetched successfully."
+        : "No reported posts found.",
     });
   } catch (error) {
-    handleError(error as ApiError, res, "Error fetching reported posts");
+    console.error("Error fetching reported posts:", error);
+    handleError(error, res, "Failed to fetch reported posts");
   }
 };
 
@@ -117,7 +155,7 @@ export const getReportedComments = async (req: Request, res: Response) => {
       : ["pending"];
 
     const filter = {
-      type: "comment",
+      type: "Comment",
       status: { $in: finalStatuses },
     };
 

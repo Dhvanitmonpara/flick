@@ -107,7 +107,7 @@ function PostDropdown({ type, id, editableData }: { type: ("post" | "comment"), 
         `${env.serverApiEndpoint}/reports`,
         {
           targetId: id,
-          type,
+          type: type.charAt(0).toUpperCase() + type.slice(1),
           reason: data.reason,
           message: data.message
         },
