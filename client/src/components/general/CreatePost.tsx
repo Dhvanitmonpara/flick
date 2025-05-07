@@ -21,7 +21,6 @@ import useProfileStore from "@/store/profileStore";
 import { highlightBannedWords, validatePost } from "@/utils/moderator";
 import { Textarea } from "../ui/textarea";
 import { Loader2 } from "lucide-react";
-import { useParams } from "react-router-dom";
 import usePostStore from "@/store/postStore";
 
 const postSchema = z.object({
@@ -52,14 +51,13 @@ function CreatePost() {
   );
 }
 
-export const CreatePostForm = ({ setOpen, defaultData }: { setOpen?: React.Dispatch<React.SetStateAction<boolean>>, defaultData?: PostFormValues }) => {
+export const CreatePostForm = ({ setOpen, defaultData, id }: { setOpen?: React.Dispatch<React.SetStateAction<boolean>>, defaultData?: PostFormValues, id?: string }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const { profile } = useProfileStore()
-  const { addPost, updatePost  } = usePostStore()
+  const { addPost, updatePost } = usePostStore()
   const { handleError } = useErrorHandler()
-  const { id } = useParams()
 
   const isUpdating = !!defaultData
 
@@ -77,8 +75,8 @@ export const CreatePostForm = ({ setOpen, defaultData }: { setOpen?: React.Dispa
 
       const postedBy = profile?._id
       if (!postedBy) throw new Error("User not found");
-      
-      if(isUpdating && !id) throw new Error("Post id not found")
+
+      if (isUpdating && !id) throw new Error("Post id not found")
 
       const { allowed, reason } = validatePost(data.content);
       if (!allowed) throw new Error(`Your post is not allowed it ${reason}`);
@@ -101,9 +99,9 @@ export const CreatePostForm = ({ setOpen, defaultData }: { setOpen?: React.Dispa
         });
       }
 
-      if (res.status !== (isUpdating ? 200 : 201)) throw new Error("Failed to create post");
+      if (res.status !== (isUpdating ? 200 : 201)) throw new Error(`Failed to ${isUpdating ? "update" : "create"} post`);
 
-      toast.success("Post created successfully!");
+      toast.success(`Post ${isUpdating ? "updated" : "created"} successfully!`);
       form.reset();
 
       if (isUpdating && id) {

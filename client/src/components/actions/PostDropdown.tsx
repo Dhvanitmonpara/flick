@@ -140,7 +140,7 @@ function PostDropdown({ type, id, editableData }: { type: ("post" | "comment"), 
             <RiEdit2Fill />
             <span>Edit</span>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => toast.info("This feature is not available yet.")}>
+          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); toast.info("This feature is not available yet.") }}>
             <FaRegBookmark />
             <span>Save</span>
           </DropdownMenuItem>
@@ -235,10 +235,13 @@ function PostDropdown({ type, id, editableData }: { type: ("post" | "comment"), 
               </DialogHeader>
               {type === "post"
                 ? <CreatePostForm
+                  id={id}
+                  setOpen={setOpen}
                   defaultData={{ title: editableData?.title || "", content: editableData?.content || "" }}
                 />
                 : <CreateComment
                   commentId={id}
+                  setOpen={setOpen}
                   defaultData={{ content: editableData?.content || "" }}
                 />
               }

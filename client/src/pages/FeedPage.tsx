@@ -3,9 +3,13 @@ import { env } from "@/conf/env"
 import { useErrorHandler } from "@/hooks/useErrorHandler"
 import usePostStore from "@/store/postStore"
 import useProfileStore from "@/store/profileStore"
+import { IUser } from "@/types/User"
 import { formatDate, isCollege, isUser } from "@/utils/helpers"
 import axios, { AxiosError } from "axios"
 import { useCallback, useEffect, useState } from "react"
+
+const getAvatarUrl = (user: IUser | string) => isUser(user) && isCollege(user.college) ? user.college.profile : "";
+const getCollegeName = (user: IUser | string) => isUser(user) && isCollege(user.college) ? user.college.name : "Unknown College";
 
 function FeedPage() {
 
@@ -71,13 +75,13 @@ function FeedPage() {
                   _id={post._id}
                   avatar=""
                   userVote={post.userVote ?? null}
-                  usernameOrDisplayName="Unknown"
+                  username="Unknown"
                   title={post.title}
                   branch="Unknown"
                   viewsCount={post.views}
                   content={post.content}
                   avatarFallback=""
-                  company="Unknown"
+                  college="Unknown"
                   createdAt={formatDate(post.createdAt)}
                   upvoteCount={post.upvoteCount}
                   downvoteCount={post.downvoteCount}
@@ -91,9 +95,9 @@ function FeedPage() {
               <Post
                 key={post._id}
                 _id={post._id}
-                avatar={isCollege(postedBy.college) ? postedBy.college.profile : ""}
-                company={isCollege(postedBy.college) ? postedBy.college.name : "Unknown College"}
-                usernameOrDisplayName={postedBy.username}
+                avatar={getAvatarUrl(postedBy)}
+                college={getCollegeName(postedBy)}
+                username={postedBy.username}
                 userVote={post.userVote ?? null}
                 title={post.title}
                 branch={postedBy.branch}
