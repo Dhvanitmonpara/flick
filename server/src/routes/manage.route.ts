@@ -17,12 +17,12 @@ import {
 
 const router = Router();
 
-router.route("/status").patch(updateReportStatus);
-router.route("/get").get(getReports);
-router.route("/posts/ban").patch(banPost);
-router.route("/posts/unban").patch(unbanPost);
-router.route("/posts/shadowban").patch(shadowBanPost);
-router.route("/posts/shadowunban").patch(shadowUnbanPost);
+router.route("/status/:reportId").patch(updateReportStatus);
+router.route("/reports/get").get(getReports);
+router.route("/posts/ban/:postId").patch(banPost);
+router.route("/posts/unban/:postId").patch(unbanPost);
+router.route("/posts/shadowban/:postId").patch(shadowBanPost);
+router.route("/posts/shadowunban/:postId").patch(shadowUnbanPost);
 router.route("/single").delete(deleteReport);
 router.route("/many").delete(bulkDeleteReports);
 router.route("/users").get(getUserReports);

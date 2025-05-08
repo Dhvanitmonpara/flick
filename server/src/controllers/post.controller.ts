@@ -2,11 +2,12 @@ import { Response, Request } from "express";
 import { PostModel } from "../models/post.model.js";
 import handleError from "../services/HandleError.js";
 import { ApiError } from "../utils/ApiError.js";
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
 import { validatePost } from "../utils/moderator.js";
 import { toObjectId } from "../utils/toObject.js";
 import { CommentModel } from "../models/comments.model.js";
 import VoteModel from "../models/vote.model.js";
+import userModel from "../models/user.model.js";
 
 const createPost = async (req: Request, res: Response) => {
   const { title, postedBy, content } = req.body;
@@ -28,20 +29,61 @@ const createPost = async (req: Request, res: Response) => {
       throw new ApiError(400, `Your post was blocked because ${msg}.`);
     }
 
-    const response = await PostModel.create({
+    const user = await userModel
+      .findById(postedBy)
+      .populate({ path: "college", select: "_id name profile" })
+      .select("_id username branch bookmarks college")
+      .lean<{
+        _id: Types.ObjectId;
+        username: string;
+        branch: string;
+        isBlocked: boolean;
+        bookmarks: Types.ObjectId[];
+        college: {
+          _id: Types.ObjectId;
+          name: string;
+          profile: string;
+        };
+      }>();
+
+    if (!user || !user.college) throw new ApiError(404, "User not found");
+    if (user.isBlocked) throw new ApiError(400, "User is blocked");
+
+    const createdPost = await PostModel.create({
       title,
       content,
       postedBy: toObjectId(postedBy),
       likes: [],
     });
 
-    if (!response) {
+    if (!createdPost) {
       throw new ApiError(500, "Failed to create post in database");
     }
 
+    const data = {
+      _id: createdPost._id,
+      title: createdPost.title,
+      content: createdPost.content,
+      postedBy: {
+        _id: user._id,
+        username: user.username,
+        college: {
+          _id: user.college._id,
+          name: user.college.name,
+          profile: user.college.profile,
+        },
+        branch: user.branch,
+        bookmarks: user.bookmarks,
+      },
+      views: createdPost.views,
+      createdAt: createdPost.createdAt,
+      upvoteCount: 0,
+      downvoteCount: 0,
+    };
+
     res.status(201).json({
       success: true,
-      response,
+      post: data,
       message: "Post created successfully",
     });
   } catch (error) {

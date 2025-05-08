@@ -1,62 +1,56 @@
-import { themeType, User } from "@/lib/types";
+import { themeType } from "@/lib/types";
+import { IUser } from "@/types/User";
 import { create } from "zustand";
 
 interface ProfileState {
-  profile: User;
-  setProfile: (profile: User) => void;
-  updateProfile: (updatedProfile: Partial<User>) => void;
+  profile: IUser;
+  setProfile: (profile: IUser) => void;
+  updateProfile: (updatedProfile: Partial<IUser>) => void;
   removeProfile: () => void;
   setTheme: (theme: themeType) => void;
 }
 
-const useProfileStore = create<ProfileState>(
-  (set) => ({
-    profile: {
-      _id: "",
-      email: "",
-      name: "",
-      phone: "",
-      github: "",
-      achievements: "",
-      college: "",
-      currentJobRole: "",
-      higherEducation: "",
-      linkedin: "",
-      theme: "light",
-      createdAt: "",
-      updatedAt: "",
-      _v: 0,
+const useProfileStore = create<ProfileState>((set) => ({
+  profile: {
+    _id: "",
+    bookmarks: [],
+    branch: "",
+    isBlocked: false,
+    suspension: {
+      ends: new Date(),
+      howManyTimes: 0,
+      reason: "",
     },
-    setProfile: (profile) => set({ profile }),
-    updateProfile: (updatedProfile) =>
-      set((state) => ({
-        profile: { ...state.profile, ...updatedProfile },
-      })),
-    removeProfile: () =>
-      set({
-        profile: {
-          _id: "",
-          email: "",
-          name: "",
-          phone: "",
-          github: "",
-          achievements: "",
-          college: "",
-          currentJobRole: "",
-          higherEducation: "",
-          linkedin: "",
-          theme: "light",
-          createdAt: "",
-          updatedAt: "",
-          _v: 0,
+    theme: "light",
+    username: "",
+    college: "",
+  },
+  setProfile: (profile) => set({ profile }),
+  updateProfile: (updatedProfile) =>
+    set((state) => ({
+      profile: { ...state.profile, ...updatedProfile },
+    })),
+  removeProfile: () =>
+    set({
+      profile: {
+        _id: "",
+        bookmarks: [],
+        branch: "",
+        theme: "light",
+        isBlocked: false,
+        suspension: {
+          ends: new Date(),
+          howManyTimes: 0,
+          reason: "",
         },
-      }),
-    setTheme: (theme) =>
-      set((state) => ({
-        profile: { ...state.profile, theme },
-      })),
-  })
-);
+        username: "",
+        college: "",
+      },
+    }),
+  setTheme: (theme) =>
+    set((state) => ({
+      profile: { ...state.profile, theme },
+    })),
+}));
 
 export default useProfileStore;
-export type { User };

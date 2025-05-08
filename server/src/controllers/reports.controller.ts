@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import handleError from "../services/HandleError.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ReportModel } from "../models/report.model.js";
-import mongoose from "mongoose";
+import mongoose, { ClientSession } from "mongoose";
 import { PostModel } from "../models/post.model.js";
 import userModel from "../models/user.model.js";
 
@@ -213,37 +213,47 @@ export const getReports = async (req: Request, res: Response) => {
 const updatePostStatus = async (
   req: Request,
   res: Response,
-  fieldToUpdate: FieldToUpdate
+  fieldToUpdate: FieldToUpdate,
 ): Promise<void> => {
+  const session: ClientSession = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const { postId } = req.params;
 
     if (!postId || !mongoose.Types.ObjectId.isValid(postId)) {
-      res
-        .status(400)
-        .json({ success: false, message: "Valid Post ID is required." });
-      return;
+      throw new ApiError(400, "Invalid post ID");
     }
 
     const updatedPost = await PostModel.findByIdAndUpdate(
       postId,
       { $set: fieldToUpdate },
-      { new: true }
+      { new: true, session }
     );
 
     if (!updatedPost) {
-      res.status(404).json({ success: false, message: "Post not found." });
-      return;
+      throw new ApiError(404, "Post not found.");
     }
+
+    const reports = await ReportModel.updateMany(
+      { targetId: updatedPost._id },
+      { $set: { status: "resolved" } },
+      { session }
+    );
+
+    await session.commitTransaction();
+    session.endSession();
 
     res.status(200).json({
       success: true,
       message: "Post updated successfully.",
       post: updatedPost,
+      reportsUpdated: reports.modifiedCount,
     });
   } catch (error) {
-    console.error("Error updating post status:", error);
-    res.status(500).json({ success: false, message: "Internal server error." });
+    await session.abortTransaction();
+    session.endSession();
+    handleError(error as ApiError, res, "Failed to update post status");
   }
 };
 

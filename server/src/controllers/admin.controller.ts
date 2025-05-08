@@ -29,7 +29,7 @@ export interface AdminDocument extends Document {
 
 const options: CookieOptions = {
   httpOnly: true,
-  sameSite: "none",
+  sameSite: "lax",
   secure: true,
 };
 
