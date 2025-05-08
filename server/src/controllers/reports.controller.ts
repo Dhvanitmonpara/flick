@@ -47,14 +47,124 @@ export const createReport = async (req: Request, res: Response) => {
   }
 };
 
-export const getReportedPosts = async (req: Request, res: Response) => {
+function buildReportPipeline(
+  type: "Post" | "Comment" | "Both",
+  fields: Record<string, 1>, // clean: keys you want from Post/Comment
+  statuses: string[],
+  skip: number,
+  limit: number
+): mongoose.PipelineStage[] {
+  const matchStage: mongoose.PipelineStage.Match = {
+    $match: {
+      type: type === "Both" ? { $in: ["Post", "Comment"] } : type,
+      status: { $in: statuses },
+    },
+  };
+
+  const lookupTarget = (
+    target: "posts" | "comments",
+    alias: string
+  ): mongoose.PipelineStage.Lookup => ({
+    $lookup: {
+      from: target,
+      localField: "targetId",
+      foreignField: "_id",
+      as: alias,
+    },
+  });
+
+  const basicStages: mongoose.PipelineStage[] = [
+    matchStage,
+    {
+      $lookup: {
+        from: "users",
+        localField: "reportedBy",
+        foreignField: "_id",
+        as: "reporterDetails",
+      },
+    },
+    { $unwind: "$reporterDetails" },
+  ];
+
+  const targetLookups: mongoose.PipelineStage[] =
+    type === "Both"
+      ? [
+          lookupTarget("posts", "postDetails"),
+          {
+            $unwind: { path: "$postDetails", preserveNullAndEmptyArrays: true },
+          },
+          lookupTarget("comments", "commentDetails"),
+          {
+            $unwind: {
+              path: "$commentDetails",
+              preserveNullAndEmptyArrays: true,
+            },
+          },
+        ]
+      : [
+          lookupTarget(type === "Post" ? "posts" : "comments", "targetDetails"),
+          { $unwind: "$targetDetails" },
+        ];
+
+  const groupStage: mongoose.PipelineStage.Group = {
+    $group: {
+      _id: "$targetId",
+      targetDetails: {
+        $first:
+          type === "Both"
+            ? { $ifNull: ["$postDetails", "$commentDetails"] }
+            : "$targetDetails",
+      },
+      type: { $first: "$type" },
+      reports: {
+        $push: {
+          _id: "$_id",
+          reason: "$reason",
+          message: "$message",
+          status: "$status",
+          createdAt: "$createdAt",
+          reporter: {
+            _id: "$reporterDetails._id",
+            username: "$reporterDetails.username",
+            isBlocked: "$reporterDetails.isBlocked",
+            suspension: "$reporterDetails.suspension",
+          },
+        },
+      },
+    },
+  };
+
+  const projectFields: Record<string, any> = {
+    _id: 0,
+    targetId: "$_id",
+    type: 1,
+    reports: 1,
+  };
+
+  if (fields && Object.keys(fields).length > 0) {
+    projectFields["targetDetails"] = fields;
+  }
+
+  return [
+    ...basicStages,
+    ...targetLookups,
+    groupStage,
+    { $sort: { "targetDetails.createdAt": -1 } },
+    { $skip: skip },
+    { $limit: limit },
+    { $project: projectFields },
+  ];
+}
+
+export const getReports = async (req: Request, res: Response) => {
   try {
-    const page = Math.max(1, Number(req.query.page) || 1);
-    const limit = Math.max(1, Number(req.query.limit) || 10);
+    const page = Math.max(1, Number(req.query.page)) || 1;
+    const limit = Math.max(1, Number(req.query.limit)) || 10;
     const skip = (page - 1) * limit;
 
-    const statusQuery =
-      typeof req.query.status === "string" ? req.query.status : "";
+    const type = (req.query.type as "Post" | "Comment" | "Both") || "Both";
+
+    const statusQuery = typeof req.query.status === "string" ? req.query.status : "";
     const requestedStatuses = statusQuery
       .split(",")
       .map((s) => s.trim().toLowerCase())
@@ -62,76 +172,21 @@ export const getReportedPosts = async (req: Request, res: Response) => {
 
     const statuses = requestedStatuses.length ? requestedStatuses : ["pending"];
 
-    const pipeline: mongoose.PipelineStage[] = [
-      {
-        $match: {
-          type: "Post",
-          status: { $in: statuses },
-        },
-      },
-      {
-        $lookup: {
-          from: "posts",
-          localField: "targetId",
-          foreignField: "_id",
-          as: "postDetails",
-        },
-      },
-      { $unwind: "$postDetails" },
-      {
-        $lookup: {
-          from: "users",
-          localField: "reportedBy",
-          foreignField: "_id",
-          as: "reporterDetails",
-        },
-      },
-      { $unwind: "$reporterDetails" },
-      {
-        $group: {
-          _id: "$targetId",
-          post: { $first: "$postDetails" },
-          reports: {
-            $push: {
-              _id: "$_id",
-              reason: "$reason",
-              message: "$message",
-              status: "$status",
-              createdAt: "$createdAt",
-              reporter: {
-                _id: "$reporterDetails._id",
-                username: "$reporterDetails.username",
-                isBlocked: "$reporterDetails.isBlocked",
-                suspension: "$reporterDetails.suspension",
-              },
-            },
-          },
-        },
-      },
-      { $sort: { "post.createdAt": -1 } },
-      { $skip: skip },
-      { $limit: limit },
-      {
-        $project: {
-          _id: 0,
-          postId: "$_id",
-          post: {
-            _id: "$post._id",
-            title: "$post.title",
-            content: "$post.content",
-            postedBy: "$post.postedBy",
-            isBanned: "$post.isBanned",
-            isShadowBanned: "$post.isShadowBanned",
-          },
-          reports: 1,
-        },
-      },
-    ];    
+    let fields: Record<string, 1> = {};
+    if (typeof req.query.fields === "string") {
+      const fieldsArray = req.query.fields
+        .split(",")
+        .map((f) => f.trim())
+        .filter(Boolean);
+      fields = Object.fromEntries(fieldsArray.map((field) => [field, 1]));
+    }
 
-    const [reports, totalReportsAgg] = await Promise.all([
+    const pipeline = buildReportPipeline(type, fields, statuses, skip, limit);
+
+    const [reports, totalReports] = await Promise.all([
       ReportModel.aggregate(pipeline),
       ReportModel.countDocuments({
-        type: "Post",
+        type,
         status: { $in: statuses },
       }),
     ]);
@@ -139,7 +194,11 @@ export const getReportedPosts = async (req: Request, res: Response) => {
     res.status(200).json({
       success: true,
       data: reports,
-      pagination: { page, limit, totalReports: totalReportsAgg },
+      pagination: {
+        page,
+        limit,
+        totalReports,
+      },
       filters: { statuses },
       message: reports.length
         ? "Reported posts fetched successfully."
@@ -148,59 +207,6 @@ export const getReportedPosts = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Error fetching reported posts:", error);
     handleError(error, res, "Failed to fetch reported posts");
-  }
-};
-
-export const getReportedComments = async (req: Request, res: Response) => {
-  try {
-    const page = Math.max(1, parseInt(req.query.page as string) || 1);
-    const limit = Math.max(1, parseInt(req.query.limit as string) || 10);
-    const skip = (page - 1) * limit;
-
-    const statusQuery = (req.query.status as string) || "pending";
-    const requestedStatuses = statusQuery
-      .split(",")
-      .map((status) => status.trim().toLowerCase())
-      .filter((status) => ALLOWED_STATUSES.includes(status));
-
-    const finalStatuses = requestedStatuses.length
-      ? requestedStatuses
-      : ["pending"];
-
-    const filter = {
-      type: "Comment",
-      status: { $in: finalStatuses },
-    };
-
-    const [reports, totalReports] = await Promise.all([
-      ReportModel.find(filter)
-        .populate({
-          path: "targetId",
-          select: "content postId",
-        })
-        .populate({
-          path: "reportedBy",
-          select: "name email",
-        })
-        .skip(skip)
-        .limit(limit)
-        .sort({ createdAt: -1 }),
-      ReportModel.countDocuments(filter),
-    ]);
-
-    res.status(200).json({
-      success: true,
-      data: reports,
-      page,
-      limit,
-      totalReports,
-      appliedFilters: finalStatuses,
-      message: reports.length
-        ? "Reported comments fetched successfully"
-        : "No reported comments found",
-    });
-  } catch (error) {
-    handleError(error as ApiError, res, "Error fetching reported comments");
   }
 };
 

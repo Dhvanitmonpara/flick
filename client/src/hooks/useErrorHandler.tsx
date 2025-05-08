@@ -72,6 +72,7 @@ export const useErrorHandler = () => {
     setError?: (errorMsg: string) => void,
     originalReq?: () => Promise<any>,
     refreshFailMessage = "Session expired, please log in again.",
+    onError?: () => void,
     hasRetried = false,
   ): Promise<any> => {
     if (axios.isAxiosError(error) && error.response?.status === 401) {
@@ -102,6 +103,7 @@ export const useErrorHandler = () => {
                 setError,
                 undefined,
                 refreshFailMessage,
+                onError,
                 true,
               );
             }
@@ -115,17 +117,20 @@ export const useErrorHandler = () => {
             refreshFailMessage
           );
           reportError(msg, setError);
+          onError?.();
           return;
         }
       } else {
         removeProfile();
         reportError("Session expired, please log in again.", setError);
+        onError?.();
         return;
       }
     }
 
     const message = extractErrorMessage(error, fallbackMessage);
     reportError(message, setError);
+    onError?.();
   }, [removeProfile, refreshAccessToken]);
 
   return { handleError };

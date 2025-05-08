@@ -112,10 +112,18 @@ const EngagementComponent = ({
         });
       }
     } catch (error) {
-      handleError(error as AxiosError | Error, "Failed to update vote", undefined, () => handleVote(type), `Failed to ${type}`);
-      setOptimisticCounts(previousCounts);
-      setUpvoted(prevUpvoted);
-      setDownvoted(prevDownvoted);
+      await handleError(
+        error as AxiosError | Error,
+        "Failed to update vote",
+        undefined,
+        () => handleVote(type),
+        `Failed to ${type}`,
+        () => {
+          setOptimisticCounts(previousCounts);
+          setUpvoted(prevUpvoted);
+          setDownvoted(prevDownvoted);
+        }
+      );
     } finally {
       setIsVoting(false);
     }

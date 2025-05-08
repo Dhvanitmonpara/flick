@@ -2,8 +2,6 @@ import { Router } from "express";
 import {
   bulkDeleteReports,
   deleteReport,
-  getReportedPosts,
-  getReportedComments,
   getUserReports,
   banPost,
   shadowBanPost,
@@ -14,17 +12,17 @@ import {
   suspendUser,
   unblockUser,
   updateReportStatus,
+  getReports,
 } from "../controllers/reports.controller.js";
 
 const router = Router();
 
 router.route("/status").patch(updateReportStatus);
-router.route("/posts").get(getReportedPosts);
+router.route("/get").get(getReports);
 router.route("/posts/ban").patch(banPost);
 router.route("/posts/unban").patch(unbanPost);
 router.route("/posts/shadowban").patch(shadowBanPost);
 router.route("/posts/shadowunban").patch(shadowUnbanPost);
-router.route("/comments").get(getReportedComments);
 router.route("/single").delete(deleteReport);
 router.route("/many").delete(bulkDeleteReports);
 router.route("/users").get(getUserReports);
