@@ -17,6 +17,8 @@ export const env = {
   perspectiveApiKey: process.env.PERSPECTIVE_API_KEY,
   gmailUser: process.env.GMAIL_USER,
   gmailAppPassword: process.env.GMAIL_APP_PASSWORD,
+  adminAccessControlOrigin:
+    process.env.ADMIN_ACCESS_CONTROL_ORIGIN || "http://localhost:5174",
   accessControlOrigin:
     process.env.ACCESS_CONTROL_ORIGIN || "http://localhost:5173",
   redisHost: process.env.REDIS_HOST || "localhost",
@@ -43,7 +45,7 @@ if (!env.pepper) {
   throw new Error("PEPPER environment variable is not set");
 }
 
-if(!env.perspectiveApiKey) {
+if (!env.perspectiveApiKey) {
   throw new Error("PERSPECTIVE_API_KEY environment variable is not set");
 }
 

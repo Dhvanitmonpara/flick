@@ -88,32 +88,45 @@ export const getReportedPosts = async (req: Request, res: Response) => {
       },
       { $unwind: "$reporterDetails" },
       {
-        $project: {
-          _id: 1,
-          reason: 1,
-          message: 1,
-          status: 1,
-          createdAt: 1,
-          post: {
-            _id: "$postDetails._id",
-            title: "$postDetails.title",
-            content: "$postDetails.content",
-            postedBy: "$postDetails.postedBy",
-            isBanned: "$postDetails.isBanned",
-            isShadowBanned: "$postDetails.isShadowBanned",
-          },
-          reporter: {
-            _id: "$reporterDetails._id",
-            username: "$reporterDetails.username",
-            isBlocked: "$reporterDetails.isBlocked",
-            suspension: "$reporterDetails.suspension",
+        $group: {
+          _id: "$targetId",
+          post: { $first: "$postDetails" },
+          reports: {
+            $push: {
+              _id: "$_id",
+              reason: "$reason",
+              message: "$message",
+              status: "$status",
+              createdAt: "$createdAt",
+              reporter: {
+                _id: "$reporterDetails._id",
+                username: "$reporterDetails.username",
+                isBlocked: "$reporterDetails.isBlocked",
+                suspension: "$reporterDetails.suspension",
+              },
+            },
           },
         },
       },
-      { $sort: { createdAt: -1 } },
+      { $sort: { "post.createdAt": -1 } },
       { $skip: skip },
       { $limit: limit },
-    ];
+      {
+        $project: {
+          _id: 0,
+          postId: "$_id",
+          post: {
+            _id: "$post._id",
+            title: "$post.title",
+            content: "$post.content",
+            postedBy: "$post.postedBy",
+            isBanned: "$post.isBanned",
+            isShadowBanned: "$post.isShadowBanned",
+          },
+          reports: 1,
+        },
+      },
+    ];    
 
     const [reports, totalReportsAgg] = await Promise.all([
       ReportModel.aggregate(pipeline),

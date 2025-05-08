@@ -1,17 +1,19 @@
 import http from "http";
 import { env } from "./conf/env.js";
 import express from "express";
-import cors from "cors";
+import cors, { CorsOptions } from "cors";
 import { Server } from "socket.io";
 import { Redis } from "ioredis";
 import cookieParser from "cookie-parser";
 // import './socketHandler.js'
 
+const allowedOrigins = [env.accessControlOrigin, env.adminAccessControlOrigin];
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: env.accessControlOrigin, // Replace with your frontend URL
+    origin: allowedOrigins,
     methods: ["GET", "POST"],
   },
 });
@@ -22,21 +24,28 @@ const redis = new Redis({
   port: parseInt(env.redisPort),
 });
 
-const corsOptions = {
-  origin: env.accessControlOrigin, // Default to localhost
+const corsOptions: CorsOptions = {
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   optionsSuccessStatus: 200,
 };
 
 // CORS middleware
 app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
+
 app.use(cookieParser());
 app.use(express.json({ limit: "16kb" }));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(express.static("public"));
-app.options("*", cors());
 
 const commonPublicRoute = "/api/public/v1/";
 const commonAdminRoute = "/api/admin/v1/";
