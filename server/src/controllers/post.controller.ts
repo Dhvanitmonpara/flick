@@ -89,7 +89,7 @@ const createPost = async (req: Request, res: Response) => {
       message: "Post created successfully",
     });
   } catch (error) {
-    handleError(error as ApiError, res, "Error creating post");
+    handleError(error as ApiError, res, "Error creating post", "CREATE_POST_ERROR");
   }
 };
 
@@ -122,7 +122,7 @@ const updatePost = async (req: Request, res: Response) => {
       message: "Post updated successfully",
     });
   } catch (error) {
-    handleError(error as ApiError, res, "Error updating post");
+    handleError(error as ApiError, res, "Error updating post", "UPDATE_POST_ERROR");
   }
 };
 
@@ -160,7 +160,7 @@ const deletePost = async (req: Request, res: Response) => {
       .status(200)
       .json({ success: true, message: "Post deleted successfully" });
   } catch (error) {
-    handleError(error, res, "Error deleting post");
+    handleError(error, res, "Error deleting post", "DELETE_POST_ERROR");
   }
 };
 
@@ -318,7 +318,7 @@ const getPostsForFeed = async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
-    handleError(error as ApiError, res, "Error getting posts");
+    handleError(error as ApiError, res, "Error getting posts", "GET_POSTS_ERROR");
   }
 };
 
@@ -468,7 +468,7 @@ const getPostById = async (req: Request, res: Response) => {
 
     res.status(200).json({ post: posts[0] });
   } catch (error) {
-    handleError(error as ApiError, res, "Error fetching post");
+    handleError(error as ApiError, res, "Error fetching post", "GET_POST_ERROR");
   }
 };
 

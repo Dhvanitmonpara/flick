@@ -43,7 +43,7 @@ export const createReport = async (req: Request, res: Response) => {
       message: "Report created successfully",
     });
   } catch (error) {
-    handleError(error as ApiError, res, "Error creating report");
+    handleError(error as ApiError, res, "Error creating report", "CREATE_REPORT_ERROR");
   }
 };
 
@@ -206,7 +206,7 @@ export const getReports = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Error fetching reported posts:", error);
-    handleError(error, res, "Failed to fetch reported posts");
+    handleError(error, res, "Failed to fetch reported posts", "GET_REPORTS_ERROR");
   }
 };
 
@@ -253,7 +253,7 @@ const updatePostStatus = async (
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
-    handleError(error as ApiError, res, "Failed to update post status");
+    handleError(error as ApiError, res, "Failed to update post status", "UPDATE_POST_STATUS_ERROR");
   }
 };
 
@@ -279,7 +279,7 @@ export const getUserReports = async (req: Request, res: Response) => {
       reports: populatedReports,
     });
   } catch (error) {
-    handleError(error as ApiError, res, "Error fetching user reports");
+    handleError(error as ApiError, res, "Error fetching user reports", "GET_USER_REPORTS_ERROR");
   }
 };
 
@@ -292,7 +292,7 @@ export const deleteReport = async (req: Request, res: Response) => {
       .status(200)
       .json({ success: true, message: "Report deleted successfully" });
   } catch (error) {
-    handleError(error as ApiError, res, "Error deleting report");
+    handleError(error as ApiError, res, "Error deleting report", "DELETE_REPORT_ERROR");
   }
 };
 
@@ -309,7 +309,7 @@ export const bulkDeleteReports = async (req: Request, res: Response) => {
       .status(200)
       .json({ success: true, message: "Reports deleted successfully" });
   } catch (error) {
-    handleError(error as ApiError, res, "Error deleting reports");
+    handleError(error as ApiError, res, "Error deleting reports", "BULK_DELETE_REPORTS_ERROR");
   }
 };
 
@@ -330,7 +330,7 @@ export const updateReportStatus = async (req: Request, res: Response) => {
 
     res.status(200).json({ success: true, report });
   } catch (error) {
-    handleError(error as ApiError, res, "Error updating report status");
+    handleError(error as ApiError, res, "Error updating report status", "UPDATE_REPORT_STATUS_ERROR");
   }
 };
 
@@ -348,7 +348,7 @@ export const blockUser = async (req: Request, res: Response) => {
 
     res.status(200).json({ message: "User blocked successfully", user });
   } catch (error) {
-    handleError(error as ApiError, res, "Error blocking user");
+    handleError(error as ApiError, res, "Error blocking user", "BLOCK_USER_ERROR");
   }
 };
 
@@ -366,7 +366,7 @@ export const unblockUser = async (req: Request, res: Response) => {
 
     res.status(200).json({ message: "User unblocked successfully", user });
   } catch (error) {
-    handleError(error as ApiError, res, "Error unblocking user");
+    handleError(error as ApiError, res, "Error unblocking user", "UNBLOCK_USER_ERROR");
   }
 };
 
@@ -392,7 +392,7 @@ export const suspendUser = async (req: Request, res: Response) => {
 
     res.status(200).json({ message: "User suspended successfully", user });
   } catch (error) {
-    handleError(error as ApiError, res, "Error suspending user");
+    handleError(error as ApiError, res, "Error suspending user", "SUSPEND_USER_ERROR");
   }
 };
 
@@ -406,7 +406,7 @@ export const getSuspensionStatus = async (req: Request, res: Response) => {
 
     res.status(200).json({ suspension: user.suspension });
   } catch (error) {
-    handleError(error as ApiError, res, "Error fetching suspension status");
+    handleError(error as ApiError, res, "Error fetching suspension status", "GET_SUSPENSION_STATUS_ERROR");
   }
 };
 

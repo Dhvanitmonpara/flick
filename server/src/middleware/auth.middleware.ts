@@ -94,7 +94,7 @@ const verifyUserJWT = async (
     req.user = mappedUser;
     next();
   } catch (error) {
-    handleError(error, res, "Invalid Access Token");
+    handleError(error, res, "Invalid Access Token", "UNAUTHORIZED");
   }
 };
 
@@ -107,11 +107,11 @@ const termsAcceptedMiddleware = (
     const user = req.user;
     if (!user || !req.user?._id) throw new ApiError(401, "Unauthorized");
     if (!user.termsAccepted) {
-      throw new ApiError(403, "Please accept terms and conditions to proceed.");
+      throw new ApiError(403, "Please accept terms and conditions to proceed.", "TERMS_NOT_ACCEPTED" );
     }
     next();
   } catch (error) {
-    handleError(error as ApiError, res, "Error checking suspension");
+    handleError(error as ApiError, res, "Error checking suspension", "TERMS_NOT_ACCEPTED");
   }
 };
 
@@ -133,7 +133,7 @@ const blockSuspensionMiddleware = (
     }
     next();
   } catch (error) {
-    handleError(error as ApiError, res, "Error checking suspension");
+    handleError(error as ApiError, res, "Error checking suspension", "UNAUTHORIZED");
   }
 };
 
@@ -172,7 +172,7 @@ const verifyAdminJWT = async (
 
     next();
   } catch (error) {
-    handleError(error, res, "Invalid Admin Access Token");
+    handleError(error, res, "Invalid Admin Access Token", "UNAUTHORIZED");
   }
 };
 

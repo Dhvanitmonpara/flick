@@ -164,7 +164,7 @@ export const getCommentsByPostId = async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
-    handleError(error as ApiError, res, "Error fetching comments");
+    handleError(error as ApiError, res, "Error fetching comments", "GET_COMMENTS_ERROR");
   }
 };
 
@@ -189,7 +189,7 @@ export const createComment = async (req: Request, res: Response) => {
       .status(201)
       .json({ message: "Comment created successfully.", comment: newComment });
   } catch (error) {
-    handleError(error as ApiError, res, "Error creating comment");
+    handleError(error as ApiError, res, "Error creating comment", "CREATE_COMMENT_ERROR");
   }
 };
 
@@ -221,7 +221,7 @@ export const updateComment = async (req: Request, res: Response) => {
       message: "Comment updated successfully",
     });
   } catch (error) {
-    handleError(error as ApiError, res, "Error updating comment");
+    handleError(error as ApiError, res, "Error updating comment", "UPDATE_COMMENT_ERROR");
   }
 };
 
@@ -247,6 +247,6 @@ export const deleteComment = async (req: Request, res: Response) => {
       .status(200)
       .json({ success: true, message: "Comment deleted successfully" });
   } catch (error) {
-    handleError(error as ApiError, res, "Error deleting comment");
+    handleError(error as ApiError, res, "Error deleting comment", "DELETE_COMMENT_ERROR");
   }
 };

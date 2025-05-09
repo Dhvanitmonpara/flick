@@ -11,6 +11,7 @@ function handleError(
   error: unknown,
   res: Response,
   fallbackMessage: string,
+  fallbackErrorCode: string,
   duplicationErrorMessage?: string
 ) {
   console.error(fallbackMessage, error);
@@ -19,21 +20,21 @@ function handleError(
   if (isMongoDuplicateError(error)) {
     return res
       .status(400)
-      .json({ error: duplicationErrorMessage || "Duplicate key error" });
+      .json({ error: duplicationErrorMessage || "Duplicate key error", code: "DUPLICATE_KEY" });
   }
 
   // Handle known API errors
   if (error instanceof ApiError) {
     if (error.statusCode === 401 && error.message === "Access token not found" || error.message === "Access and refresh token not found") {
-      return res.status(401).json({ error: "Unauthorized", hasRefreshToken: error.message === "Access token not found" });
+      return res.status(401).json({ error: "Unauthorized", hasRefreshToken: error.message === "Access token not found", code: error.code || fallbackErrorCode });
     }
     return res
       .status(error.statusCode || 500)
-      .json({ error: error.message || fallbackMessage });
+      .json({ error: error.message || fallbackMessage, code: error.code || fallbackErrorCode });
   }
 
   // Handle unexpected errors
-  return res.status(500).json({ error: fallbackMessage });
+  return res.status(500).json({ error: fallbackMessage, code: fallbackErrorCode });
 }
 
 // Helper function to check MongoDB duplicate error

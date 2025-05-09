@@ -36,7 +36,7 @@ export const createCollege = async (req: Request, res: Response) => {
       .status(201)
       .json({ message: "College created successfully.", data: college });
   } catch (error) {
-    handleError(error as ApiError, res, "Error creating college");
+    handleError(error as ApiError, res, "Error creating college", "CREATE_COLLEGE_ERROR");
   }
 };
 
@@ -52,7 +52,7 @@ export const getColleges = async (req: Request, res: Response) => {
     const colleges = await CollegeModel.find(filter).sort({ name: 1 });
     res.status(200).json({ data: colleges });
   } catch (error) {
-    handleError(error as ApiError, res, "Error fetching colleges");
+    handleError(error as ApiError, res, "Error fetching colleges", "GET_COLLEGES_ERROR");
   }
 };
 
@@ -72,7 +72,7 @@ export const getCollegeById = async (req: Request, res: Response) => {
 
     res.status(200).json({ data: college });
   } catch (error) {
-    handleError(error as ApiError, res, "Error fetching college");
+    handleError(error as ApiError, res, "Error fetching college", "GET_COLLEGE_ERROR");
   }
 };
 
@@ -98,7 +98,7 @@ export const updateCollege = async (req: Request, res: Response) => {
       .status(200)
       .json({ message: "College updated successfully.", data: college });
   } catch (error) {
-    handleError(error as ApiError, res, "Error updating college");
+    handleError(error as ApiError, res, "Error updating college", "UPDATE_COLLEGE_ERROR");
   }
 };
 
@@ -118,6 +118,6 @@ export const deleteCollege = async (req: Request, res: Response) => {
 
     res.status(200).json({ message: "College deleted successfully." });
   } catch (error) {
-    handleError(error as ApiError, res, "Error deleting college");
+    handleError(error as ApiError, res, "Error deleting college", "DELETE_COLLEGE_ERROR");
   }
 };

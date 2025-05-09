@@ -176,7 +176,7 @@ export const initializeUser = async (req: Request, res: Response) => {
       identifier: hashedEmail,
     });
   } catch (error) {
-    handleError(error as ApiError, res, "Failed to initialize user");
+    handleError(error as ApiError, res, "Failed to initialize user", "INIT_USER_ERROR");
   }
 };
 
@@ -315,7 +315,7 @@ export const loginUser = async (req: Request, res: Response) => {
         },
       });
   } catch (error) {
-    handleError(error as ApiError, res, "Failed to login");
+    handleError(error as ApiError, res, "Failed to login", "LOGIN_ERROR");
   }
 };
 
@@ -336,7 +336,7 @@ export const getUserData = async (req: Request, res: Response) => {
       .status(200)
       .json({ message: "User fetched successfully!", data: user || "" });
   } catch (error) {
-    handleError(error, res, "Failed to fetch a user");
+    handleError(error, res, "Failed to fetch a user", "GET_USER_ERROR");
   }
 };
 
@@ -365,7 +365,7 @@ export const logoutUser = async (req: Request, res: Response) => {
       .clearCookie("__refreshToken", { ...options, maxAge: 0 })
       .json({ message: "User logged Out" });
   } catch (error) {
-    handleError(error as ApiError, res, "Failed to logout");
+    handleError(error as ApiError, res, "Failed to logout", "LOGOUT_ERROR");
   }
 };
 
@@ -411,7 +411,7 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
       })
       .json({ message: "Access token refreshed successfully" });
   } catch (error) {
-    handleError(error as ApiError, res, "Failed to refresh access token");
+    handleError(error as ApiError, res, "Failed to refresh access token", "REFRESH_ACCESS_TOKEN_ERROR");
   }
 };
 
@@ -445,7 +445,7 @@ export const sendOtp = async (req: Request, res: Response) => {
       message: "OTP sent successfully",
     });
   } catch (error) {
-    handleError(error as ApiError, res, "Failed to send OTP");
+    handleError(error as ApiError, res, "Failed to send OTP", "SEND_OTP_ERROR");
   }
 };
 
@@ -463,6 +463,22 @@ export const verifyOtp = async (req: Request, res: Response) => {
       res.status(400).json({ message: "Invalid OTP", isVerified: false });
     }
   } catch (error) {
-    handleError(error as ApiError, res, "Failed to verify OTP");
+    handleError(error as ApiError, res, "Failed to verify OTP", "VERIFY_OTP_ERROR");
   }
 };
+
+export const acceptTerms = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?._id ?? null;
+    if(!userId) throw new ApiError(401, "Unauthorized request");
+
+    await userModel.findByIdAndUpdate(userId, {
+      $set: {
+        termsAccepted: true,
+      },
+    });
+    res.status(200).json({ message: "Terms accepted successfully" });
+  } catch (error) {
+    handleError(error as ApiError, res, "Failed to accept terms", "ACCEPT_TERMS_ERROR");
+  }
+}

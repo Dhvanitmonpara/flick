@@ -80,7 +80,7 @@ export const createAdmin = async (req: Request, res: Response) => {
       message: "Admin created successfully",
     });
   } catch (error) {
-    handleError(error as ApiError, res, "Error creating admin");
+    handleError(error as ApiError, res, "Error creating admin", "CREATE_ADMIN_ERROR");
   }
 };
 
@@ -93,7 +93,7 @@ export const getAdmin = async (req: Request, res: Response) => {
       message: "Admin fetched successfully",
     });
   } catch (error) {
-    handleError(error as ApiError, res, "Error fetching admin");
+    handleError(error as ApiError, res, "Error fetching admin", "GET_ADMIN_ERROR");
   }
 };
 
@@ -165,7 +165,7 @@ export const initializeAdmin = async (req: Request, res: Response) => {
         message: "Admin logged in successfully",
       });
   } catch (error) {
-    handleError(error as ApiError, res, "Error initializing admin");
+    handleError(error as ApiError, res, "Error initializing admin", "INITIALIZE_ADMIN_ERROR");
   }
 };
 
@@ -203,7 +203,7 @@ export const resendAdminOtp = async (req: Request, res: Response) => {
       message: "OTP sent to admin",
     });
   } catch (error) {
-    handleError(error as ApiError, res, "Error resending OTP");
+    handleError(error as ApiError, res, "Error resending OTP", "RESEND_OTP_ERROR");
   }
 };
 
@@ -259,7 +259,7 @@ export const verifyAdminOtp = async (req: Request, res: Response) => {
         message: "OTP verified, admin logged in successfully",
       });
   } catch (error) {
-    handleError(error as ApiError, res, "Error verifying admin OTP");
+    handleError(error as ApiError, res, "Error verifying admin OTP", "VERIFY_ADMIN_OTP_ERROR");
   }
 };
 
@@ -276,7 +276,7 @@ export const logoutAdmin = async (req: Request, res: Response) => {
       message: "Admin logged out successfully",
     });
   } catch (error) {
-    handleError(error as ApiError, res, "Error logging out admin");
+    handleError(error as ApiError, res, "Error logging out admin", "LOGOUT_ADMIN_ERROR");
   }
 };
 
@@ -313,7 +313,7 @@ export const removeAuthorizedDevice = async (req: Request, res: Response) => {
       message: "Device removed successfully",
     });
   } catch (error) {
-    handleError(error as ApiError, res, "Error removing device");
+    handleError(error as ApiError, res, "Error removing device", "REMOVE_DEVICE_ERROR");
   }
 };
 
@@ -324,7 +324,7 @@ export const deleteAdmin = async (req: Request, res: Response) => {
     await adminModel.findByIdAndDelete(admin._id);
     res.status(200).json({ success: true, message: "Admin deleted" });
   } catch (error) {
-    handleError(error as ApiError, res, "Error deleting admin");
+    handleError(error as ApiError, res, "Error deleting admin", "DELETE_ADMIN_ERROR");
   }
 };
 
@@ -333,7 +333,7 @@ export const getAllAdmins = async (req: Request, res: Response) => {
     const admins = await adminModel.find({});
     res.status(200).json({ success: true, admins });
   } catch (error) {
-    handleError(error as ApiError, res, "Error getting admins");
+    handleError(error as ApiError, res, "Error getting admins", "GET_ALL_ADMINS_ERROR");
   }
 };
 
@@ -356,6 +356,6 @@ export const updateAdmin = async (req: Request, res: Response) => {
 
     res.status(200).json({ success: true, message: "Admin updated" });
   } catch (error) {
-    handleError(error as ApiError, res, "Error updating admin");
+    handleError(error as ApiError, res, "Error updating admin", "UPDATE_ADMIN_ERROR");
   }
 };

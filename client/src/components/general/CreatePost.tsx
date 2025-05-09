@@ -54,6 +54,7 @@ function CreatePost() {
 export const CreatePostForm = ({ setOpen, defaultData, id }: { setOpen?: React.Dispatch<React.SetStateAction<boolean>>, defaultData?: PostFormValues, id?: string }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showTerms, setShowTerms] = useState(false);
 
   const { profile } = useProfileStore()
   const { addPost, updatePost } = usePostStore()
@@ -68,6 +69,17 @@ export const CreatePostForm = ({ setOpen, defaultData, id }: { setOpen?: React.D
       content: "",
     },
   });
+
+  const onSubmitTerms = async () => {
+    try {
+      await axios.post(`${env.serverApiEndpoint}/users/accept-terms`, {}, { withCredentials: true });
+      toast.success("Terms accepted!");
+      setShowTerms(false);
+      form.handleSubmit(onSubmit)();
+    } catch (error) {
+      handleError(error as AxiosError, "Failed to accept terms");
+    }
+  }
 
   const onSubmit = async (data: PostFormValues) => {
     try {
@@ -110,76 +122,139 @@ export const CreatePostForm = ({ setOpen, defaultData, id }: { setOpen?: React.D
 
       if (setOpen) setOpen(false);
     } catch (error) {
-      await handleError(error as AxiosError | Error, "Failed to create post", setError, () => onSubmit(data), "Failed to create post");
+      if (error instanceof AxiosError && error.response?.status === 403) {
+        const code = error.response.data.code;
+
+        if (code === "TERMS_NOT_ACCEPTED") {
+          setShowTerms(true);
+        } else {
+          toast.error("You are not allowed to perform this action.");
+        }
+        return;
+      }
+      await handleError(
+        error as AxiosError | Error,
+        "Failed to create post",
+        setError,
+        () => onSubmit(data),
+        "Failed to create post",
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  return <Form {...form}>
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-      <FormField
-        control={form.control}
-        name="title"
-        disabled={loading}
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Title</FormLabel>
-            <FormControl>
-              <Input placeholder="Enter post title" {...field} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+  return (
+    <>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <FormField
+            control={form.control}
+            name="title"
+            disabled={loading}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Title</FormLabel>
+                <FormControl>
+                  <Input placeholder="Enter post title" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-      <FormField
-        control={form.control}
-        disabled={loading}
-        name="content"
-        render={({ field }) => {
-          const banned = validatePost(field.value);
-          const hasBanned = !banned.allowed;
+          <FormField
+            control={form.control}
+            disabled={loading}
+            name="content"
+            render={({ field }) => {
+              const banned = validatePost(field.value);
+              const hasBanned = !banned.allowed;
 
-          return (
-            <FormItem>
-              <FormLabel>Content</FormLabel>
-              <FormControl>
-                <>
-                  <Textarea
-                    placeholder="Write your post..."
-                    {...field}
-                    onChange={(e) => {
-                      setError("");
-                      field.onChange(e);
-                    }}
-                    className={hasBanned ? "border-red-500" : ""}
-                  />
-                  {field.value && (
-                    <div className="mt-2 text-sm">
-                      <span className="font-semibold">Preview:</span>
-                      {highlightBannedWords(field.value)}
-                    </div>
-                  )}
-                  {hasBanned && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {banned.reason}
-                    </p>
-                  )}
-                </>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          );
-        }}
-      />
+              return (
+                <FormItem>
+                  <FormLabel>Content</FormLabel>
+                  <FormControl>
+                    <>
+                      <Textarea
+                        placeholder="Write your post..."
+                        {...field}
+                        onChange={(e) => {
+                          setError("");
+                          field.onChange(e);
+                        }}
+                        className={hasBanned ? "border-red-500" : ""}
+                      />
+                      {field.value && (
+                        <div className="mt-2 text-sm">
+                          <span className="font-semibold">Preview:</span>
+                          {highlightBannedWords(field.value)}
+                        </div>
+                      )}
+                      {hasBanned && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {banned.reason}
+                        </p>
+                      )}
+                    </>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              );
+            }}
+          />
 
-      <Button disabled={loading || Boolean(error)} type="submit" className="w-full">
-        {loading ? <><Loader2 className="animate-spin" /> Creating...</> : "Create"}
-      </Button>
-      {error && <p className="text-red-500 text-sm">{error}</p>}
-    </form>
-  </Form>
+          <Button disabled={loading || Boolean(error)} type="submit" className="w-full">
+            {loading ? <><Loader2 className="animate-spin" /> Creating...</> : "Create"}
+          </Button>
+          {error && <p className="text-red-500 text-sm">{error}</p>}
+        </form>
+      </Form>
+      <TermsForm showTerms={showTerms} setShowTerms={setShowTerms} onSubmitTerms={onSubmitTerms} />
+    </>
+  )
+}
+
+const TermsForm = ({ showTerms, setShowTerms, onSubmitTerms }: {
+  showTerms: boolean;
+  setShowTerms: React.Dispatch<React.SetStateAction<boolean>>;
+  onSubmitTerms: () => void;
+}) => {
+  const [accepted, setAccepted] = useState(false);
+  return (
+    <Dialog open={showTerms} onOpenChange={setShowTerms}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Terms and Conditions</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4 text-sm">
+          <p>Before posting, you must accept our Terms and Conditions.</p>
+
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="terms"
+              checked={accepted}
+              onChange={(e) => setAccepted(e.target.checked)}
+              className="h-4 w-4"
+            />
+            <label htmlFor="terms" className="text-sm">
+              I agree to the Terms and Conditions
+            </label>
+          </div>
+
+          <Button
+            onClick={onSubmitTerms}
+            className="w-full"
+            disabled={!accepted}
+          >
+            Accept and Continue
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
 }
 
 export default CreatePost;
