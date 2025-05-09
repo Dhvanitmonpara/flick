@@ -66,7 +66,7 @@ function Post({ avatar, userVote, avatarFallback, _id, createdAt, college, title
         <p className="text-zinc-600 dark:text-zinc-400 pt-1">{content}</p>
       </CardContent>
       <CardFooter>
-        <EngagementComponent userVote={userVote} _id={_id} targetType="post" initialCounts={{ upvotes: upvoteCount, downvotes: downvoteCount, comments: commentsCount, views: viewsCount }} key={title} show={['upvotes', "downvotes", 'comments', 'views']} />
+        <EngagementComponent userVote={userVote} _id={_id} targetType="post" initialCounts={{ upvotes: upvoteCount, downvotes: downvoteCount, comments: commentsCount, views: viewsCount }} key={title} show={['upvotes', "downvotes", 'comments', 'views', "share"]} />
       </CardFooter>
     </Card>
   )

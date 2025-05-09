@@ -13,7 +13,6 @@ export const getCommentsByPostId = async (req: Request, res: Response) => {
     const limit = parseInt(req.query.limit as string) || 10;
     const sortBy = (req.query.sortBy as string) || "createdAt";
     const sortOrder = req.query.sortOrder === "asc" ? 1 : -1;
-    const userId = (req.query.user as string) || null;
 
     if (!postId) throw new ApiError(400, "Post ID is required");
 
@@ -90,14 +89,14 @@ export const getCommentsByPostId = async (req: Request, res: Response) => {
       },
 
       // If userId exists, lookup userVote
-      ...(userId
+      ...(req.user?._id
         ? [
             {
               $lookup: {
                 from: "votes",
                 let: {
                   commentId: "$_id",
-                  userId: new mongoose.Types.ObjectId(userId),
+                  userId: toObjectId(req.user._id),
                 },
                 pipeline: [
                   {

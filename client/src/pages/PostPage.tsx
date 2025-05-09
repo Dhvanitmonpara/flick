@@ -5,7 +5,6 @@ import { env } from "@/conf/env";
 import { useErrorHandler } from "@/hooks/useErrorHandler";
 import useCommentStore from "@/store/commentStore";
 import usePostStore from "@/store/postStore";
-import useProfileStore from "@/store/profileStore";
 import { IPost } from "@/types/Post";
 import { IUser } from "@/types/User";
 import { formatDate, isCollege, isUser } from "@/utils/helpers";
@@ -22,19 +21,20 @@ function PostPage() {
 
   const [currentPost, setCurrentPost] = useState<IPost | null>(null)
   const [loading, setLoading] = useState(false)
-  const { profile } = useProfileStore()
+  const [loadingPosts, setLoadingPosts] = useState(false)
+
   const { comments, setComments, resetComments } = useCommentStore()
 
   const { handleError } = useErrorHandler()
 
   const { id } = useParams();
-  const navigate = useNavigate();
   const { posts } = usePostStore()
+  const navigate = useNavigate();
 
   const fetchComments = useCallback(async () => {
     try {
       setLoading(true)
-      const res = await axios.get(`${env.serverApiEndpoint}/comments/p/${id}?user=${profile._id}`)
+      const res = await axios.get(`${env.serverApiEndpoint}/comments/p/${id}`, { withCredentials: true })
       if (res.status !== 200) {
         throw new Error("Failed to fetch comments")
       }
@@ -44,23 +44,52 @@ function PostPage() {
     } finally {
       setLoading(false)
     }
-  }, [handleError, id, profile._id, setComments])
+  }, [handleError, id, setComments])
+
+  const fetchPostById = useCallback(async () => {
+    try {
+      setLoadingPosts(true)
+      const res = await axios.get(`${env.serverApiEndpoint}/posts/get/single/${id}`, { withCredentials: true })
+      if (res.status !== 200) {
+        throw new Error("Failed to fetch post")
+      }
+      setCurrentPost(res.data.post)
+    } catch (error) {
+      await handleError(
+        error as AxiosError | Error,
+        "Error fetching post",
+        undefined,
+        fetchPostById,
+        "Failed to fetch post",
+        () => navigate("/")
+      )
+    } finally {
+      setLoadingPosts(false)
+    }
+  }, [handleError, id, navigate])
 
   useEffect(() => {
-    resetComments()
-    if (!posts || posts.length === 0 || !id) {
-      navigate("/")
-      return
-    }
-    const post = posts.find((post) => post._id === id)
-    if (!post) {
-      navigate("/")
-      return
-    }
-    setCurrentPost(post)
-    fetchComments()
+    resetComments();
 
-  }, [fetchComments, handleError, id, navigate, posts, resetComments])
+    if (!id) {
+      navigate("/");
+      return;
+    }
+
+    const post = posts?.find((post) => post._id === id);
+
+    if (post) {
+      setCurrentPost(post);
+    } else {
+      fetchPostById();
+    }
+
+    fetchComments();
+  }, [fetchComments, fetchPostById, id, navigate, posts, resetComments]);
+
+  if (loadingPosts || !currentPost) {
+    return <Loader2 className="animate-spin" />
+  }
 
   return (
     <div>

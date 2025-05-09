@@ -2,7 +2,6 @@ import Post from "@/components/general/Post"
 import { env } from "@/conf/env"
 import { useErrorHandler } from "@/hooks/useErrorHandler"
 import usePostStore from "@/store/postStore"
-import useProfileStore from "@/store/profileStore"
 import { IUser } from "@/types/User"
 import { formatDate, isCollege, isUser } from "@/utils/helpers"
 import axios, { AxiosError } from "axios"
@@ -15,14 +14,13 @@ function FeedPage() {
 
   const [loading, setLoading] = useState(false)
   const { handleError } = useErrorHandler()
-  const { profile } = useProfileStore()
   const { setPosts, posts } = usePostStore()
 
   const fetchPosts = useCallback(async () => {
     try {
       setLoading(true)
 
-      const res = await axios.get(`${env.serverApiEndpoint}/posts/feed?user=${profile._id}`)
+      const res = await axios.get(`${env.serverApiEndpoint}/posts/feed`, { withCredentials: true })
 
       if (res.status !== 200) {
         throw new Error("Failed to fetch posts")
@@ -34,7 +32,7 @@ function FeedPage() {
     } finally {
       setLoading(false)
     }
-  }, [handleError, profile._id, setPosts])
+  }, [handleError, setPosts])
 
   useEffect(() => {
     document.title = "Feed | Flick"

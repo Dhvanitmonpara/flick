@@ -4,8 +4,9 @@ import { env } from "@/conf/env";
 import { useErrorHandler } from "@/hooks/useErrorHandler";
 import { useEffect, useState } from "react";
 import { FaComment, FaEye } from 'react-icons/fa';
+import ShareButton from "../actions/ShareButton";
 
-type EngagementType = 'upvotes' | 'downvotes' | 'comments' | 'views';
+type EngagementType = 'upvotes' | 'downvotes' | 'comments' | 'views' | "share";
 
 type Count = {
   upvotes?: number;
@@ -161,6 +162,10 @@ const EngagementComponent = ({
           <FaEye className="text-gray-400 text-lg m-0.5" />
           <span className="text-sm text-gray-600 dark:text-gray-400 w-3">{optimisticCounts.views}</span>
         </div>
+      )}
+
+      {show.includes('share') && (
+        <ShareButton id={_id} />
       )}
     </div>
   );

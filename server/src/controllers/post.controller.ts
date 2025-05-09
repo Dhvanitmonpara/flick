@@ -131,9 +131,7 @@ const deletePost = async (req: Request, res: Response) => {
 
     const post = await PostModel.findById(objectPostId);
     if (!post) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Post not found" });
+      throw new ApiError(404, "Post not found");
     }
 
     const commentIds = (
@@ -164,7 +162,6 @@ const getPostsForFeed = async (req: Request, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
-    const userId = (req.query.user as string) || null;
 
     const aggregationPipeline: any[] = [
       {
@@ -242,15 +239,15 @@ const getPostsForFeed = async (req: Request, res: Response) => {
       },
     ];
 
-    // 👉 If user exists, push userVote lookup
-    if (userId) {
+    if (req.user?._id) {
+      console.log(req.user._id, "hha");
       aggregationPipeline.push(
         {
           $lookup: {
             from: "votes",
             let: {
               postId: "$_id",
-              userId: new mongoose.Types.ObjectId(userId),
+              userId: toObjectId(req.user?._id),
             },
             pipeline: [
               {
@@ -319,8 +316,154 @@ const getPostsForFeed = async (req: Request, res: Response) => {
   }
 };
 
-const getPost = async (req: Request, res: Response) => {
-  //
+const getPostById = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      throw new ApiError(400, "Invalid post ID.");
+    }
+
+    const aggregationPipeline: any[] = [
+      {
+        $match: {
+          _id: new mongoose.Types.ObjectId(id),
+          isBanned: false,
+          isShadowBanned: false,
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "postedBy",
+          foreignField: "_id",
+          as: "postedBy",
+        },
+      },
+      {
+        $unwind: {
+          path: "$postedBy",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: "colleges",
+          localField: "postedBy.college",
+          foreignField: "_id",
+          as: "postedBy.college",
+        },
+      },
+      {
+        $unwind: {
+          path: "$postedBy.college",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: "votes",
+          localField: "_id",
+          foreignField: "postId",
+          as: "votes",
+        },
+      },
+      {
+        $addFields: {
+          upvoteCount: {
+            $size: {
+              $filter: {
+                input: "$votes",
+                as: "vote",
+                cond: { $eq: ["$$vote.voteType", "upvote"] },
+              },
+            },
+          },
+          downvoteCount: {
+            $size: {
+              $filter: {
+                input: "$votes",
+                as: "vote",
+                cond: { $eq: ["$$vote.voteType", "downvote"] },
+              },
+            },
+          },
+        },
+      },
+    ];
+
+    if (req.user?._id) {
+      aggregationPipeline.push(
+        {
+          $lookup: {
+            from: "votes",
+            let: {
+              postId: "$_id",
+              userId: toObjectId(req.user._id),
+            },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $and: [
+                      { $eq: ["$postId", "$$postId"] },
+                      { $eq: ["$userId", "$$userId"] },
+                    ],
+                  },
+                },
+              },
+              {
+                $project: {
+                  _id: 0,
+                  voteType: 1,
+                },
+              },
+            ],
+            as: "userVote",
+          },
+        },
+        {
+          $addFields: {
+            userVote: { $arrayElemAt: ["$userVote.voteType", 0] },
+          },
+        }
+      );
+    }
+
+    aggregationPipeline.push({
+      $project: {
+        title: 1,
+        content: 1,
+        views: 1,
+        createdAt: 1,
+        upvoteCount: 1,
+        downvoteCount: 1,
+        userVote: 1,
+        postedBy: {
+          _id: 1,
+          username: 1,
+          branch: 1,
+          bookmarks: 1,
+          college: {
+            _id: 1,
+            name: 1,
+            profile: 1,
+            email: 1,
+          },
+        },
+      },
+    });
+
+    const posts = await PostModel.aggregate(aggregationPipeline);
+
+    if (!posts || posts.length === 0) {
+      throw new ApiError(404, "Post not found");
+    }
+
+    res.status(200).json({ post: posts[0] });
+  } catch (error) {
+    handleError(error as ApiError, res, "Error fetching post");
+  }
 };
 
-export { createPost, updatePost, deletePost, getPost, getPostsForFeed };
+export { createPost, updatePost, deletePost, getPostById, getPostsForFeed };
