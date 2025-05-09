@@ -3,8 +3,9 @@ import axios, { AxiosError } from "axios";
 import { env } from "@/conf/env";
 import { useErrorHandler } from "@/hooks/useErrorHandler";
 import { useEffect, useState } from "react";
-import { FaComment, FaEye } from 'react-icons/fa';
+import { FaEye } from 'react-icons/fa';
 import ShareButton from "../actions/ShareButton";
+import CommentButton from "../actions/CommentButton";
 
 type EngagementType = 'upvotes' | 'downvotes' | 'comments' | 'views' | "share";
 
@@ -152,7 +153,7 @@ const EngagementComponent = ({
 
       {show.includes('comments') && (
         <div className="flex items-center gap-1">
-          <FaComment className="text-gray-400 text-lg m-0.5" />
+          <CommentButton />
           <span className="text-sm text-gray-600 dark:text-gray-400 w-3">{optimisticCounts.comments}</span>
         </div>
       )}

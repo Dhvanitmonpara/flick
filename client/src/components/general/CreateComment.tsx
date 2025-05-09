@@ -13,6 +13,7 @@ import { useForm } from "react-hook-form";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { z } from "zod";
+import { TermsForm } from "./TermsForm";
 
 const commentSchema = z.object({
   content: z.string().min(3, "Content must be at least 3 characters."),
@@ -23,6 +24,7 @@ type CommentFormValues = z.infer<typeof commentSchema>;
 function CreateComment({ parentCommentId, defaultData, commentId, setOpen }: { parentCommentId?: string, defaultData?: CommentFormValues, commentId?: string, setOpen?: React.Dispatch<React.SetStateAction<boolean>> }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showTerms, setShowTerms] = useState(false);
   const { handleError } = useErrorHandler();
 
   const { addComment, updateComment } = useCommentStore()
@@ -35,6 +37,17 @@ function CreateComment({ parentCommentId, defaultData, commentId, setOpen }: { p
       content: "",
     },
   });
+
+  const onSubmitTerms = async () => {
+    try {
+      await axios.post(`${env.serverApiEndpoint}/users/accept-terms`, {}, { withCredentials: true });
+      toast.success("Terms accepted!");
+      setShowTerms(false);
+      form.handleSubmit(onSubmit)();
+    } catch (error) {
+      handleError(error as AxiosError, "Failed to accept terms");
+    }
+  }
 
   const onSubmit = async (data: CommentFormValues) => {
     try {
@@ -79,6 +92,16 @@ function CreateComment({ parentCommentId, defaultData, commentId, setOpen }: { p
 
       if (setOpen) setOpen(false);
     } catch (error) {
+      if (error instanceof AxiosError && error.response?.status === 403) {
+        const code = error.response.data.code;
+
+        if (code === "TERMS_NOT_ACCEPTED") {
+          setShowTerms(true);
+        } else {
+          toast.error("You are not allowed to perform this action.");
+        }
+        return;
+      }
       await handleError(error as AxiosError | Error, "Failed to create comment", setError, () => onSubmit(data), "Failed to create comment");
     } finally {
       setLoading(false);
@@ -86,54 +109,57 @@ function CreateComment({ parentCommentId, defaultData, commentId, setOpen }: { p
   }
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="content"
-          render={({ field }) => {
-            const banned = validatePost(field.value);
-            const hasBanned = !banned.allowed;
+    <>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <FormField
+            control={form.control}
+            name="content"
+            render={({ field }) => {
+              const banned = validatePost(field.value);
+              const hasBanned = !banned.allowed;
 
-            return (
-              <FormItem>
-                <FormControl>
-                  <>
-                    <Textarea
-                      placeholder="Post comment..."
-                      disabled={loading}
-                      {...field}
-                      onChange={(e) => {
-                        setError("");
-                        field.onChange(e);
-                      }}
-                      className={hasBanned ? "border-red-500" : ""}
-                    />
-                    {field.value && (
-                      <div className="mt-2 text-sm">
-                        <span className="font-semibold">Preview:</span>
-                        {highlightBannedWords(field.value)}
-                      </div>
-                    )}
-                    {hasBanned && (
-                      <p className="text-red-500 text-xs mt-1">
-                        {banned.reason}
-                      </p>
-                    )}
-                  </>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            );
-          }}
-        />
+              return (
+                <FormItem>
+                  <FormControl>
+                    <>
+                      <Textarea
+                        placeholder="Post comment..."
+                        disabled={loading}
+                        {...field}
+                        onChange={(e) => {
+                          setError("");
+                          field.onChange(e);
+                        }}
+                        className={hasBanned ? "border-red-500" : ""}
+                      />
+                      {field.value && (
+                        <div className="mt-2 text-sm">
+                          <span className="font-semibold">Preview:</span>
+                          {highlightBannedWords(field.value)}
+                        </div>
+                      )}
+                      {hasBanned && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {banned.reason}
+                        </p>
+                      )}
+                    </>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              );
+            }}
+          />
 
-        <Button disabled={loading || Boolean(error)} type="submit" className="w-full">
-          {loading ? <><Loader2 className="animate-spin" /> {isUpdating ? "Updating..." : "Creating..."}</> : (isUpdating ? "Update" : "Create")}
-        </Button>
-        {error && <p className="text-red-500 text-sm">{error}</p>}
-      </form>
-    </Form>
+          <Button disabled={loading || Boolean(error)} type="submit" className="w-full">
+            {loading ? <><Loader2 className="animate-spin" /> {isUpdating ? "Updating..." : "Creating..."}</> : (isUpdating ? "Update" : "Create")}
+          </Button>
+          {error && <p className="text-red-500 text-sm">{error}</p>}
+        </form>
+      </Form>
+      <TermsForm onSubmitTerms={onSubmitTerms} setShowTerms={setShowTerms} showTerms={showTerms} />
+    </>
   )
 }
 

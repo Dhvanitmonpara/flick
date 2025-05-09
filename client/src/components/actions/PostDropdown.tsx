@@ -135,7 +135,6 @@ function PostDropdown({ type, id, editableData }: { type: ("post" | "comment"), 
             <TbMessageReport />
             <span>Report</span>
           </DropdownMenuItem>
-          {/* TODO: Add a component that asks for money when user wants to use this feature */}
           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openDialog("EDIT") }}>
             <RiEdit2Fill />
             <span>Edit</span>
