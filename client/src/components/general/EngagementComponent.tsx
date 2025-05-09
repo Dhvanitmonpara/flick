@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { FaEye } from 'react-icons/fa';
 import ShareButton from "../actions/ShareButton";
 import CommentButton from "../actions/CommentButton";
+import { toast } from "sonner";
 
 type EngagementType = 'upvotes' | 'downvotes' | 'comments' | 'views' | "share";
 
@@ -136,7 +137,7 @@ const EngagementComponent = ({
       {show.includes('upvotes') && (
         <div className="flex items-center gap-1">
           <button disabled={isVoting} onClick={(e) => { e.stopPropagation(); handleVote("upvote") }} aria-label={upvoted ? 'Remove upvote' : 'Upvote'} className="p-0.5 focus:outline-none">
-            <PiArrowFatUpFill className={`${upvoted ? "text-blue-500" : "text-gray-400"} hover:scale-110 hover:text-blue-400 transition-all text-lg`} />
+            <PiArrowFatUpFill className={`${upvoted ? "text-blue-500" : "text-gray-400"} hover:scale-110 hover:text-blue-400 transition-all text-xl`} />
           </button>
           <span className="text-sm text-gray-600 dark:text-gray-400 w-3 cursor-pointer select-none">{optimisticCounts.upvotes}</span>
         </div>
@@ -145,7 +146,7 @@ const EngagementComponent = ({
       {show.includes('downvotes') && (
         <div className="flex items-center gap-1">
           <button disabled={isVoting} onClick={(e) => { e.stopPropagation(); handleVote("downvote") }} aria-label={downvoted ? 'Remove downvote' : 'Downvote'} className="p-0.5 focus:outline-none">
-            <PiArrowFatDownFill className={`${downvoted ? "text-red-500" : "text-gray-400"} hover:scale-110 hover:text-red-400 transition-all text-lg`} />
+            <PiArrowFatDownFill className={`${downvoted ? "text-red-500" : "text-gray-400"} hover:scale-110 hover:text-red-400 transition-all text-xl`} />
           </button>
           <span className="text-sm text-gray-600 dark:text-gray-400 w-3 cursor-pointer select-none">{optimisticCounts.downvotes}</span>
         </div>
@@ -160,7 +161,9 @@ const EngagementComponent = ({
 
       {show.includes('views') && (
         <div className="flex items-center gap-1">
-          <FaEye className="text-gray-400 text-lg m-0.5" />
+          <button disabled={isVoting} onClick={(e) => { e.stopPropagation(); toast.info("Analytics feature is under development") }} aria-label={downvoted ? 'Remove downvote' : 'Downvote'} className="p-0.5 focus:outline-none">
+          <FaEye className="text-gray-400 text-xl m-0.5" />
+          </button>
           <span className="text-sm text-gray-600 dark:text-gray-400 w-3">{optimisticCounts.views}</span>
         </div>
       )}

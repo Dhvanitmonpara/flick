@@ -50,7 +50,7 @@ export const getColleges = async (req: Request, res: Response) => {
     if (state) filter.state = state;
 
     const colleges = await CollegeModel.find(filter).sort({ name: 1 });
-    res.status(200).json({ data: colleges });
+    res.status(200).json({ colleges });
   } catch (error) {
     handleError(error as ApiError, res, "Error fetching colleges", "GET_COLLEGES_ERROR");
   }

@@ -246,7 +246,6 @@ const getPostsForFeed = async (req: Request, res: Response) => {
     ];
 
     if (req.user?._id) {
-      console.log(req.user._id, "hha");
       aggregationPipeline.push(
         {
           $lookup: {

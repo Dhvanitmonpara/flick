@@ -22,6 +22,7 @@ import { highlightBannedWords, validatePost } from "@/utils/moderator";
 import { Textarea } from "../ui/textarea";
 import { Loader2 } from "lucide-react";
 import usePostStore from "@/store/postStore";
+import { TermsForm } from "./TermsForm";
 
 const postSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters."),

@@ -1,8 +1,8 @@
 import { useState } from "react"
-import { IoIosShareAlt } from "react-icons/io"
 import { FaCheck } from "react-icons/fa6"
 import { toast } from "sonner"
 import { env } from "@/conf/env"
+import { PiShareFatFill } from "react-icons/pi"
 
 function ShareButton({ id }: { id: string }) {
   const [shared, setShared] = useState(false)
@@ -19,7 +19,7 @@ function ShareButton({ id }: { id: string }) {
 
   return (
     <button disabled={shared} onClick={handleShare}>
-      {shared ? <FaCheck className="text-green-500 text-xl m-0.5" /> : <IoIosShareAlt className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 text-xl m-0.5" />}
+      {shared ? <FaCheck className="text-green-500 text-xl m-0.5" /> : <PiShareFatFill className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 text-xl m-0.5" />}
     </button>
   )
 }
