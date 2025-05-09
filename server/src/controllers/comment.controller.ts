@@ -172,17 +172,14 @@ export const createComment = async (req: Request, res: Response) => {
   try {
     const { content, parentCommentId } = req.body;
     const postId = req.params.postId;
-    const user = req.user;
-
-    if (!user) throw new ApiError(401, "Unauthorized");
-    const userId = user._id;
 
     if (!content || !postId) throw new ApiError(400, "All fields are required");
+    if (!req.user || !req.user?._id) throw new ApiError(401, "Unauthorized");
 
     const newComment = new CommentModel({
       content,
       postId,
-      commentedBy: userId,
+      commentedBy: req.user._id,
       parentCommentId: parentCommentId || null,
     });
 
@@ -201,9 +198,9 @@ export const updateComment = async (req: Request, res: Response) => {
     const content = req.body.content?.trim();
     const { commentId } = req.params;
 
-    if (!content) {
+    if (!content)
       throw new ApiError(400, "Content is required and cannot be empty");
-    }
+    if (!req.user || !req.user?._id) throw new ApiError(401, "Unauthorized");
 
     const updatedComment = await CommentModel.findByIdAndUpdate(
       toObjectId(commentId),
@@ -232,7 +229,7 @@ export const deleteComment = async (req: Request, res: Response) => {
   try {
     const { commentId } = req.params;
     if (!commentId) throw new ApiError(400, "Comment ID is required");
-    if (!req.user) throw new ApiError(401, "Unauthorized");
+    if (!req.user || !req.user?._id) throw new ApiError(401, "Unauthorized");
 
     const objectCommentId = toObjectId(commentId);
 

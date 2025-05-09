@@ -19,6 +19,10 @@ const userSchema = new mongoose.Schema(
       trim: true,
       index: true,
     },
+    termsAccepted: {
+      type: Boolean,
+      default: false,
+    },
     lookupEmail: {
       type: String,
       required: true,
@@ -72,8 +76,6 @@ userSchema.methods.generateAccessToken = function () {
       _id: this._id,
       username: this.username,
       isVerified: this.isVerified,
-      isBlocked: this.isBlocked,
-      suspensionEnds: this.suspension.ends,
     },
     env.accessTokenSecret,
     {

@@ -15,6 +15,7 @@ declare global {
           reason: string | null;
           howManyTimes: number;
         };
+        termsAccepted: boolean;
         refreshToken: string | null;
         bookmarks: Types.ObjectId[];
         branch: string;

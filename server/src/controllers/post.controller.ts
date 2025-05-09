@@ -10,12 +10,10 @@ import VoteModel from "../models/vote.model.js";
 import userModel from "../models/user.model.js";
 
 const createPost = async (req: Request, res: Response) => {
-  const { title, postedBy, content } = req.body;
-
   try {
-    if (!postedBy || !title || !content) {
-      throw new ApiError(400, "All fields are required");
-    }
+    const { title, content } = req.body;
+    if (!title || !content) throw new ApiError(400, "All fields are required");
+    if(!req.user?._id) throw new ApiError(401, "Unauthorized");
 
     const result = await validatePost(content);
     if (!result.allowed) {
@@ -30,7 +28,7 @@ const createPost = async (req: Request, res: Response) => {
     }
 
     const user = await userModel
-      .findById(postedBy)
+      .findById(req.user?._id)
       .populate({ path: "college", select: "_id name profile" })
       .select("_id username branch bookmarks college")
       .lean<{
@@ -38,6 +36,11 @@ const createPost = async (req: Request, res: Response) => {
         username: string;
         branch: string;
         isBlocked: boolean;
+        suspension: {
+          ends: Date | null;
+          reason: string | null;
+          howManyTimes: number;
+        };
         bookmarks: Types.ObjectId[];
         college: {
           _id: Types.ObjectId;
@@ -47,12 +50,11 @@ const createPost = async (req: Request, res: Response) => {
       }>();
 
     if (!user || !user.college) throw new ApiError(404, "User not found");
-    if (user.isBlocked) throw new ApiError(400, "User is blocked");
 
     const createdPost = await PostModel.create({
       title,
       content,
-      postedBy: toObjectId(postedBy),
+      postedBy: toObjectId(req.user._id),
       likes: [],
     });
 
@@ -100,6 +102,8 @@ const updatePost = async (req: Request, res: Response) => {
     if (!title && !content)
       throw new ApiError(400, "Title or content is required");
 
+    if (!req.user || !req.user?._id) throw new ApiError(401, "Unauthorized");
+
     const updateFields: any = {};
     if (title) updateFields.title = title;
     if (content) updateFields.content = content;
@@ -126,6 +130,8 @@ const deletePost = async (req: Request, res: Response) => {
   try {
     const { postId } = req.params;
     if (!postId) throw new ApiError(400, "Post ID is required");
+
+    if (!req.user || !req.user?._id) throw new ApiError(401, "Unauthorized");
 
     const objectPostId = toObjectId(postId);
 

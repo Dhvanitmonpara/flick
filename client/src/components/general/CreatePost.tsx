@@ -73,9 +73,7 @@ export const CreatePostForm = ({ setOpen, defaultData, id }: { setOpen?: React.D
     try {
       setLoading(true);
 
-      const postedBy = profile?._id
-      if (!postedBy) throw new Error("User not found");
-
+      if (!profile?._id) throw new Error("User not found");
       if (isUpdating && !id) throw new Error("Post id not found")
 
       const { allowed, reason } = validatePost(data.content);
@@ -91,7 +89,7 @@ export const CreatePostForm = ({ setOpen, defaultData, id }: { setOpen?: React.D
           },
         })
       } else {
-        res = await axios.post(`${env.serverApiEndpoint}/posts`, { ...data, postedBy }, {
+        res = await axios.post(`${env.serverApiEndpoint}/posts`, data, {
           withCredentials: true,
           headers: {
             "Content-Type": "application/json",

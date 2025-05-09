@@ -1,11 +1,12 @@
 import { Router } from "express";
+import { createReport } from "../controllers/reports.controller.js";
 import {
-  createReport,
-} from "../controllers/reports.controller.js";
-import { verifyJWT } from "../middleware/auth.middleware.js";
+  blockSuspensionMiddleware,
+  verifyUserJWT,
+} from "../middleware/auth.middleware.js";
 
 const router = Router();
 
-router.route("/").post(verifyJWT, createReport);
+router.route("/").post(verifyUserJWT, blockSuspensionMiddleware, createReport);
 
 export default router;

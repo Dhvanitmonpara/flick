@@ -6,20 +6,64 @@ import handleError from "../services/HandleError.js";
 import { env } from "../conf/env.js";
 import adminModel from "../models/admin.model.js";
 
-const verifyJWT = async (req: Request, res: Response, next: NextFunction) => {
+const lazyVerifyJWT = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const token =
       req.cookies?.__accessToken ||
       req.header("Authorization")?.replace("Bearer ", "");
 
     if (!token) {
-      throw new ApiError(
-        401,
-        "Unauthorized"
-      );
+      return next();
     }
 
     const decodedToken = jwt.verify(token, env.accessTokenSecret) as JwtPayload;
+
+    req.user = {
+      _id: decodedToken._id,
+      username: decodedToken.username,
+      isVerified: decodedToken.isVerified,
+      isBlocked: decodedToken.isBlocked,
+      termsAccepted: decodedToken.termsAccepted,
+      suspension: decodedToken.suspension ?? {
+        ends: null,
+        reason: null,
+        howManyTimes: 0,
+      },
+      refreshToken: null,
+      bookmarks: [],
+      branch: "",
+      college: null,
+    };
+
+    next();
+  } catch (error) {
+    next();
+  }
+};
+
+const verifyUserJWT = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const token =
+      req.cookies?.__accessToken ||
+      req.header("Authorization")?.replace("Bearer ", "");
+
+    if (!token) {
+      throw new ApiError(401, "Unauthorized");
+    }
+
+    const decodedToken = jwt.verify(token, env.accessTokenSecret) as JwtPayload;
+
+    if (!decodedToken || typeof decodedToken == "string") {
+      throw new ApiError(401, "Invalid Access Token");
+    }
 
     const user = await userModel
       .findById(decodedToken?._id)
@@ -40,6 +84,7 @@ const verifyJWT = async (req: Request, res: Response, next: NextFunction) => {
         reason: user.suspension?.reason ?? null,
         howManyTimes: user.suspension?.howManyTimes ?? 0,
       },
+      termsAccepted: user.termsAccepted ?? false,
       refreshToken: null,
       bookmarks: user.bookmarks,
       branch: user.branch ?? "",
@@ -50,6 +95,45 @@ const verifyJWT = async (req: Request, res: Response, next: NextFunction) => {
     next();
   } catch (error) {
     handleError(error, res, "Invalid Access Token");
+  }
+};
+
+const termsAcceptedMiddleware = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const user = req.user;
+    if (!user || !req.user?._id) throw new ApiError(401, "Unauthorized");
+    if (!user.termsAccepted) {
+      throw new ApiError(403, "Please accept terms and conditions to proceed.");
+    }
+    next();
+  } catch (error) {
+    handleError(error as ApiError, res, "Error checking suspension");
+  }
+};
+
+const blockSuspensionMiddleware = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const user = req.user;
+    if (!user || !req.user?._id) throw new ApiError(401, "Unauthorized");
+    if (user?.isBlocked) throw new ApiError(400, "User is blocked");
+    if (user && user.suspension?.ends && user.suspension.ends > new Date()) {
+      res.status(403).json({
+        message: `You are suspended until ${user.suspension.ends}`,
+        reason: user.suspension.reason,
+      });
+      return;
+    }
+    next();
+  } catch (error) {
+    handleError(error as ApiError, res, "Error checking suspension");
   }
 };
 
@@ -92,4 +176,10 @@ const verifyAdminJWT = async (
   }
 };
 
-export { verifyJWT, verifyAdminJWT };
+export {
+  verifyUserJWT,
+  verifyAdminJWT,
+  lazyVerifyJWT,
+  termsAcceptedMiddleware,
+  blockSuspensionMiddleware,
+};

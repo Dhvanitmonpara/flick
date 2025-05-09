@@ -10,15 +10,15 @@ import {
   verifyOtp,
   heartbeat,
 } from "../controllers/user.controller.js";
-import { verifyJWT } from "../middleware/auth.middleware.js";
+import { verifyUserJWT } from "../middleware/auth.middleware.js";
 
 const router = Router();
 
 router.route("/register").post(registerUser);
 router.route("/initialize").post(initializeUser);
-router.route("/me").get(verifyJWT, getUserData);
+router.route("/me").get(verifyUserJWT, getUserData);
 router.route("/login").post(loginUser);
-router.route("/logout").post(verifyJWT, logoutUser);
+router.route("/logout").post(verifyUserJWT, logoutUser);
 router.route("/heartbeat").patch(heartbeat as RequestHandler);
 router.route("/refresh").post(refreshAccessToken);
 router.route("/otp/send").post(sendOtp);

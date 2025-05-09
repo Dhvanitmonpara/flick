@@ -1,13 +1,20 @@
 import { Router } from "express";
 import {
-    createVote,
-    deleteVote,
-    patchVote
+  createVote,
+  deleteVote,
+  patchVote,
 } from "../controllers/vote.controller.js";
-import { verifyJWT } from "../middleware/auth.middleware.js";
+import {
+  blockSuspensionMiddleware,
+  verifyUserJWT,
+} from "../middleware/auth.middleware.js";
 
-const router = Router()
+const router = Router();
 
-router.route('/').post(verifyJWT, createVote).delete(verifyJWT, deleteVote).patch(verifyJWT, patchVote)
+router
+  .route("/")
+  .post(verifyUserJWT, blockSuspensionMiddleware, createVote)
+  .delete(verifyUserJWT, deleteVote)
+  .patch(verifyUserJWT, blockSuspensionMiddleware, patchVote);
 
 export default router;

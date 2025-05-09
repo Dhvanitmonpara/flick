@@ -6,15 +6,23 @@ import {
   getPostsForFeed,
   updatePost,
 } from "../controllers/post.controller.js";
-import { verifyJWT } from "../middleware/auth.middleware.js";
-import verifyJWTLazyCheck from "../middleware/lazyauth.middleware.js";
+import { blockSuspensionMiddleware, lazyVerifyJWT, termsAcceptedMiddleware, verifyUserJWT } from "../middleware/auth.middleware.js";
 
 const router = Router();
 
-router.route("/").post(verifyJWT, createPost);
-router.route("/delete/:postId").delete(verifyJWT, deletePost);
-router.route("/get/single/:id").get(verifyJWTLazyCheck, getPostById);
-router.route("/feed").get(verifyJWTLazyCheck, getPostsForFeed);
-router.route("/update/:postId").patch(verifyJWT, updatePost);
+router
+  .route("/")
+  .post(
+    verifyUserJWT,
+    blockSuspensionMiddleware,
+    termsAcceptedMiddleware,
+    createPost
+  );
+router.route("/delete/:postId").delete(verifyUserJWT, deletePost);
+router.route("/get/single/:id").get(lazyVerifyJWT, getPostById);
+router.route("/feed").get(lazyVerifyJWT, getPostsForFeed);
+router
+  .route("/update/:postId")
+  .patch(verifyUserJWT, blockSuspensionMiddleware, updatePost);
 
 export default router;
