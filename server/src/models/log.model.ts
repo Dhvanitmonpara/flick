@@ -43,6 +43,9 @@ const logSchema = new mongoose.Schema(
         "user_reset_email_otp",
         "user_logged_in_self",
         "user_logged_out_self",
+        "user_created_feedback",
+        "user_updated_feedback",
+        "user_deleted_feedback",
 
         "admin_banned_user",
         "admin_unbanned_user",
@@ -58,6 +61,8 @@ const logSchema = new mongoose.Schema(
         "admin_deleted_report",
         "admin_bulk_deleted_reports",
         "admin_updated_report_status",
+        "admin_updated_feedback_status",
+        "admin_deleted_feedback",
 
         "system_created_admin_account",
         "admin_logged_out_self",

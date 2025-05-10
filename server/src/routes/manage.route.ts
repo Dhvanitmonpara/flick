@@ -17,6 +17,7 @@ import {
   banComment,
   unbanComment,
 } from "../controllers/reports.controller.js";
+import { deleteFeedback, getFeedbackById, listFeedbacks, updateFeedbackStatus } from "../controllers/feedback.controller.js";
 
 const router = Router();
 
@@ -35,5 +36,8 @@ router.route("/users/query").get(getUsersByQuery);
 router.route("/users/block/:userId").patch(blockUser);
 router.route("/users/unblock/:userId").patch(unblockUser);
 router.route("/users/suspension/:userId").patch(suspendUser).get(getSuspensionStatus);
+router.route("/feedback/:id").get(getFeedbackById).delete(deleteFeedback);
+router.route("/feedback/status/:id").get(getFeedbackById).delete(deleteFeedback).patch(updateFeedbackStatus)
+router.route("/feedback/all").get(listFeedbacks)
 
 export default router;
