@@ -8,15 +8,17 @@ import { highlightBannedWords, validatePost } from "@/utils/moderator";
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios, { AxiosError } from "axios";
 import { Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { z } from "zod";
 import { TermsForm } from "./TermsForm";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
+import { DialogDescription } from "@radix-ui/react-dialog";
 
 const commentSchema = z.object({
-  content: z.string().min(3, "Content must be at least 3 characters."),
+  content: z.string().min(3, "Content must be at least 3 characters.").max(2000, "Content must be at most 2000 characters."),
 });
 
 type CommentFormValues = z.infer<typeof commentSchema>;
@@ -25,6 +27,9 @@ function CreateComment({ parentCommentId, defaultData, commentId, setOpen }: { p
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showTerms, setShowTerms] = useState(false);
+  const [isWriting, setIsWriting] = useState(false);
+  const [warningOpen, setWarningOpen] = useState(false);
+
   const { handleError } = useErrorHandler();
 
   const { addComment, updateComment } = useCommentStore()
@@ -37,6 +42,12 @@ function CreateComment({ parentCommentId, defaultData, commentId, setOpen }: { p
       content: "",
     },
   });
+
+  useEffect(() => {
+    if (defaultData) {
+      setIsWriting(true);
+    }
+  }, [defaultData])
 
   const onSubmitTerms = async () => {
     try {
@@ -124,14 +135,31 @@ function CreateComment({ parentCommentId, defaultData, commentId, setOpen }: { p
                   <FormControl>
                     <>
                       <Textarea
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && e.ctrlKey) {
+                            e.preventDefault();
+                            form.handleSubmit(onSubmit)();
+                          }
+                          if (e.key === "Escape") {
+                            if (!field.value) setIsWriting(false);
+                            else setWarningOpen(true);
+                          }
+                        }}
                         placeholder="Post comment..."
                         disabled={loading}
+                        maxLength={2000}
+                        rows={1}
+                        onFocus={() => setIsWriting(true)}
+                        onBlurCapture={() => {
+                          if (!field.value) setIsWriting(false);
+                          else setWarningOpen(true);
+                        }}
                         {...field}
                         onChange={(e) => {
                           setError("");
                           field.onChange(e);
                         }}
-                        className={hasBanned ? "border-red-500" : ""}
+                        className={`${isWriting ? "min-h-40" : "h-10"} transition-all ${hasBanned ? "border-red-500" : ""}`}
                       />
                       {field.value && (
                         <div className="mt-2 text-sm">
@@ -152,12 +180,28 @@ function CreateComment({ parentCommentId, defaultData, commentId, setOpen }: { p
             }}
           />
 
-          <Button disabled={loading || Boolean(error)} type="submit" className="w-full">
+          {isWriting && <Button disabled={loading || Boolean(error)} type="submit" className="w-full">
             {loading ? <><Loader2 className="animate-spin" /> {isUpdating ? "Updating..." : "Creating..."}</> : (isUpdating ? "Update" : "Create")}
-          </Button>
+          </Button>}
           {error && <p className="text-red-500 text-sm">{error}</p>}
         </form>
       </Form>
+      <Dialog open={warningOpen} onOpenChange={setWarningOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Do you want to discard comment?</DialogTitle>
+            <DialogDescription>All written content will be lost.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setWarningOpen(false)}>Cancel</Button>
+            <Button onClick={() => {
+              form.reset();
+              setWarningOpen(false);
+              setIsWriting(false);
+            }} variant="destructive">Discard</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <TermsForm onSubmitTerms={onSubmitTerms} setShowTerms={setShowTerms} showTerms={showTerms} />
     </>
   )

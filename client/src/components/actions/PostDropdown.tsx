@@ -26,12 +26,12 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage, Form } from "../ui/form";
-import { Input } from "../ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { CreatePostForm } from "../general/CreatePost";
 import CreateComment from "../general/CreateComment";
 import usePostStore from "@/store/postStore";
 import useCommentStore from "@/store/commentStore";
+import { Textarea } from "../ui/textarea";
 
 type DialogType = "DELETE" | "REPORT" | "EDIT" | "SAVE" | null;
 
@@ -49,7 +49,7 @@ const ReportReasons = [
 ] as const;
 
 const reportSchema = z.object({
-  message: z.string().min(10, "Message must be at least 10 characters."),
+  message: z.string().min(10, "Message must be at least 10 characters.").max(1000, "Message must be at most 1000 characters."),
   reason: z.enum(ReportReasons),
 });
 
@@ -175,7 +175,7 @@ function PostDropdown({ type, id, editableData }: { type: ("post" | "comment"), 
           {dialogType === "REPORT" && (
             <>
               <DialogHeader>
-                <DialogTitle>Report Post</DialogTitle>
+                <DialogTitle>Report {type}</DialogTitle>
                 <DialogDescription>Explain why you're reporting this post.</DialogDescription>
               </DialogHeader>
               <Form {...form}>
@@ -189,7 +189,7 @@ function PostDropdown({ type, id, editableData }: { type: ("post" | "comment"), 
                         <FormLabel>Reason</FormLabel>
                         <Select value={field.value} onValueChange={field.onChange} disabled={loading}>
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger disabled={loading}>
                               <SelectValue placeholder="Select a reason" />
                             </SelectTrigger>
                           </FormControl>
@@ -213,7 +213,7 @@ function PostDropdown({ type, id, editableData }: { type: ("post" | "comment"), 
                       <FormItem>
                         <FormLabel>Message</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter message" {...field} />
+                          <Textarea disabled={loading} rows={6} maxLength={1000} placeholder="Enter message" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

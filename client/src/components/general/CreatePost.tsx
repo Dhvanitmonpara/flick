@@ -25,8 +25,8 @@ import usePostStore from "@/store/postStore";
 import { TermsForm } from "./TermsForm";
 
 const postSchema = z.object({
-  title: z.string().min(3, "Title must be at least 3 characters."),
-  content: z.string().min(10, "Content must be at least 10 characters."),
+  title: z.string().min(3, "Title must be at least 3 characters.").max(100, "Title must be at most 100 characters."),
+  content: z.string().min(10, "Content must be at least 10 characters.").max(2000, "Content must be at most 2000 characters."),
 });
 
 type PostFormValues = z.infer<typeof postSchema>;
@@ -178,6 +178,8 @@ export const CreatePostForm = ({ setOpen, defaultData, id }: { setOpen?: React.D
                   <FormControl>
                     <>
                       <Textarea
+                        maxLength={2000}
+                        rows={6}
                         placeholder="Write your post..."
                         {...field}
                         onChange={(e) => {
