@@ -24,6 +24,7 @@ declare global {
       admin?: {
         _id: Types.ObjectId;
       };
+      sessionId?: string;
     }
   }
 }

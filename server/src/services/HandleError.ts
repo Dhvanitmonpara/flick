@@ -1,7 +1,8 @@
 import { Response } from "express";
 import { ApiError } from "../utils/ApiError.js";
+import { LogModel } from "../models/log.model.js";
+import { env } from "../conf/env.js";
 
-// MongoServerError interface for better type safety
 interface MongoServerError extends Error {
   name: string;
   code: number;
@@ -14,30 +15,54 @@ function handleError(
   fallbackErrorCode: string,
   duplicationErrorMessage?: string
 ) {
-  console.error(fallbackMessage, error);
+  if (env.environment !== "production") {
+    console.error(fallbackMessage, error);
+  } else {
+    console.error(fallbackMessage, {
+      name: (error as Error)?.name,
+      message: (error as Error)?.message,
+      code: (error as any)?.code,
+    });
+  }
 
-  // Handle Mongo duplicate key error first
+  logError(error, fallbackMessage);
+
   if (isMongoDuplicateError(error)) {
     return res
       .status(400)
-      .json({ error: duplicationErrorMessage || "Duplicate key error", code: "DUPLICATE_KEY" });
+      .json({
+        error: duplicationErrorMessage || "Duplicate key error",
+        code: "DUPLICATE_KEY",
+      });
   }
 
-  // Handle known API errors
   if (error instanceof ApiError) {
-    if (error.statusCode === 401 && error.message === "Access token not found" || error.message === "Access and refresh token not found") {
-      return res.status(401).json({ error: "Unauthorized", hasRefreshToken: error.message === "Access token not found", code: error.code || fallbackErrorCode });
+    if (
+      error.statusCode === 401 &&
+      (error.message === "Access token not found" ||
+        error.message === "Access and refresh token not found")
+    ) {
+      return res
+        .status(401)
+        .json({
+          error: "Unauthorized",
+          hasRefreshToken: error.message === "Access token not found",
+          code: error.code || fallbackErrorCode,
+        });
     }
     return res
       .status(error.statusCode || 500)
-      .json({ error: error.message || fallbackMessage, code: error.code || fallbackErrorCode });
+      .json({
+        error: error.message || fallbackMessage,
+        code: error.code || fallbackErrorCode,
+      });
   }
 
-  // Handle unexpected errors
-  return res.status(500).json({ error: fallbackMessage, code: fallbackErrorCode });
+  return res
+    .status(500)
+    .json({ error: fallbackMessage, code: fallbackErrorCode });
 }
 
-// Helper function to check MongoDB duplicate error
 function isMongoDuplicateError(error: unknown): error is MongoServerError {
   return (
     typeof error === "object" &&
@@ -45,6 +70,31 @@ function isMongoDuplicateError(error: unknown): error is MongoServerError {
     (error as MongoServerError).name === "MongoServerError" &&
     (error as MongoServerError).code === 11000
   );
+}
+
+async function logError(error: unknown, fallbackMessage: string) {
+  try {
+    const errorInfo = {
+      action: "system_error",
+      status: "fail",
+      platform: "server",
+      sessionId: "system",
+      userId: undefined,
+      metadata: {
+        errorName: (error as Error)?.name || "UnknownError",
+        errorMessage: (error as Error)?.message || fallbackMessage,
+        stack: (error as Error)?.stack || null,
+        rawError: JSON.stringify(error),
+      },
+      timestamp: new Date(),
+    };
+
+    LogModel.create(errorInfo).catch((err) => {
+      console.error("Failed to log error internally:", err);
+    });
+  } catch (loggingError) {
+    console.error("Logging failure:", loggingError);
+  }
 }
 
 export default handleError;

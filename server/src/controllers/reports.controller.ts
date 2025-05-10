@@ -283,6 +283,23 @@ export const getUserReports = async (req: Request, res: Response) => {
   }
 };
 
+export const getUsersByQuery = async (req: Request, res: Response) => {
+  try {
+    const email = req.query.email ?? null
+    const username = req.query.username ?? null
+  
+    const users = await userModel.find({
+      ...(email && { email }),
+      ...(username && { username }),
+    })
+    .select("-password -email -lookupEmail -__v -refreshToken -bookmarks -theme")
+    .populate("college", "_id name profile");
+    res.status(200).json({ success: true, users });
+  } catch (error) {
+    handleError(error as ApiError, res, "Error fetching all users", "GET_ALL_USERS_ERROR");
+  }
+};
+
 export const deleteReport = async (req: Request, res: Response) => {
   try {
     const { reportId } = req.params;
@@ -346,7 +363,7 @@ export const blockUser = async (req: Request, res: Response) => {
     user.isBlocked = true;
     await user.save();
 
-    res.status(200).json({ message: "User blocked successfully", user });
+    res.status(200).json({ message: "User blocked successfully" });
   } catch (error) {
     handleError(error as ApiError, res, "Error blocking user", "BLOCK_USER_ERROR");
   }
@@ -364,7 +381,7 @@ export const unblockUser = async (req: Request, res: Response) => {
     user.isBlocked = false;
     await user.save();
 
-    res.status(200).json({ message: "User unblocked successfully", user });
+    res.status(200).json({ message: "User unblocked successfully" });
   } catch (error) {
     handleError(error as ApiError, res, "Error unblocking user", "UNBLOCK_USER_ERROR");
   }
@@ -390,7 +407,7 @@ export const suspendUser = async (req: Request, res: Response) => {
     user.isBlocked = true; // Block the user during suspension
     await user.save();
 
-    res.status(200).json({ message: "User suspended successfully", user });
+    res.status(200).json({ message: "User suspended successfully" });
   } catch (error) {
     handleError(error as ApiError, res, "Error suspending user", "SUSPEND_USER_ERROR");
   }

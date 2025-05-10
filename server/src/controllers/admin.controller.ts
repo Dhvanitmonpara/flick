@@ -7,6 +7,7 @@ import { hashEmailForLookup, hashOTP } from "../services/cryptographer.js";
 import sendMail from "../utils/sendMail.js";
 import { redis } from "../app.js";
 import crypto from "crypto";
+import { logEvent } from "../services/logService.js";
 
 export interface AdminDocument extends Document {
   password: string;
@@ -74,13 +75,28 @@ export const createAdmin = async (req: Request, res: Response) => {
 
     const accessToken = await generateAccessToken(admin._id);
 
+    logEvent({
+      action: "system_created_admin_account",
+      platform: "web",
+      metadata: {
+        email: admin.email,
+      },
+      sessionId: req.sessionId,
+      userId: admin._id.toString(),
+    });
+
     res.status(201).cookie("__adminAccessToken", accessToken, options).json({
       success: true,
       admin,
       message: "Admin created successfully",
     });
   } catch (error) {
-    handleError(error as ApiError, res, "Error creating admin", "CREATE_ADMIN_ERROR");
+    handleError(
+      error as ApiError,
+      res,
+      "Error creating admin",
+      "CREATE_ADMIN_ERROR"
+    );
   }
 };
 
@@ -93,7 +109,12 @@ export const getAdmin = async (req: Request, res: Response) => {
       message: "Admin fetched successfully",
     });
   } catch (error) {
-    handleError(error as ApiError, res, "Error fetching admin", "GET_ADMIN_ERROR");
+    handleError(
+      error as ApiError,
+      res,
+      "Error fetching admin",
+      "GET_ADMIN_ERROR"
+    );
   }
 };
 
@@ -152,6 +173,17 @@ export const initializeAdmin = async (req: Request, res: Response) => {
       admin._id as mongoose.Types.ObjectId
     );
 
+    logEvent({
+      action: "admin_initialized_account",
+      platform: "web",
+      metadata: {
+        email: admin.email,
+        deviceFingerprint,
+      },
+      sessionId: req.sessionId,
+      userId: admin._id.toString(),
+    });
+
     res
       .status(200)
       .cookie("__adminAccessToken", accessToken, options)
@@ -165,7 +197,12 @@ export const initializeAdmin = async (req: Request, res: Response) => {
         message: "Admin logged in successfully",
       });
   } catch (error) {
-    handleError(error as ApiError, res, "Error initializing admin", "INITIALIZE_ADMIN_ERROR");
+    handleError(
+      error as ApiError,
+      res,
+      "Error initializing admin",
+      "INITIALIZE_ADMIN_ERROR"
+    );
   }
 };
 
@@ -197,13 +234,28 @@ export const resendAdminOtp = async (req: Request, res: Response) => {
       throw new ApiError(500, "Failed to store OTP securely");
     }
 
+    logEvent({
+      action: "admin_reset_email_otp",
+      platform: "web",
+      metadata: {
+        email: admin.email,
+      },
+      sessionId: req.sessionId,
+      userId: admin._id.toString(),
+    });
+
     res.status(200).json({
       success: true,
       statusText: "OTP_REQUIRED",
       message: "OTP sent to admin",
     });
   } catch (error) {
-    handleError(error as ApiError, res, "Error resending OTP", "RESEND_OTP_ERROR");
+    handleError(
+      error as ApiError,
+      res,
+      "Error resending OTP",
+      "RESEND_OTP_ERROR"
+    );
   }
 };
 
@@ -246,6 +298,17 @@ export const verifyAdminOtp = async (req: Request, res: Response) => {
       admin._id as mongoose.Types.ObjectId
     );
 
+    logEvent({
+      action: "admin_verified_otp",
+      platform: "web",
+      metadata: {
+        email: admin.email,
+        deviceFingerprint,
+      },
+      sessionId: req.sessionId,
+      userId: admin._id.toString(),
+    });
+
     res
       .status(200)
       .cookie("__adminAccessToken", accessToken, options)
@@ -259,7 +322,12 @@ export const verifyAdminOtp = async (req: Request, res: Response) => {
         message: "OTP verified, admin logged in successfully",
       });
   } catch (error) {
-    handleError(error as ApiError, res, "Error verifying admin OTP", "VERIFY_ADMIN_OTP_ERROR");
+    handleError(
+      error as ApiError,
+      res,
+      "Error verifying admin OTP",
+      "VERIFY_ADMIN_OTP_ERROR"
+    );
   }
 };
 
@@ -271,12 +339,24 @@ export const logoutAdmin = async (req: Request, res: Response) => {
       sameSite: "strict",
     });
 
+    logEvent({
+      action: "admin_logged_out_self",
+      platform: "web",
+      sessionId: req.sessionId,
+      userId: req.admin?._id.toString() ?? "unknown",
+    });
+
     res.status(200).json({
       success: true,
       message: "Admin logged out successfully",
     });
   } catch (error) {
-    handleError(error as ApiError, res, "Error logging out admin", "LOGOUT_ADMIN_ERROR");
+    handleError(
+      error as ApiError,
+      res,
+      "Error logging out admin",
+      "LOGOUT_ADMIN_ERROR"
+    );
   }
 };
 
@@ -308,12 +388,28 @@ export const removeAuthorizedDevice = async (req: Request, res: Response) => {
 
     await admin.save();
 
+    logEvent({
+      action: "admin_removed_authorized_device",
+      platform: "web",
+      metadata: {
+        email: admin.email,
+        deviceFingerprint,
+      },
+      sessionId: req.sessionId,
+      userId: admin._id.toString(),
+    });
+
     res.status(200).json({
       success: true,
       message: "Device removed successfully",
     });
   } catch (error) {
-    handleError(error as ApiError, res, "Error removing device", "REMOVE_DEVICE_ERROR");
+    handleError(
+      error as ApiError,
+      res,
+      "Error removing device",
+      "REMOVE_DEVICE_ERROR"
+    );
   }
 };
 
@@ -321,19 +417,51 @@ export const deleteAdmin = async (req: Request, res: Response) => {
   try {
     const admin = req.admin;
     if (!admin) throw new ApiError(404, "Admin not found");
-    await adminModel.findByIdAndDelete(admin._id);
+
+    const deletedAdmin = await adminModel.findByIdAndDelete(admin._id);
+    if (!deletedAdmin) throw new ApiError(404, "Admin not found");
+
+    logEvent({
+      action: "admin_deleted_admin_account",
+      platform: "web",
+      metadata: {
+        email: deletedAdmin.email,
+      },
+      sessionId: req.sessionId,
+      userId: deletedAdmin._id.toString(),
+    });
+
     res.status(200).json({ success: true, message: "Admin deleted" });
   } catch (error) {
-    handleError(error as ApiError, res, "Error deleting admin", "DELETE_ADMIN_ERROR");
+    handleError(
+      error as ApiError,
+      res,
+      "Error deleting admin",
+      "DELETE_ADMIN_ERROR"
+    );
   }
 };
 
 export const getAllAdmins = async (req: Request, res: Response) => {
   try {
+    if (!req.admin?._id) throw new ApiError(401, "Unauthorized");
     const admins = await adminModel.find({});
+
+    logEvent({
+      action: "admin_fetched_all_admin_accounts",
+      platform: "web",
+      sessionId: req.sessionId,
+      userId: req.admin._id.toString(),
+    });
+
     res.status(200).json({ success: true, admins });
   } catch (error) {
-    handleError(error as ApiError, res, "Error getting admins", "GET_ALL_ADMINS_ERROR");
+    handleError(
+      error as ApiError,
+      res,
+      "Error getting admins",
+      "GET_ALL_ADMINS_ERROR"
+    );
   }
 };
 
@@ -354,8 +482,21 @@ export const updateAdmin = async (req: Request, res: Response) => {
       password,
     });
 
+    logEvent({
+      action: "admin_updated_admin_account",
+      platform: "web",
+      metadata: { email },
+      sessionId: req.sessionId,
+      userId: admin._id.toString(),
+    });
+
     res.status(200).json({ success: true, message: "Admin updated" });
   } catch (error) {
-    handleError(error as ApiError, res, "Error updating admin", "UPDATE_ADMIN_ERROR");
+    handleError(
+      error as ApiError,
+      res,
+      "Error updating admin",
+      "UPDATE_ADMIN_ERROR"
+    );
   }
 };

@@ -25,8 +25,8 @@ const options = {
       : ("lax" as "lax"),
 };
 
-const accessTokenExpiry = 60 * 1000 * parseInt(env.accessTokenExpiry); // 15 minutes
-const refreshTokenExpiry = 60 * 60 * 1000 * 24 * parseInt(env.refreshTokenExpiry); // 28 days
+const accessTokenExpiry = 60 * 1000 * parseInt(env.accessTokenExpiry); // In minutes
+const refreshTokenExpiry = 60 * 60 * 1000 * 24 * parseInt(env.refreshTokenExpiry); // In days
 
 export interface UserDocument extends Document {
   password: string;

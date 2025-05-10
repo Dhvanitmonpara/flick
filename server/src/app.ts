@@ -59,6 +59,10 @@ import manageRouter from "./routes/manage.route.js";
 import reportRouter from "./routes/report.routes.js";
 import adminRouter from "./routes/admin.routes.js";
 import { verifyAdminJWT } from "./middleware/auth.middleware.js";
+import { sessionMiddleware } from "./middleware/session.middleware.js";
+
+// globale middlewares
+app.use(sessionMiddleware)
 
 // public routes
 app.use(`${commonPublicRoute}posts`, postRouter);
