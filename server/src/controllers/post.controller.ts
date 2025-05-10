@@ -8,12 +8,13 @@ import { toObjectId } from "../utils/toObject.js";
 import { CommentModel } from "../models/comments.model.js";
 import VoteModel from "../models/vote.model.js";
 import userModel from "../models/user.model.js";
+import { logEvent } from "../services/logService.js";
 
 const createPost = async (req: Request, res: Response) => {
   try {
     const { title, content } = req.body;
     if (!title || !content) throw new ApiError(400, "All fields are required");
-    if(!req.user?._id) throw new ApiError(401, "Unauthorized");
+    if (!req.user?._id) throw new ApiError(401, "Unauthorized");
 
     const result = await validatePost(content);
     if (!result.allowed) {
@@ -83,13 +84,29 @@ const createPost = async (req: Request, res: Response) => {
       downvoteCount: 0,
     };
 
+    logEvent({
+      req,
+      action: "user_created_post",
+      platform: "web",
+      metadata: {
+        createdPostId: createdPost._id,
+      },
+      sessionId: req.sessionId,
+      userId: req.user._id.toString(),
+    });
+
     res.status(201).json({
       success: true,
       post: data,
       message: "Post created successfully",
     });
   } catch (error) {
-    handleError(error as ApiError, res, "Error creating post", "CREATE_POST_ERROR");
+    handleError(
+      error as ApiError,
+      res,
+      "Error creating post",
+      "CREATE_POST_ERROR"
+    );
   }
 };
 
@@ -116,13 +133,30 @@ const updatePost = async (req: Request, res: Response) => {
 
     if (!response) throw new ApiError(404, "Post not found");
 
+    logEvent({
+      req,
+      action: "user_updated_post",
+      platform: "web",
+      metadata: {
+        updatedPostId: response._id,
+        updatedFields: { title: title ? 1 : 0, content: content ? 1 : 0 },
+      },
+      sessionId: req.sessionId,
+      userId: req.user._id.toString(),
+    })
+
     res.status(200).json({
       success: true,
       post: response,
       message: "Post updated successfully",
     });
   } catch (error) {
-    handleError(error as ApiError, res, "Error updating post", "UPDATE_POST_ERROR");
+    handleError(
+      error as ApiError,
+      res,
+      "Error updating post",
+      "UPDATE_POST_ERROR"
+    );
   }
 };
 
@@ -155,6 +189,17 @@ const deletePost = async (req: Request, res: Response) => {
     await CommentModel.deleteMany({ postId: objectPostId });
 
     await post.deleteOne();
+
+    logEvent({
+      req,
+      action: "user_deleted_post",
+      platform: "web",
+      metadata: {
+        deletedPostId: post._id,
+      },
+      sessionId: req.sessionId,
+      userId: req.user._id.toString(),
+    });
 
     res
       .status(200)
@@ -317,7 +362,12 @@ const getPostsForFeed = async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
-    handleError(error as ApiError, res, "Error getting posts", "GET_POSTS_ERROR");
+    handleError(
+      error as ApiError,
+      res,
+      "Error getting posts",
+      "GET_POSTS_ERROR"
+    );
   }
 };
 
@@ -467,7 +517,12 @@ const getPostById = async (req: Request, res: Response) => {
 
     res.status(200).json({ post: posts[0] });
   } catch (error) {
-    handleError(error as ApiError, res, "Error fetching post", "GET_POST_ERROR");
+    handleError(
+      error as ApiError,
+      res,
+      "Error fetching post",
+      "GET_POST_ERROR"
+    );
   }
 };
 

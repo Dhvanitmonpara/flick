@@ -15,6 +15,7 @@ import OtpVerifier from "../services/otpVerifier.js";
 import { generateUuidBasedUsername } from "../services/userServices.js";
 import CollegeModel from "../models/college.model.js";
 import { env } from "../conf/env.js";
+import { logEvent } from "../services/logService.js";
 
 const options = {
   httpOnly: true,
@@ -26,7 +27,8 @@ const options = {
 };
 
 const accessTokenExpiry = 60 * 1000 * parseInt(env.accessTokenExpiry); // In minutes
-const refreshTokenExpiry = 60 * 60 * 1000 * 24 * parseInt(env.refreshTokenExpiry); // In days
+const refreshTokenExpiry =
+  60 * 60 * 1000 * 24 * parseInt(env.refreshTokenExpiry); // In days
 
 export interface UserDocument extends Document {
   password: string;
@@ -171,12 +173,27 @@ export const initializeUser = async (req: Request, res: Response) => {
       throw new ApiError(500, "Failed to set OTP in Redis");
     }
 
+    logEvent({
+      req,
+      action: "user_initialized_account",
+      platform: "web",
+      userId: "unknown",
+      metadata: {
+        targetEmail: hashedEmail,
+      },
+    });
+
     res.status(201).json({
       message: "User initialized successfully and OTP sent",
       identifier: hashedEmail,
     });
   } catch (error) {
-    handleError(error as ApiError, res, "Failed to initialize user", "INIT_USER_ERROR");
+    handleError(
+      error as ApiError,
+      res,
+      "Failed to initialize user",
+      "INIT_USER_ERROR"
+    );
   }
 };
 
@@ -224,6 +241,16 @@ export const registerUser = async (req: Request, res: Response) => {
         .json({ error: "Failed to generate access and refresh token" });
       return;
     }
+
+    logEvent({
+      req,
+      action: "user_created_account",
+      platform: "web",
+      userId: createdUser._id.toString(),
+      metadata: {
+        targetEmail: hashedEmail,
+      },
+    });
 
     res
       .status(201)
@@ -295,6 +322,13 @@ export const loginUser = async (req: Request, res: Response) => {
       return;
     }
 
+    logEvent({
+      req,
+      action: "user_logged_in_self",
+      platform: "web",
+      userId: existingUser._id.toString(),
+    });
+
     res
       .status(200)
       .cookie("__accessToken", accessToken, {
@@ -359,6 +393,13 @@ export const logoutUser = async (req: Request, res: Response) => {
       }
     );
 
+    logEvent({
+      req,
+      action: "user_logged_out_self",
+      platform: "web",
+      userId: req.user._id.toString(),
+    });
+
     res
       .status(200)
       .clearCookie("__accessToken", { ...options, maxAge: 0 })
@@ -411,7 +452,12 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
       })
       .json({ message: "Access token refreshed successfully" });
   } catch (error) {
-    handleError(error as ApiError, res, "Failed to refresh access token", "REFRESH_ACCESS_TOKEN_ERROR");
+    handleError(
+      error as ApiError,
+      res,
+      "Failed to refresh access token",
+      "REFRESH_ACCESS_TOKEN_ERROR"
+    );
   }
 };
 
@@ -440,6 +486,16 @@ export const sendOtp = async (req: Request, res: Response) => {
       throw new ApiError(500, "Failed to set OTP in Redis");
     }
 
+    logEvent({
+      req,
+      action: "user_reset_email_otp",
+      platform: "web",
+      userId: "unknown",
+      metadata: {
+        encryptedTargetEmail: encryptedEmail,
+      },
+    });
+
     res.status(200).json({
       messageId: mailResponse.messageId,
       message: "OTP sent successfully",
@@ -453,9 +509,19 @@ export const verifyOtp = async (req: Request, res: Response) => {
   try {
     if (!req.body.email || !req.body.otp)
       throw new ApiError(400, "Email and OTP are required");
-    const result = await OtpVerifier(req.body.email, req.body.otp);
+    const encryptedEmail = await hashEmailForLookup(req.body.email.toLowerCase());
+    const result = await OtpVerifier(encryptedEmail, req.body.otp, true);
 
     if (result) {
+      logEvent({
+        req,
+        action: "user_verified_otp",
+        platform: "web",
+        userId: "unknown",
+        metadata: {
+          encryptedTargetEmail: encryptedEmail,
+        }
+      });
       res
         .status(200)
         .json({ message: "OTP verified successfully", isVerified: true });
@@ -463,22 +529,40 @@ export const verifyOtp = async (req: Request, res: Response) => {
       res.status(400).json({ message: "Invalid OTP", isVerified: false });
     }
   } catch (error) {
-    handleError(error as ApiError, res, "Failed to verify OTP", "VERIFY_OTP_ERROR");
+    handleError(
+      error as ApiError,
+      res,
+      "Failed to verify OTP",
+      "VERIFY_OTP_ERROR"
+    );
   }
 };
 
 export const acceptTerms = async (req: Request, res: Response) => {
   try {
     const userId = req.user?._id ?? null;
-    if(!userId) throw new ApiError(401, "Unauthorized request");
+    if (!userId) throw new ApiError(401, "Unauthorized request");
 
     await userModel.findByIdAndUpdate(userId, {
       $set: {
         termsAccepted: true,
       },
     });
+
+    logEvent({
+      req,
+      action: "user_accepted_terms",
+      platform: "web",
+      userId: userId.toString(),
+    });
+
     res.status(200).json({ message: "Terms accepted successfully" });
   } catch (error) {
-    handleError(error as ApiError, res, "Failed to accept terms", "ACCEPT_TERMS_ERROR");
+    handleError(
+      error as ApiError,
+      res,
+      "Failed to accept terms",
+      "ACCEPT_TERMS_ERROR"
+    );
   }
-}
+};

@@ -2,14 +2,24 @@ import { Request, Response } from "express";
 import handleError from "../services/HandleError.js";
 import { ApiError } from "../utils/ApiError.js";
 import VoteModel from "../models/vote.model.js";
-import userModel from "../models/user.model.js"
+import userModel from "../models/user.model.js";
 import { PostModel } from "../models/post.model.js";
 import { CommentModel } from "../models/comments.model.js";
+import { logEvent } from "../services/logService.js";
+import { TLogAction } from "../types/Log.js";
 
 export const createVote = async (req: Request, res: Response) => {
   try {
-    const { voteType, targetId, targetType } = req.body;
-    console.log(voteType, targetId, targetType)
+    if (!req.user) throw new ApiError(401, "Unauthorized");
+    const {
+      voteType,
+      targetId,
+      targetType,
+    }: {
+      voteType: "upvote" | "downvote";
+      targetId: string;
+      targetType: "post" | "comment";
+    } = req.body;
 
     if (!voteType || !targetId || !targetType) {
       throw new ApiError(
@@ -29,9 +39,9 @@ export const createVote = async (req: Request, res: Response) => {
     const vote = await VoteModel.create({
       postId: targetType === "post" ? targetId : null,
       commentId: targetType === "comment" ? targetId : null,
-      userId: req.user?._id,
+      userId: req.user._id,
       voteType,
-      type: targetType
+      type: targetType,
     });
 
     if (!vote) throw new ApiError(500, "Failed to create vote");
@@ -52,19 +62,36 @@ export const createVote = async (req: Request, res: Response) => {
       $inc: { karma: karmaChange },
     });
 
+    const action: TLogAction = `user_${voteType}d_${targetType}`;
+
+    logEvent({
+      req,
+      action,
+      platform: "web",
+      userId: req.user._id.toString(),
+      metadata: {
+        voteType,
+        targetId,
+        targetType,
+      },
+    });
+
     res.status(201).json({
       success: true,
       message: "Vote created successfully",
     });
-
   } catch (error) {
-    handleError(error as ApiError, res, "Failed to vote");
+    handleError(error as ApiError, res, "Failed to vote", "CREATE_VOTE_ERROR");
   }
 };
 
 export const deleteVote = async (req: Request, res: Response) => {
   try {
-    const { targetId, targetType } = req.body;
+    if (!req.user) throw new ApiError(401, "Unauthorized");
+    const {
+      targetId,
+      targetType,
+    }: { targetId: string; targetType: "post" | "comment" } = req.body;
 
     if (!targetId || !targetType) {
       throw new ApiError(400, "targetId and targetType are required");
@@ -94,25 +121,52 @@ export const deleteVote = async (req: Request, res: Response) => {
     if (!target) throw new ApiError(404, `${targetType} not found`);
 
     const ownerId = target.postedBy;
-    const karmaChange = existingVote.voteType === "upvote" ? -1 : 1; 
+    const karmaChange = existingVote.voteType === "upvote" ? -1 : 1;
 
     await userModel.findByIdAndUpdate(ownerId, {
       $inc: { karma: karmaChange },
+    });
+
+    const action: TLogAction = `user_deleted_vote_on_${targetType}`;
+
+    logEvent({
+      req,
+      action,
+      platform: "web",
+      userId: req.user._id.toString(),
+      metadata: {
+        targetId,
+        voteType: existingVote.voteType,
+        targetType,
+      },
     });
 
     res.status(200).json({
       success: true,
       message: "Vote deleted and karma updated successfully",
     });
-
   } catch (error) {
-    handleError(error as ApiError, res, "Failed to delete vote");
+    handleError(
+      error as ApiError,
+      res,
+      "Failed to delete vote",
+      "DELETE_VOTE_ERROR"
+    );
   }
 };
 
 export const patchVote = async (req: Request, res: Response) => {
   try {
-    const { voteType, targetId, targetType } = req.body;
+    if (!req.user) throw new ApiError(401, "Unauthorized");
+    const {
+      voteType,
+      targetId,
+      targetType,
+    }: {
+      voteType: "upvote" | "downvote";
+      targetId: string;
+      targetType: "post" | "comment";
+    } = req.body;
 
     if (!voteType || !targetId || !targetType) {
       throw new ApiError(
@@ -150,7 +204,7 @@ export const patchVote = async (req: Request, res: Response) => {
         success: true,
         message: "Vote already of the requested type",
       });
-      return
+      return;
     }
 
     existingVote.voteType = voteType;
@@ -174,12 +228,31 @@ export const patchVote = async (req: Request, res: Response) => {
       $inc: { karma: karmaChange },
     });
 
+    const action: TLogAction = `user_switched_vote_on_${targetType}`;
+
+    logEvent({
+      req,
+      action,
+      platform: "web",
+      userId: req.user._id.toString(),
+      metadata: {
+        targetId,
+        switchedFrom: existingVote.voteType,
+        switchedTo: voteType,
+        targetType,
+      },
+    });
+
     res.status(200).json({
       success: true,
       message: "Vote updated successfully",
     });
-
   } catch (error) {
-    handleError(error as ApiError, res, "Failed to patch vote");
+    handleError(
+      error as ApiError,
+      res,
+      "Failed to patch vote",
+      "PATCH_VOTE_ERROR"
+    );
   }
 };

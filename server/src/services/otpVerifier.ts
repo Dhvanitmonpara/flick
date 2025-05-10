@@ -1,10 +1,10 @@
 import { redis } from "../app.js";
 import { hashEmailForLookup } from "./cryptographer.js";
 
-const OtpVerifier = async (email: string, otp: string) => {
+const OtpVerifier = async (email: string, otp: string, isEmailEncrypted: boolean = false) => {
   try {
 
-    const encryptedEmail = await hashEmailForLookup(email.toLowerCase());
+    const encryptedEmail = isEmailEncrypted ? email : await hashEmailForLookup(email.toLowerCase());
 
     const storedOtp = await redis.get(`otp:${encryptedEmail}`);
 

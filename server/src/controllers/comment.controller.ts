@@ -5,6 +5,7 @@ import { ApiError } from "../utils/ApiError.js";
 import handleError from "../services/HandleError.js";
 import VoteModel from "../models/vote.model.js";
 import { toObjectId } from "../utils/toObject.js";
+import { logEvent } from "../services/logService.js";
 
 export const getCommentsByPostId = async (req: Request, res: Response) => {
   try {
@@ -164,7 +165,12 @@ export const getCommentsByPostId = async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
-    handleError(error as ApiError, res, "Error fetching comments", "GET_COMMENTS_ERROR");
+    handleError(
+      error as ApiError,
+      res,
+      "Error fetching comments",
+      "GET_COMMENTS_ERROR"
+    );
   }
 };
 
@@ -178,18 +184,35 @@ export const createComment = async (req: Request, res: Response) => {
 
     const newComment = new CommentModel({
       content,
-      postId,
-      commentedBy: req.user._id,
-      parentCommentId: parentCommentId || null,
+      postId: toObjectId(postId),
+      commentedBy: toObjectId(req.user._id),
+      parentCommentId: toObjectId(parentCommentId) || null,
     });
 
     await newComment.save();
+
+    logEvent({
+      action: "user_created_comment",
+      platform: "web",
+      metadata: {
+        postId,
+        parentCommentId,
+        createdCommentId: newComment._id,
+      },
+      sessionId: req.sessionId,
+      userId: req.user._id.toString(),
+    });
 
     res
       .status(201)
       .json({ message: "Comment created successfully.", comment: newComment });
   } catch (error) {
-    handleError(error as ApiError, res, "Error creating comment", "CREATE_COMMENT_ERROR");
+    handleError(
+      error as ApiError,
+      res,
+      "Error creating comment",
+      "CREATE_COMMENT_ERROR"
+    );
   }
 };
 
@@ -215,13 +238,29 @@ export const updateComment = async (req: Request, res: Response) => {
       );
     }
 
+    logEvent({
+      action: "user_updated_comment",
+      platform: "web",
+      metadata: {
+        updatedCommentId: commentId,
+        updatedFields: { content: content ? 1 : 0 },
+      },
+      sessionId: req.sessionId,
+      userId: req.user._id.toString(),
+    });
+
     res.status(200).json({
       success: true,
       comment: updatedComment,
       message: "Comment updated successfully",
     });
   } catch (error) {
-    handleError(error as ApiError, res, "Error updating comment", "UPDATE_COMMENT_ERROR");
+    handleError(
+      error as ApiError,
+      res,
+      "Error updating comment",
+      "UPDATE_COMMENT_ERROR"
+    );
   }
 };
 
@@ -243,10 +282,25 @@ export const deleteComment = async (req: Request, res: Response) => {
     await VoteModel.deleteMany({ commentId });
     await comment.deleteOne();
 
+    logEvent({
+      action: "user_deleted_comment",
+      platform: "web",
+      metadata: {
+        deletedCommentId: commentId,
+      },
+      sessionId: req.sessionId,
+      userId: req.user._id.toString(),
+    });
+
     res
       .status(200)
       .json({ success: true, message: "Comment deleted successfully" });
   } catch (error) {
-    handleError(error as ApiError, res, "Error deleting comment", "DELETE_COMMENT_ERROR");
+    handleError(
+      error as ApiError,
+      res,
+      "Error deleting comment",
+      "DELETE_COMMENT_ERROR"
+    );
   }
 };

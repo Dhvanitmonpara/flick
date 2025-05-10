@@ -14,16 +14,20 @@ import {
   updateReportStatus,
   getReports,
   getUsersByQuery,
+  banComment,
+  unbanComment,
 } from "../controllers/reports.controller.js";
 
 const router = Router();
 
 router.route("/status/:reportId").patch(updateReportStatus);
 router.route("/reports/get").get(getReports);
-router.route("/posts/ban/:postId").patch(banPost);
-router.route("/posts/unban/:postId").patch(unbanPost);
-router.route("/posts/shadowban/:postId").patch(shadowBanPost);
-router.route("/posts/shadowunban/:postId").patch(shadowUnbanPost);
+router.route("/posts/ban/:targetId").patch(banPost);
+router.route("/posts/unban/:targetId").patch(unbanPost);
+router.route("/posts/shadowban/:targetId").patch(shadowBanPost);
+router.route("/posts/shadowunban/:targetId").patch(shadowUnbanPost);
+router.route("/comments/ban/:targetId").patch(banComment);
+router.route("/comments/unban/:targetId").patch(unbanComment);
 router.route("/single").delete(deleteReport);
 router.route("/many").delete(bulkDeleteReports);
 router.route("/users").get(getUserReports);

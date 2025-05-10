@@ -76,11 +76,10 @@ export const createAdmin = async (req: Request, res: Response) => {
     const accessToken = await generateAccessToken(admin._id);
 
     logEvent({
+      req,
       action: "system_created_admin_account",
       platform: "web",
-      metadata: {
-        email: admin.email,
-      },
+      metadata: { targetEmail: hashedEmail },
       sessionId: req.sessionId,
       userId: admin._id.toString(),
     });
@@ -174,10 +173,11 @@ export const initializeAdmin = async (req: Request, res: Response) => {
     );
 
     logEvent({
+      req,
       action: "admin_initialized_account",
       platform: "web",
       metadata: {
-        email: admin.email,
+        targetEmail: hashedEmail,
         deviceFingerprint,
       },
       sessionId: req.sessionId,
@@ -235,10 +235,11 @@ export const resendAdminOtp = async (req: Request, res: Response) => {
     }
 
     logEvent({
+      req,
       action: "admin_reset_email_otp",
       platform: "web",
       metadata: {
-        email: admin.email,
+        targetEmail: hashedEmail,
       },
       sessionId: req.sessionId,
       userId: admin._id.toString(),
@@ -299,10 +300,11 @@ export const verifyAdminOtp = async (req: Request, res: Response) => {
     );
 
     logEvent({
+      req,
       action: "admin_verified_otp",
       platform: "web",
       metadata: {
-        email: admin.email,
+        targetEmail: hashedEmail,
         deviceFingerprint,
       },
       sessionId: req.sessionId,
@@ -340,6 +342,7 @@ export const logoutAdmin = async (req: Request, res: Response) => {
     });
 
     logEvent({
+      req,
       action: "admin_logged_out_self",
       platform: "web",
       sessionId: req.sessionId,
@@ -389,11 +392,13 @@ export const removeAuthorizedDevice = async (req: Request, res: Response) => {
     await admin.save();
 
     logEvent({
+      req,
       action: "admin_removed_authorized_device",
       platform: "web",
       metadata: {
-        email: admin.email,
+        targetEmail: hashedEmail,
         deviceFingerprint,
+        removedDeviceCount: initialLength - admin.authorizedDevices.length,
       },
       sessionId: req.sessionId,
       userId: admin._id.toString(),
@@ -422,10 +427,11 @@ export const deleteAdmin = async (req: Request, res: Response) => {
     if (!deletedAdmin) throw new ApiError(404, "Admin not found");
 
     logEvent({
+      req,
       action: "admin_deleted_admin_account",
       platform: "web",
       metadata: {
-        email: deletedAdmin.email,
+        targetEmail: deletedAdmin.email,
       },
       sessionId: req.sessionId,
       userId: deletedAdmin._id.toString(),
@@ -448,8 +454,12 @@ export const getAllAdmins = async (req: Request, res: Response) => {
     const admins = await adminModel.find({});
 
     logEvent({
+      req,
       action: "admin_fetched_all_admin_accounts",
       platform: "web",
+      metadata: {
+        adminsCount: admins.length,
+      },
       sessionId: req.sessionId,
       userId: req.admin._id.toString(),
     });
@@ -483,9 +493,10 @@ export const updateAdmin = async (req: Request, res: Response) => {
     });
 
     logEvent({
+      req,
       action: "admin_updated_admin_account",
       platform: "web",
-      metadata: { email },
+      metadata: { targetEmail: hashedEmail },
       sessionId: req.sessionId,
       userId: admin._id.toString(),
     });

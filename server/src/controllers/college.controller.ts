@@ -3,6 +3,7 @@ import CollegeModel from "../models/college.model.js";
 import mongoose from "mongoose";
 import { ApiError } from "../utils/ApiError.js";
 import handleError from "../services/HandleError.js";
+import { logEvent } from "../services/logService.js";
 
 interface CollegeFilter {
   city?: string;
@@ -12,6 +13,8 @@ interface CollegeFilter {
 // CREATE College
 export const createCollege = async (req: Request, res: Response) => {
   try {
+    if (!req.admin) throw new ApiError(401, "Unauthorized");
+
     const { name, emailDomain, city, state, profile } = req.body;
 
     // Basic payload validation
@@ -19,7 +22,6 @@ export const createCollege = async (req: Request, res: Response) => {
       throw new ApiError(400, "Missing required fields.");
     }
 
-    // Duplicate check (optional but smart)
     const existing = await CollegeModel.findOne({ emailDomain });
     if (existing) {
       throw new ApiError(409, "College with this domain already exists.");
@@ -32,15 +34,31 @@ export const createCollege = async (req: Request, res: Response) => {
       state,
       profile,
     });
+
+    logEvent({
+      action: "admin_created_college",
+      platform: "web",
+      metadata: {
+        name,
+        emailDomain,
+      },
+      sessionId: req.sessionId,
+      userId: req.admin._id.toString(),
+    });
+
     res
       .status(201)
       .json({ message: "College created successfully.", data: college });
   } catch (error) {
-    handleError(error as ApiError, res, "Error creating college", "CREATE_COLLEGE_ERROR");
+    handleError(
+      error as ApiError,
+      res,
+      "Error creating college",
+      "CREATE_COLLEGE_ERROR"
+    );
   }
 };
 
-// READ Colleges (with optional filtering)
 export const getColleges = async (req: Request, res: Response) => {
   try {
     const { city, state } = req.query as { city?: string; state?: string };
@@ -52,11 +70,15 @@ export const getColleges = async (req: Request, res: Response) => {
     const colleges = await CollegeModel.find(filter).sort({ name: 1 });
     res.status(200).json({ colleges });
   } catch (error) {
-    handleError(error as ApiError, res, "Error fetching colleges", "GET_COLLEGES_ERROR");
+    handleError(
+      error as ApiError,
+      res,
+      "Error fetching colleges",
+      "GET_COLLEGES_ERROR"
+    );
   }
 };
 
-// READ Single College
 export const getCollegeById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -72,13 +94,19 @@ export const getCollegeById = async (req: Request, res: Response) => {
 
     res.status(200).json({ data: college });
   } catch (error) {
-    handleError(error as ApiError, res, "Error fetching college", "GET_COLLEGE_ERROR");
+    handleError(
+      error as ApiError,
+      res,
+      "Error fetching college",
+      "GET_COLLEGE_ERROR"
+    );
   }
 };
 
-// UPDATE College
 export const updateCollege = async (req: Request, res: Response) => {
   try {
+    if (!req.admin) throw new ApiError(404, "Unauthorized");
+
     const { id } = req.params;
     const updates = req.body;
 
@@ -94,17 +122,40 @@ export const updateCollege = async (req: Request, res: Response) => {
       throw new ApiError(404, "College not found.");
     }
 
+    logEvent({
+      action: "admin_updated_college",
+      platform: "web",
+      metadata: {
+        updatedFields: {
+          name: updates.name ? 1 : 0,
+          emailDomain: updates.emailDomain ? 1 : 0,
+          city: updates.city ? 1 : 0,
+          state: updates.state ? 1 : 0,
+          profile: updates.profile ? 1 : 0,
+        },
+        name: college.name,
+        emailDomain: college.emailDomain,
+      },
+      sessionId: req.sessionId,
+      userId: req.admin._id.toString(),
+    });
+
     res
       .status(200)
       .json({ message: "College updated successfully.", data: college });
   } catch (error) {
-    handleError(error as ApiError, res, "Error updating college", "UPDATE_COLLEGE_ERROR");
+    handleError(
+      error as ApiError,
+      res,
+      "Error updating college",
+      "UPDATE_COLLEGE_ERROR"
+    );
   }
 };
 
-// DELETE College
 export const deleteCollege = async (req: Request, res: Response) => {
   try {
+    if (!req.admin) throw new ApiError(404, "Unauthorized");
     const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -116,8 +167,23 @@ export const deleteCollege = async (req: Request, res: Response) => {
       throw new ApiError(404, "College not found.");
     }
 
+    logEvent({
+      action: "admin_deleted_admin_account",
+      platform: "web",
+      metadata: {
+        name: college.name,
+      },
+      sessionId: req.sessionId,
+      userId: req.admin._id.toString(),
+    });
+
     res.status(200).json({ message: "College deleted successfully." });
   } catch (error) {
-    handleError(error as ApiError, res, "Error deleting college", "DELETE_COLLEGE_ERROR");
+    handleError(
+      error as ApiError,
+      res,
+      "Error deleting college",
+      "DELETE_COLLEGE_ERROR"
+    );
   }
 };

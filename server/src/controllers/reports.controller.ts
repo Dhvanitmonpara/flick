@@ -5,6 +5,9 @@ import { ReportModel } from "../models/report.model.js";
 import mongoose, { ClientSession } from "mongoose";
 import { PostModel } from "../models/post.model.js";
 import userModel from "../models/user.model.js";
+import { logEvent } from "../services/logService.js";
+import { TLogAction } from "../types/Log.js";
+import { CommentModel } from "../models/comments.model.js";
 
 const ALLOWED_STATUSES = ["pending", "resolved", "ignored"];
 interface FieldToUpdate {
@@ -37,13 +40,30 @@ export const createReport = async (req: Request, res: Response) => {
 
     if (!report) throw new ApiError(500, "Failed to create report");
 
+    logEvent({
+      req,
+      action: "user_reported_content",
+      platform: "web",
+      userId: userId.toString(),
+      metadata: {
+        type,
+        targetId,
+        reason,
+      },
+    });
+
     res.status(201).json({
       success: true,
       report,
       message: "Report created successfully",
     });
   } catch (error) {
-    handleError(error as ApiError, res, "Error creating report", "CREATE_REPORT_ERROR");
+    handleError(
+      error as ApiError,
+      res,
+      "Error creating report",
+      "CREATE_REPORT_ERROR"
+    );
   }
 };
 
@@ -164,7 +184,8 @@ export const getReports = async (req: Request, res: Response) => {
 
     const type = (req.query.type as "Post" | "Comment" | "Both") || "Both";
 
-    const statusQuery = typeof req.query.status === "string" ? req.query.status : "";
+    const statusQuery =
+      typeof req.query.status === "string" ? req.query.status : "";
     const requestedStatuses = statusQuery
       .split(",")
       .map((s) => s.trim().toLowerCase())
@@ -206,37 +227,65 @@ export const getReports = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Error fetching reported posts:", error);
-    handleError(error, res, "Failed to fetch reported posts", "GET_REPORTS_ERROR");
+    handleError(
+      error,
+      res,
+      "Failed to fetch reported posts",
+      "GET_REPORTS_ERROR"
+    );
   }
 };
 
-const updatePostStatus = async (
+const updateContentStatus = async (
   req: Request,
   res: Response,
   fieldToUpdate: FieldToUpdate,
+  type: "Post" | "Comment"
 ): Promise<void> => {
   const session: ClientSession = await mongoose.startSession();
   session.startTransaction();
 
   try {
-    const { postId } = req.params;
+    if (!req.admin) throw new ApiError(401, "Unauthorized");
 
-    if (!postId || !mongoose.Types.ObjectId.isValid(postId)) {
-      throw new ApiError(400, "Invalid post ID");
+    const { targetId } = req.params;
+    if (!targetId || !mongoose.Types.ObjectId.isValid(targetId)) {
+      throw new ApiError(400, `Invalid ${type} ID`);
     }
 
-    const updatedPost = await PostModel.findByIdAndUpdate(
-      postId,
-      { $set: fieldToUpdate },
-      { new: true, session }
-    );
+    let updatedTarget = null;
 
-    if (!updatedPost) {
-      throw new ApiError(404, "Post not found.");
+    if (type === "Comment") {
+      updatedTarget = await CommentModel.findByIdAndUpdate(
+        targetId,
+        { $set: fieldToUpdate },
+        { new: true, session }
+      );
+    } else {
+      updatedTarget = await PostModel.findByIdAndUpdate(
+        targetId,
+        { $set: fieldToUpdate },
+        { new: true, session }
+      );
     }
+
+    if (!updatedTarget) {
+      throw new ApiError(404, `${type} not found.`);
+    }
+
+    const reportsToUpdate = await ReportModel.find(
+      { targetId: updatedTarget._id },
+      { _id: 1 }
+    ).session(session);
+
+    if (reportsToUpdate.length > 0) {
+      throw new ApiError(404, `No reports found for ${type}.`);
+    }
+
+    const reportIds = reportsToUpdate.map((report) => report._id);
 
     const reports = await ReportModel.updateMany(
-      { targetId: updatedPost._id },
+      { _id: { $in: reportIds } },
       { $set: { status: "resolved" } },
       { session }
     );
@@ -244,16 +293,62 @@ const updatePostStatus = async (
     await session.commitTransaction();
     session.endSession();
 
+    let action: TLogAction | null = null;
+    let updatedField = null;
+    switch (fieldToUpdate) {
+      case { isBanned: true }:
+        action = "admin_blocked_content";
+        updatedField = "isBanned";
+        break;
+      case { isBanned: false }:
+        action = "admin_unblocked_content";
+        updatedField = "isBanned";
+        break;
+      case { isShadowBanned: true }:
+        action = "admin_shadow_banned_content";
+        updatedField = "isShadowBanned";
+        break;
+      case { isShadowBanned: false }:
+        action = "admin_shadow_unbanned_content";
+        updatedField = "isShadowBanned";
+        break;
+      default:
+        action = "admin_updated_content";
+        updatedField = "Unknown";
+        break;
+    }
+
+    logEvent({
+      req,
+      action,
+      platform: "web",
+      userId: req.admin._id.toString(),
+      metadata: {
+        updatedField,
+        targetId,
+        type,
+        reportIds,
+      },
+    });
+
     res.status(200).json({
       success: true,
       message: "Post updated successfully.",
-      post: updatedPost,
+      ...(type === "Post"
+        ? { post: updatedTarget }
+        : { comment: updatedTarget }),
+      reportIds,
       reportsUpdated: reports.modifiedCount,
     });
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
-    handleError(error as ApiError, res, "Failed to update post status", "UPDATE_POST_STATUS_ERROR");
+    handleError(
+      error as ApiError,
+      res,
+      "Failed to update post status",
+      "UPDATE_POST_STATUS_ERROR"
+    );
   }
 };
 
@@ -279,59 +374,108 @@ export const getUserReports = async (req: Request, res: Response) => {
       reports: populatedReports,
     });
   } catch (error) {
-    handleError(error as ApiError, res, "Error fetching user reports", "GET_USER_REPORTS_ERROR");
+    handleError(
+      error as ApiError,
+      res,
+      "Error fetching user reports",
+      "GET_USER_REPORTS_ERROR"
+    );
   }
 };
 
 export const getUsersByQuery = async (req: Request, res: Response) => {
   try {
-    const email = req.query.email ?? null
-    const username = req.query.username ?? null
-  
-    const users = await userModel.find({
-      ...(email && { email }),
-      ...(username && { username }),
-    })
-    .select("-password -email -lookupEmail -__v -refreshToken -bookmarks -theme")
-    .populate("college", "_id name profile");
+    const email = req.query.email ?? null;
+    const username = req.query.username ?? null;
+
+    const users = await userModel
+      .find({
+        ...(email && { email }),
+        ...(username && { username }),
+      })
+      .select(
+        "-password -email -lookupEmail -__v -refreshToken -bookmarks -theme"
+      )
+      .populate("college", "_id name profile");
     res.status(200).json({ success: true, users });
   } catch (error) {
-    handleError(error as ApiError, res, "Error fetching all users", "GET_ALL_USERS_ERROR");
+    handleError(
+      error as ApiError,
+      res,
+      "Error fetching all users",
+      "GET_ALL_USERS_ERROR"
+    );
   }
 };
 
 export const deleteReport = async (req: Request, res: Response) => {
   try {
+    if (!req.admin) throw new ApiError(401, "Unauthorized");
     const { reportId } = req.params;
     await ReportModel.findByIdAndDelete(reportId);
+
+    logEvent({
+      req,
+      action: "admin_deleted_report",
+      platform: "web",
+      userId: req.admin._id.toString(),
+      metadata: {
+        reportId,
+      },
+    });
 
     res
       .status(200)
       .json({ success: true, message: "Report deleted successfully" });
   } catch (error) {
-    handleError(error as ApiError, res, "Error deleting report", "DELETE_REPORT_ERROR");
+    handleError(
+      error as ApiError,
+      res,
+      "Error deleting report",
+      "DELETE_REPORT_ERROR"
+    );
   }
 };
 
 export const bulkDeleteReports = async (req: Request, res: Response) => {
   try {
+    if (!req.admin) throw new ApiError(401, "Unauthorized");
     const { reportIds } = req.body;
     if (!Array.isArray(reportIds)) {
       throw new ApiError(400, "Report ids must be an array");
     }
 
-    await ReportModel.deleteMany({ _id: { $in: reportIds } });
+    const deletedReports = await ReportModel.deleteMany({
+      _id: { $in: reportIds },
+    });
+
+    logEvent({
+      req,
+      action: "admin_bulk_deleted_reports",
+      platform: "web",
+      userId: req.admin._id.toString(),
+      metadata: {
+        reportIds,
+        deletedCount: deletedReports.deletedCount,
+      },
+    });
 
     res
       .status(200)
       .json({ success: true, message: "Reports deleted successfully" });
   } catch (error) {
-    handleError(error as ApiError, res, "Error deleting reports", "BULK_DELETE_REPORTS_ERROR");
+    handleError(
+      error as ApiError,
+      res,
+      "Error deleting reports",
+      "BULK_DELETE_REPORTS_ERROR"
+    );
   }
 };
 
 export const updateReportStatus = async (req: Request, res: Response) => {
   try {
+    if(!req.admin) throw new ApiError(401, "Unauthorized");
     const { reportId } = req.params;
     const { status } = req.body;
 
@@ -345,50 +489,96 @@ export const updateReportStatus = async (req: Request, res: Response) => {
       { new: true }
     );
 
+    logEvent({
+      req,
+      action: "admin_updated_report_status",
+      platform: "web",
+      userId: req.admin._id.toString(),
+      metadata: {
+        reportId,
+        status,
+      },
+    });
+
     res.status(200).json({ success: true, report });
   } catch (error) {
-    handleError(error as ApiError, res, "Error updating report status", "UPDATE_REPORT_STATUS_ERROR");
+    handleError(
+      error as ApiError,
+      res,
+      "Error updating report status",
+      "UPDATE_REPORT_STATUS_ERROR"
+    );
   }
 };
 
 export const blockUser = async (req: Request, res: Response) => {
   try {
+    if (!req.admin) throw new ApiError(401, "Unauthorized");
     const userId = req.params.userId;
 
     // Find the user by ID
     const user = await userModel.findById(userId);
     if (!user) throw new ApiError(404, "User not found");
 
-    // Block the user
     user.isBlocked = true;
     await user.save();
 
+    logEvent({
+      req,
+      action: "admin_banned_user",
+      platform: "web",
+      userId: req.admin._id.toString(),
+      metadata: {
+        userId,
+      },
+    });
+
     res.status(200).json({ message: "User blocked successfully" });
   } catch (error) {
-    handleError(error as ApiError, res, "Error blocking user", "BLOCK_USER_ERROR");
+    handleError(
+      error as ApiError,
+      res,
+      "Error blocking user",
+      "BLOCK_USER_ERROR"
+    );
   }
 };
 
 export const unblockUser = async (req: Request, res: Response) => {
   try {
+    if (!req.admin) throw new ApiError(401, "Unauthorized");
     const userId = req.params.userId;
 
-    // Find the user by ID
     const user = await userModel.findById(userId);
     if (!user) throw new ApiError(404, "User not found");
 
-    // Unblock the user
     user.isBlocked = false;
     await user.save();
 
+    logEvent({
+      req,
+      action: "admin_unbanned_user",
+      platform: "web",
+      userId: req.admin._id.toString(),
+      metadata: {
+        userId,
+      },
+    });
+
     res.status(200).json({ message: "User unblocked successfully" });
   } catch (error) {
-    handleError(error as ApiError, res, "Error unblocking user", "UNBLOCK_USER_ERROR");
+    handleError(
+      error as ApiError,
+      res,
+      "Error unblocking user",
+      "UNBLOCK_USER_ERROR"
+    );
   }
 };
 
 export const suspendUser = async (req: Request, res: Response) => {
   try {
+    if (!req.admin) throw new ApiError(401, "Unauthorized");
     const userId = req.params.userId;
     const { ends, reason } = req.body; // 'ends' should be a date string (ISO format)
 
@@ -398,18 +588,33 @@ export const suspendUser = async (req: Request, res: Response) => {
     const user = await userModel.findById(userId);
     if (!user) throw new ApiError(404, "User not found");
 
-    // Set suspension details
     user.suspension = {
       ends: new Date(ends),
       reason,
       howManyTimes: (user.suspension?.howManyTimes || 0) + 1,
     };
-    user.isBlocked = true; // Block the user during suspension
     await user.save();
+
+    logEvent({
+      req,
+      action: "admin_suspended_user",
+      platform: "web",
+      userId: req.admin._id.toString(),
+      metadata: {
+        userId,
+        ends,
+        reason,
+      },
+    })
 
     res.status(200).json({ message: "User suspended successfully" });
   } catch (error) {
-    handleError(error as ApiError, res, "Error suspending user", "SUSPEND_USER_ERROR");
+    handleError(
+      error as ApiError,
+      res,
+      "Error suspending user",
+      "SUSPEND_USER_ERROR"
+    );
   }
 };
 
@@ -417,22 +622,30 @@ export const getSuspensionStatus = async (req: Request, res: Response) => {
   try {
     const userId = req.params.userId;
 
-    // Find the user by ID
     const user = await userModel.findById(userId);
     if (!user) throw new ApiError(404, "User not found");
 
     res.status(200).json({ suspension: user.suspension });
   } catch (error) {
-    handleError(error as ApiError, res, "Error fetching suspension status", "GET_SUSPENSION_STATUS_ERROR");
+    handleError(
+      error as ApiError,
+      res,
+      "Error fetching suspension status",
+      "GET_SUSPENSION_STATUS_ERROR"
+    );
   }
 };
 
 // Controller exports
 export const banPost = (req: Request, res: Response) =>
-  updatePostStatus(req, res, { isBanned: true });
+  updateContentStatus(req, res, { isBanned: true }, "Post");
 export const unbanPost = (req: Request, res: Response) =>
-  updatePostStatus(req, res, { isBanned: false });
+  updateContentStatus(req, res, { isBanned: false }, "Post");
 export const shadowBanPost = (req: Request, res: Response) =>
-  updatePostStatus(req, res, { isShadowBanned: true });
+  updateContentStatus(req, res, { isShadowBanned: true }, "Post");
 export const shadowUnbanPost = (req: Request, res: Response) =>
-  updatePostStatus(req, res, { isShadowBanned: false });
+  updateContentStatus(req, res, { isShadowBanned: false }, "Post");
+export const banComment = (req: Request, res: Response) =>
+  updateContentStatus(req, res, { isShadowBanned: false }, "Comment");
+export const unbanComment = (req: Request, res: Response) =>
+  updateContentStatus(req, res, { isShadowBanned: false }, "Comment");
