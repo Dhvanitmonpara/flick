@@ -335,6 +335,7 @@ export const verifyAdminOtp = async (req: Request, res: Response) => {
 
 export const logoutAdmin = async (req: Request, res: Response) => {
   try {
+    if(!req.admin) throw new ApiError(401, "Unauthorized");
     res.clearCookie("__adminAccessToken", {
       httpOnly: true,
       secure: true,
@@ -346,7 +347,7 @@ export const logoutAdmin = async (req: Request, res: Response) => {
       action: "admin_logged_out_self",
       platform: "web",
       sessionId: req.sessionId,
-      userId: req.admin?._id.toString() ?? "unknown",
+      userId: req.admin._id.toString(),
     });
 
     res.status(200).json({

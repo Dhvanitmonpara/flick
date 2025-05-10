@@ -7,10 +7,14 @@ const logSchema = new mongoose.Schema(
       default: Date.now,
       index: true,
     },
+    role: {
+      type: String,
+      enum: ["Admin", "User", "Unknown"],
+    },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
+      index: true,
+      refPath: "role",
     },
     logVersion: {
       type: Number,
@@ -93,7 +97,7 @@ const logSchema = new mongoose.Schema(
     platform: {
       type: String,
       required: true,
-      enum: ["web", "mobile", "tv", "other"],
+      enum: ["web", "mobile", "tv", "server", "other"],
     },
     status: {
       type: String,

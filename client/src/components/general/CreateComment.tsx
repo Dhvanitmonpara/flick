@@ -181,7 +181,7 @@ function CreateComment({ parentCommentId, defaultData, commentId, setOpen }: { p
           />
 
           {isWriting && <Button disabled={loading || Boolean(error)} type="submit" className="w-full">
-            {loading ? <><Loader2 className="animate-spin" /> {isUpdating ? "Updating..." : "Creating..."}</> : (isUpdating ? "Update" : "Create")}
+            {loading ? <><Loader2 className="animate-spin" /> {isUpdating ? "Updating..." : "Posting..."}</> : (isUpdating ? "Update" : "Post")}
           </Button>}
           {error && <p className="text-red-500 text-sm">{error}</p>}
         </form>

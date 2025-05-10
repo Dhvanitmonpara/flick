@@ -1,10 +1,12 @@
 import { Request } from "express"; // Assuming Express.js
 import { LogModel } from "../models/log.model.js";
 import { TLogAction } from "../types/Log.js";
+import { toObjectId } from "../utils/toObject.js";
+import { Types } from "mongoose";
 
 interface LogEventOptions {
   req?: Request;
-  userId: string;
+  userId: string | null;
   action: TLogAction;
   status?: "success" | "fail";
   platform: "web" | "mobile" | "tv" | "other";
@@ -43,15 +45,34 @@ export async function logEvent(options: LogEventOptions) {
       };
     }
 
-    await LogModel.create({
-      userId,
+    const role = req?.admin ? "Admin" : req?.user ? "User" : "Unknown";
+
+    const logData: {
+      role: string;
+      action: TLogAction;
+      status: "success" | "fail";
+      platform: "web" | "mobile" | "tv" | "other";
+      sessionId: string;
+      metadata: {
+        [x: string]: any;
+      };
+      userId?: Types.ObjectId;
+      timestamp: Date;
+    } = {
+      role,
       action,
       status,
       platform,
       sessionId,
       metadata: extractedMetadata,
       timestamp,
-    });
+    };
+
+    if (userId) {
+      logData.userId = toObjectId(userId);
+    }
+
+    await LogModel.create(logData);
   } catch (err) {
     console.error("Failed to log event internally:", err);
   }

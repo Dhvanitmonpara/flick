@@ -75,11 +75,10 @@ function isMongoDuplicateError(error: unknown): error is MongoServerError {
 async function logError(error: unknown, fallbackMessage: string) {
   try {
     const errorInfo = {
-      action: "system_error",
+      action: "system_logged_error",
       status: "fail",
       platform: "server",
       sessionId: "system",
-      userId: undefined,
       metadata: {
         errorName: (error as Error)?.name || "UnknownError",
         errorMessage: (error as Error)?.message || fallbackMessage,

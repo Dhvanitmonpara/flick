@@ -177,7 +177,7 @@ export const initializeUser = async (req: Request, res: Response) => {
       req,
       action: "user_initialized_account",
       platform: "web",
-      userId: "unknown",
+      userId: null,
       metadata: {
         targetEmail: hashedEmail,
       },
@@ -490,7 +490,7 @@ export const sendOtp = async (req: Request, res: Response) => {
       req,
       action: "user_reset_email_otp",
       platform: "web",
-      userId: "unknown",
+      userId: null,
       metadata: {
         encryptedTargetEmail: encryptedEmail,
       },
@@ -517,7 +517,7 @@ export const verifyOtp = async (req: Request, res: Response) => {
         req,
         action: "user_verified_otp",
         platform: "web",
-        userId: "unknown",
+        userId: null,
         metadata: {
           encryptedTargetEmail: encryptedEmail,
         }
