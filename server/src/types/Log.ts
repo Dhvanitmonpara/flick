@@ -22,7 +22,6 @@ export type TLogAction =
   | "user_reset_email_otp"
   | "user_logged_in_self"
   | "user_logged_out_self"
-  | "user_switched_vote_on_comment"
   | "admin_blocked_content"
   | "admin_unblocked_content"
   | "admin_shadow_banned_content"
