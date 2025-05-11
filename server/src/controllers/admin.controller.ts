@@ -5,9 +5,9 @@ import handleError from "../services/HandleError.js";
 import mongoose from "mongoose";
 import { hashEmailForLookup, hashOTP } from "../services/cryptographer.js";
 import sendMail from "../utils/sendMail.js";
-import { redis } from "../app.js";
 import crypto from "crypto";
 import { logEvent } from "../services/logService.js";
+import redisClient from "../services/Redis.js";
 
 export interface AdminDocument extends Document {
   password: string;
@@ -59,6 +59,8 @@ const generateAccessToken = async (userId: mongoose.Types.ObjectId) => {
 
 export const createAdmin = async (req: Request, res: Response) => {
   try {
+    if(!req.admin)throw new ApiError(401, "Unauthorized")
+      
     const { email, password } = req.body;
     if (!email || !password) {
       throw new ApiError(400, "Email and password are required");
@@ -148,7 +150,7 @@ export const initializeAdmin = async (req: Request, res: Response) => {
 
       const hashedOtp = await hashOTP(mailRes.otpCode);
 
-      const redisRes = await redis.set(
+      const redisRes = await redisClient.set(
         `otp:${hashedEmail}`,
         hashedOtp,
         "EX",
@@ -227,7 +229,7 @@ export const resendAdminOtp = async (req: Request, res: Response) => {
 
     const hashedOtp = await hashOTP(mailRes.otpCode);
 
-    const redisRes = await redis.set(`otp:${hashedEmail}`, hashedOtp, "EX", 65);
+    const redisRes = await redisClient.set(`otp:${hashedEmail}`, hashedOtp, "EX", 65);
 
     if (redisRes !== "OK") {
       console.error("Failed to set OTP in Redis:", redisRes);
@@ -274,7 +276,7 @@ export const verifyAdminOtp = async (req: Request, res: Response) => {
     })) as AdminDocument;
     if (!admin) throw new ApiError(404, "Admin not found");
 
-    const redisOtp = await redis.get(`otp:${hashedEmail}`);
+    const redisOtp = await redisClient.get(`otp:${hashedEmail}`);
     if (!redisOtp) throw new ApiError(400, "OTP expired or invalid");
 
     const hashedOtp = await hashOTP(otp);
@@ -292,7 +294,7 @@ export const verifyAdminOtp = async (req: Request, res: Response) => {
     await admin.save();
 
     // Delete OTP from Redis
-    await redis.del(`otp:${hashedEmail}`);
+    await redisClient.del(`otp:${hashedEmail}`);
 
     // Generate session
     const accessToken = await generateAccessToken(

@@ -10,12 +10,12 @@ import {
 import handleError from "../services/HandleError.js";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import sendMail from "../utils/sendMail.js";
-import { redis } from "../app.js";
 import OtpVerifier from "../services/otpVerifier.js";
 import { generateUuidBasedUsername } from "../services/userServices.js";
 import CollegeModel from "../models/college.model.js";
 import { env } from "../conf/env.js";
 import { logEvent } from "../services/logService.js";
+import redisClient from "../services/Redis.js";
 
 const options = {
   httpOnly: true,
@@ -148,7 +148,7 @@ export const initializeUser = async (req: Request, res: Response) => {
       college: college._id,
     };
 
-    const tempUser = await redis.set(
+    const tempUser = await redisClient.set(
       `pending:${hashedEmail}`,
       JSON.stringify(user),
       "EX",
@@ -167,7 +167,7 @@ export const initializeUser = async (req: Request, res: Response) => {
     const encryptedOtp = await hashOTP(mailResponse.otpCode);
     if (!encryptedOtp) throw new ApiError(500, "Failed to encrypt OTP");
 
-    const otpResponse = await redis.set(`otp:${email}`, encryptedOtp, "EX", 65);
+    const otpResponse = await redisClient.set(`otp:${email}`, encryptedOtp, "EX", 65);
 
     if (otpResponse !== "OK") {
       throw new ApiError(500, "Failed to set OTP in Redis");
@@ -203,7 +203,7 @@ export const registerUser = async (req: Request, res: Response) => {
     if (!email) throw new ApiError(400, "Email is required");
 
     const hashedEmail = await hashEmailForLookup(email.toLowerCase());
-    const user = await redis.get(`pending:${hashedEmail}`);
+    const user = await redisClient.get(`pending:${hashedEmail}`);
     if (!user) throw new ApiError(400, "User not found");
 
     const encryptedData = await encrypt(email.toLowerCase());
@@ -474,7 +474,7 @@ export const sendOtp = async (req: Request, res: Response) => {
 
     const encryptedEmail = await hashEmailForLookup(email.toLowerCase());
 
-    const response = await redis.set(
+    const response = await redisClient.set(
       `otp:${encryptedEmail}`,
       mailResponse.otpCode,
       "EX",

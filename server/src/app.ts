@@ -3,7 +3,6 @@ import { env } from "./conf/env.js";
 import express from "express";
 import cors, { CorsOptions } from "cors";
 import { Server } from "socket.io";
-import { Redis } from "ioredis";
 import cookieParser from "cookie-parser";
 // import './socketHandler.js'
 
@@ -16,12 +15,6 @@ const io = new Server(server, {
     origin: allowedOrigins,
     methods: ["GET", "POST"],
   },
-});
-
-if (typeof Redis === "undefined") throw new Error("Redis is not installed");
-const redis = new Redis({
-  host: env.redisHost,
-  port: parseInt(env.redisPort),
 });
 
 const corsOptions: CorsOptions = {
@@ -60,21 +53,60 @@ import reportRouter from "./routes/report.routes.js";
 import adminRouter from "./routes/admin.routes.js";
 import { verifyAdminJWT } from "./middleware/auth.middleware.js";
 import { sessionMiddleware } from "./middleware/session.middleware.js";
+import {
+  apiLimiter,
+  authLimiter,
+  rateLimitMiddleware,
+} from "./middleware/ratelimit.middleware.js";
 
-// globale middlewares
-app.use(sessionMiddleware)
+// global middlewares
+app.use(sessionMiddleware);
 
 // public routes
-app.use(`${commonPublicRoute}posts`, postRouter);
-app.use(`${commonPublicRoute}users`, userRouter);
-app.use(`${commonPublicRoute}votes`, voteRouter);
-app.use(`${commonPublicRoute}comments`, commentRouter);
-app.use(`${commonPublicRoute}reports`, reportRouter);
+app.use(
+  `${commonPublicRoute}posts`,
+  rateLimitMiddleware(apiLimiter),
+  postRouter
+);
+app.use(
+  `${commonPublicRoute}users`,
+  rateLimitMiddleware(apiLimiter),
+  userRouter
+);
+app.use(
+  `${commonPublicRoute}votes`,
+  rateLimitMiddleware(apiLimiter),
+  voteRouter
+);
+app.use(
+  `${commonPublicRoute}comments`,
+  rateLimitMiddleware(apiLimiter),
+  commentRouter
+);
+app.use(
+  `${commonPublicRoute}reports`,
+  rateLimitMiddleware(apiLimiter),
+  reportRouter
+);
 
 // admin routes
-app.use(`${commonAdminRoute}manage`, verifyAdminJWT, manageRouter);
-app.use(`${commonAdminRoute}colleges`, verifyAdminJWT, collegeRouter);
-app.use(`${commonAdminRoute}auth`, adminRouter);
+app.use(
+  `${commonAdminRoute}manage`,
+  verifyAdminJWT,
+  rateLimitMiddleware(apiLimiter),
+  manageRouter
+);
+app.use(
+  `${commonAdminRoute}colleges`,
+  verifyAdminJWT,
+  rateLimitMiddleware(apiLimiter),
+  collegeRouter
+);
+app.use(
+  `${commonAdminRoute}auth`,
+  verifyAdminJWT,
+  rateLimitMiddleware(authLimiter),
+  adminRouter
+);
 
-// Export server and app
-export { app, server, io, redis };
+export { app, server, io };
