@@ -9,7 +9,7 @@ const logSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["Admin", "User", "Unknown"],
+      enum: ["Admin", "User"],
     },
     userId: {
       type: mongoose.Schema.Types.ObjectId,

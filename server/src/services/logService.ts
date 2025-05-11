@@ -45,10 +45,10 @@ export async function logEvent(options: LogEventOptions) {
       };
     }
 
-    const role = req?.admin ? "Admin" : req?.user ? "User" : "Unknown";
+    const role = req?.admin ? "Admin" : req?.user ? "User" : null;
 
-    const logData: {
-      role: string;
+    let logData: {
+      role?: string;
       action: TLogAction;
       status: "success" | "fail";
       platform: "web" | "mobile" | "tv" | "other";
@@ -59,7 +59,6 @@ export async function logEvent(options: LogEventOptions) {
       userId?: Types.ObjectId;
       timestamp: Date;
     } = {
-      role,
       action,
       status,
       platform,
@@ -70,6 +69,10 @@ export async function logEvent(options: LogEventOptions) {
 
     if (userId) {
       logData.userId = toObjectId(userId);
+    }
+
+    if(role){
+      logData.role = role
     }
 
     await LogModel.create(logData);
