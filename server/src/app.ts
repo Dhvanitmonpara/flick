@@ -39,6 +39,7 @@ app.use(cookieParser());
 app.use(express.json({ limit: "16kb" }));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(express.static("public"));
+app.set('trust proxy', true);
 
 const commonPublicRoute = "/api/public/v1/";
 const commonAdminRoute = "/api/admin/v1/";

@@ -394,7 +394,7 @@ export const getUsersByQuery = async (req: Request, res: Response) => {
         ...(username && { username }),
       })
       .select(
-        "-password -email -lookupEmail -__v -refreshToken -bookmarks -theme"
+        "-password -email -lookupEmail -__v -refreshTokens -bookmarks -theme"
       )
       .populate("college", "_id name profile");
     res.status(200).json({ success: true, users });

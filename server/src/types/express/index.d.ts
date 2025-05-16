@@ -16,7 +16,12 @@ declare global {
           howManyTimes: number;
         };
         termsAccepted: boolean;
-        refreshToken: string | null;
+        refreshTokens: {
+          token: string;
+          ip: string;
+          issuedAt: Date;
+          userAgent: string;
+        }[];
         bookmarks: Types.ObjectId[];
         branch: string;
         college: Types.ObjectId | null;

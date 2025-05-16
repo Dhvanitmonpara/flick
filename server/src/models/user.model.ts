@@ -57,7 +57,26 @@ const userSchema = new mongoose.Schema(
         default: 0,
       },
     },
-    refreshToken: { type: String, default: null },
+    refreshTokens: [
+      {
+        token: {
+          type: String,
+          default: null,
+        },
+        userAgent: {
+          type: String,
+          default: null,
+        },
+        ip: {
+          type: String,
+          default: null,
+        },
+        issuedAt: {
+          type: Date,
+          default: null,
+        },
+      },
+    ],
     isVerified: { type: Boolean, default: false },
     password: { type: String, required: true },
   },

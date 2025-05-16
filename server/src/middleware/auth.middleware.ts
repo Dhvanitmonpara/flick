@@ -33,7 +33,7 @@ const lazyVerifyJWT = async (
         reason: null,
         howManyTimes: 0,
       },
-      refreshToken: null,
+      refreshTokens: [],
       bookmarks: [],
       branch: "",
       college: null,
@@ -67,7 +67,7 @@ const verifyUserJWT = async (
 
     const user = await userModel
       .findById(decodedToken?._id)
-      .select("-password -refreshToken -email")
+      .select("-password -refreshTokens -email")
       .lean();
 
     if (!user) {
@@ -85,7 +85,7 @@ const verifyUserJWT = async (
         howManyTimes: user.suspension?.howManyTimes ?? 0,
       },
       termsAccepted: user.termsAccepted ?? false,
-      refreshToken: null,
+      refreshTokens: [],
       bookmarks: user.bookmarks,
       branch: user.branch ?? "",
       college: user.college ?? null,

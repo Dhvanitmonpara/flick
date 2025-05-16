@@ -8,6 +8,7 @@ import sendMail from "../utils/sendMail.js";
 import crypto from "crypto";
 import { logEvent } from "../services/logService.js";
 import redisClient from "../services/Redis.js";
+import generateDeviceFingerprint from "../utils/generateDeviceFingerprint.js";
 
 export interface AdminDocument extends Document {
   password: string;
@@ -33,23 +34,6 @@ const options: CookieOptions = {
   sameSite: "lax",
   secure: true,
 };
-
-async function generateDeviceFingerprint(req: Request) {
-  const userAgent = req.headers["user-agent"] || "";
-  const acceptLanguage = req.headers["accept-language"] || "";
-  const screenResolution = req.body.screenResolution || "";
-  const hardwareConcurrency = req.body.hardwareConcurrency || "";
-  const timezone = req.body.timezone || "";
-
-  const rawFingerprint = `${userAgent}|${acceptLanguage}|${screenResolution}|${timezone}|${hardwareConcurrency}`;
-
-  const fingerprintHash = crypto
-    .createHash("sha256")
-    .update(rawFingerprint)
-    .digest("hex");
-
-  return fingerprintHash;
-}
 
 const generateAccessToken = async (userId: mongoose.Types.ObjectId) => {
   const admin = (await adminModel.findById(userId)) as AdminDocument;

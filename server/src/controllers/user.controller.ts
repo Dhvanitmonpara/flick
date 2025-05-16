@@ -3,6 +3,7 @@ import userModel from "../models/user.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import mongoose from "mongoose";
 import {
+  decrypt,
   encrypt,
   hashEmailForLookup,
   hashOTP,
@@ -16,6 +17,7 @@ import CollegeModel from "../models/college.model.js";
 import { env } from "../conf/env.js";
 import { logEvent } from "../services/logService.js";
 import redisClient from "../services/Redis.js";
+import generateDeviceFingerprint from "../utils/generateDeviceFingerprint.js";
 
 const options = {
   httpOnly: true,
@@ -40,8 +42,14 @@ export interface UserDocument extends Document {
     reason: string;
     howManyTimes: number;
   };
+  email?: string;
   isVerified: boolean;
-  refreshToken: string;
+  refreshTokens: {
+    token: string;
+    ip: string;
+    issuedAt: Date;
+    userAgent: string;
+  }[];
   isPasswordCorrect(password: string): Promise<boolean>;
   save({
     validateBeforeSave,
@@ -62,17 +70,51 @@ const generateUsername = async () => {
 };
 
 const generateAccessAndRefreshToken = async (
-  userId: mongoose.Types.ObjectId
+  userId: mongoose.Types.ObjectId,
+  req: Request
 ) => {
   try {
     const user = (await userModel.findById(userId)) as UserDocument;
     const accessToken = user.generateAccessToken();
     const refreshToken = user.generateRefreshToken();
+    const userAgent = await generateDeviceFingerprint(req);
+    const rawIp =
+      req.headers["cf-connecting-ip"] ||
+      req.headers["x-forwarded-for"] ||
+      req.ip;
 
-    user.refreshToken = refreshToken;
+    const ip = (Array.isArray(rawIp) ? rawIp[0] : rawIp || "")
+      .split(",")[0]
+      .trim();
+
+    // Find existing token index for this ip + userAgent
+    const existingTokenIndex = user.refreshTokens.findIndex(
+      (t) => t.ip === ip && t.userAgent === userAgent
+    );
+
+    if (existingTokenIndex !== -1) {
+      // Update the existing token in the array
+      user.refreshTokens[existingTokenIndex] = {
+        token: refreshToken,
+        userAgent,
+        ip,
+        issuedAt: new Date(),
+      };
+    } else {
+      if (!user.email) throw new ApiError(400, "Email is required");
+      user.refreshTokens.push({
+        token: refreshToken,
+        userAgent,
+        ip,
+        issuedAt: new Date(),
+      });
+      const decryptedEmail = await decrypt(user.email);
+      sendMail(decryptedEmail, "NEW-DEVICE-LOGIN");
+    }
+
     await user.save({ validateBeforeSave: false });
 
-    return { accessToken, refreshToken };
+    return { accessToken, refreshToken, userAgent, ip };
   } catch (error) {
     throw new ApiError(
       500,
@@ -167,7 +209,12 @@ export const initializeUser = async (req: Request, res: Response) => {
     const encryptedOtp = await hashOTP(mailResponse.otpCode);
     if (!encryptedOtp) throw new ApiError(500, "Failed to encrypt OTP");
 
-    const otpResponse = await redisClient.set(`otp:${email}`, encryptedOtp, "EX", 65);
+    const otpResponse = await redisClient.set(
+      `otp:${email}`,
+      encryptedOtp,
+      "EX",
+      65
+    );
 
     if (otpResponse !== "OK") {
       throw new ApiError(500, "Failed to set OTP in Redis");
@@ -231,9 +278,8 @@ export const registerUser = async (req: Request, res: Response) => {
       return;
     }
 
-    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
-      createdUser._id
-    );
+    const { accessToken, refreshToken, userAgent, ip } =
+      await generateAccessAndRefreshToken(createdUser._id, req);
 
     if (!accessToken || !refreshToken) {
       res
@@ -242,6 +288,9 @@ export const registerUser = async (req: Request, res: Response) => {
       return;
     }
 
+    await redisClient.del(`pending:${hashedEmail}`);
+    await redisClient.del(`otp:${hashedEmail}`);
+
     logEvent({
       req,
       action: "user_created_account",
@@ -249,6 +298,8 @@ export const registerUser = async (req: Request, res: Response) => {
       userId: createdUser._id.toString(),
       metadata: {
         targetEmail: hashedEmail,
+        userAgent,
+        ip,
       },
     });
 
@@ -311,9 +362,11 @@ export const loginUser = async (req: Request, res: Response) => {
     if (!(await existingUser.isPasswordCorrect(password)))
       throw new ApiError(400, "Invalid password");
 
-    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
-      existingUser._id as mongoose.Types.ObjectId
-    );
+    const { accessToken, refreshToken, userAgent, ip } =
+      await generateAccessAndRefreshToken(
+        existingUser._id as mongoose.Types.ObjectId,
+        req
+      );
 
     if (!accessToken || !refreshToken) {
       res
@@ -326,6 +379,10 @@ export const loginUser = async (req: Request, res: Response) => {
       req,
       action: "user_logged_in_self",
       platform: "web",
+      metadata: {
+        userAgent,
+        ip,
+      },
       userId: existingUser._id.toString(),
     });
 
@@ -432,12 +489,17 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
       throw new ApiError(401, "Invalid Refresh Token");
     }
 
-    if (incomingRefreshToken !== user?.refreshToken) {
-      throw new ApiError(401, "Refresh Token does not match with database");
+    const matchedToken = user.refreshTokens.find(
+      (t) => t.token === incomingRefreshToken
+    );
+
+    if (!matchedToken) {
+      throw new ApiError(401, "Refresh token is invalid or not recognized");
     }
 
     const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
-      user._id as mongoose.Types.ObjectId
+      user._id as mongoose.Types.ObjectId,
+      req
     );
 
     res
@@ -509,7 +571,9 @@ export const verifyOtp = async (req: Request, res: Response) => {
   try {
     if (!req.body.email || !req.body.otp)
       throw new ApiError(400, "Email and OTP are required");
-    const encryptedEmail = await hashEmailForLookup(req.body.email.toLowerCase());
+    const encryptedEmail = await hashEmailForLookup(
+      req.body.email.toLowerCase()
+    );
     const result = await OtpVerifier(encryptedEmail, req.body.otp, true);
 
     if (result) {
@@ -520,7 +584,7 @@ export const verifyOtp = async (req: Request, res: Response) => {
         userId: null,
         metadata: {
           encryptedTargetEmail: encryptedEmail,
-        }
+        },
       });
       res
         .status(200)
