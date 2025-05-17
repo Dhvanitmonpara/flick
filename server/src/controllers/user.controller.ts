@@ -410,6 +410,48 @@ export const loginUser = async (req: Request, res: Response) => {
   }
 };
 
+export const terminateAllSessions = async (req: Request, res: Response) => {
+  try {
+    if (!req.user || !req.user._id) {
+      throw new ApiError(400, "User not found");
+    }
+
+    const user = await userModel.findById(req.user._id);
+    if (!user) throw new ApiError(400, "User not found");
+
+    const currentIp =
+      req.headers["cf-connecting-ip"] ||
+      req.headers["x-forwarded-for"] ||
+      req.ip;
+    const ip = Array.isArray(currentIp) ? currentIp[0] : currentIp || "";
+    const currentUserAgent = await generateDeviceFingerprint(req);
+
+    const validTokens = user.refreshTokens.filter(
+      (token) => token.ip === currentIp && token.userAgent === currentUserAgent
+    );
+
+    user.refreshTokens.splice(0);
+    validTokens.forEach((token) => user.refreshTokens.push(token));
+
+    await user.save();
+
+    logEvent({
+      req,
+      action: "user_logged_out_self",
+      platform: "web",
+      metadata: {
+        userAgent: currentUserAgent,
+        ip,
+      },
+      userId: user._id.toString(),
+    });
+
+    res.status(200).json({ message: "Sessions terminated successfully!" });
+  } catch (error) {
+    handleError(error, res, "Failed to terminate sessions", "TERMINATE_ERROR");
+  }
+};
+
 export const getUserData = async (req: Request, res: Response) => {
   try {
     if (!req.user || !req.user._id) {
@@ -434,21 +476,25 @@ export const getUserData = async (req: Request, res: Response) => {
 export const logoutUser = async (req: Request, res: Response) => {
   try {
     if (!req.user || !req.user._id) {
-      res.status(400).json({ error: "User not found" });
-      return;
+      throw new ApiError(400, "User not found");
     }
 
-    await userModel.findByIdAndUpdate(
-      req.user._id,
-      {
-        $unset: {
-          refreshToken: 1,
-        },
-      },
-      {
-        new: true,
-      }
+    const user = await userModel.findById(req.user._id);
+    if (!user) {
+      throw new ApiError(400, "User not found");
+    }
+
+    const currentIp = Array.isArray(req.ip) ? req.ip[0] : req.ip || "";
+    const currentUserAgent = await generateDeviceFingerprint(req);
+
+    const filteredTokens = user.refreshTokens.filter(
+      (token) => !(token.ip === currentIp && token.userAgent === currentUserAgent)
     );
+
+    user.refreshTokens.splice(0);
+    filteredTokens.forEach((token) => user.refreshTokens.push(token));
+
+    await user.save();
 
     logEvent({
       req,
@@ -461,7 +507,8 @@ export const logoutUser = async (req: Request, res: Response) => {
       .status(200)
       .clearCookie("__accessToken", { ...options, maxAge: 0 })
       .clearCookie("__refreshToken", { ...options, maxAge: 0 })
-      .json({ message: "User logged Out" });
+      .json({ message: "User logged out successfully" });
+
   } catch (error) {
     handleError(error as ApiError, res, "Failed to logout", "LOGOUT_ERROR");
   }
