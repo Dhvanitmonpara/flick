@@ -11,14 +11,14 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { z } from "zod";
 
-const signInSchema = z.object({
+const ResetSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string().min(6, "Password must be at least 6 characters"),
 })
 
 const inputStyling = "bg-zinc-200 dark:bg-zinc-800 focus:border-zinc-900 focus-visible:ring-zinc-900 dark:focus:border-zinc-100 dark:focus-visible:ring-zinc-100"
 
-type SignInFormData = z.infer<typeof signInSchema>
+type ResetFormData = z.infer<typeof ResetSchema>
 
 function ResetPassword() {
   const [isPasswordShowing, setIsPasswordShowing] = useState(false);
@@ -40,13 +40,18 @@ function ResetPassword() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<SignInFormData>({
-    resolver: zodResolver(signInSchema),
+  } = useForm<ResetFormData>({
+    resolver: zodResolver(ResetSchema),
   })
 
-  const onSubmit = async (data: SignInFormData) => {
+  const onSubmit = async (data: ResetFormData) => {
     setIsSubmitting(true)
     try {
+
+      if (data.password !== data.confirmPassword) {
+        toast.error("Passwords do not match")
+        return
+      }
 
       const res = await axios.post(
         `${env.serverApiEndpoint}/users/reset-password/init`,
@@ -59,7 +64,7 @@ function ResetPassword() {
         return
       }
 
-      navigate(`/auth/otp/${email}`)
+      navigate(`/auth/password-recovery/otp/${email}`)
 
     } catch (err) {
       console.error("Sign in error", err)

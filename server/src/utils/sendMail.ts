@@ -111,7 +111,7 @@ const sendMail = async (
 
   <p>If this wasn’t you, we recommend resetting your password immediately:</p>
 
-  <a href="http://localhost:5173/auth/password-recovery" style="display: inline-block; padding: 12px 20px; background-color: #d10f25; color: white; text-decoration: none; border-radius: 5px; margin-top: 10px;">
+  <a href="http://localhost:5173/auth/password-recovery?email=${details.email}" style="display: inline-block; padding: 12px 20px; background-color: #d10f25; color: white; text-decoration: none; border-radius: 5px; margin-top: 10px;">
     Reset Password
   </a>
 

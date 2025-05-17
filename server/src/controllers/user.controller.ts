@@ -116,6 +116,7 @@ const generateAccessAndRefreshToken = async (
         deviceName: getDeviceName(req.headers["user-agent"] || ""),
         time: new Date().toUTCString(),
         location: await getLocationFromIP(req),
+        email: decryptedEmail,
       });
     }
 
@@ -590,7 +591,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
 
     const hashedEmail = await hashEmailForLookup(email.toLowerCase());
 
-    const storedPassword = await redisClient.get(`forgot:${hashedEmail}`);
+    const storedPassword = await redisClient.get(`password:${hashedEmail}`);
     if (!storedPassword) throw new ApiError(400, "Password not found");
 
     const user = await userModel.findOne({ lookupEmail: hashedEmail });

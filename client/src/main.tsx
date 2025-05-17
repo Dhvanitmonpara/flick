@@ -15,6 +15,7 @@ import PostPage from './pages/PostPage'
 import ResetPassword from './pages/ResetPassword'
 import EnterEmail from './pages/EnterEmail'
 import OtpVerificationPage from './pages/OtpVerificationPage'
+import PasswordRecoverySetup from './pages/PasswordRecoverySetup'
 
 // router
 const router = createBrowserRouter([
@@ -80,10 +81,10 @@ const router = createBrowserRouter([
           },
           {
             path: "password-recovery/setup/:email",
-            element: <ResetPassword />,
+            element: <PasswordRecoverySetup />,
           },
           {
-            path: "password-recovery",
+            path: "password-recovery/otp/:email",
             element: <OtpVerificationPage onFailedRedirect='/auth/password-recovery/enter-email' onVerifiedRedirect='/auth/password-recovery/setup' />,
           },
           {

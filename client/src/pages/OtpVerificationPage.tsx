@@ -9,6 +9,7 @@ import axios, { AxiosError, AxiosResponse } from "axios";
 import { toast } from 'sonner'
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { env } from "@/conf/env";
 
 const OTP_EXPIRE_TIME = 60;
 const MAX_ATTEMPTS = 5;
@@ -32,7 +33,7 @@ const OtpVerificationPage = ({ onVerifiedRedirect, onFailedRedirect }: { onVerif
   const handleOtpChange = (newOtp: string) => {
     setOtp(newOtp);
     if (isOtpInvalid) {
-      setIsOtpInvalid(false);  // Clear error when user starts typing
+      setIsOtpInvalid(false);
     }
   };
 
@@ -47,7 +48,7 @@ const OtpVerificationPage = ({ onVerifiedRedirect, onFailedRedirect }: { onVerif
     if (!email) navigate(onFailedRedirect)
     try {
       const mailResponse: AxiosResponse = await axios.post(
-        `${import.meta.env.VITE_SERVER_API_URL}/users/otp/send`,
+        `${env.serverApiEndpoint}/users/otp/send`,
         { email: email },
         { withCredentials: true }
       );
@@ -79,7 +80,7 @@ const OtpVerificationPage = ({ onVerifiedRedirect, onFailedRedirect }: { onVerif
       }
 
       const response = await axios.post(
-        `${import.meta.env.VITE_SERVER_API_URL}/users/otp/verify`,
+        `${env.serverApiEndpoint}/users/otp/verify`,
         { email: email, otp },
         { withCredentials: true }
       );
