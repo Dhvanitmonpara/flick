@@ -17,7 +17,7 @@ import CollegeModel from "../models/college.model.js";
 import { env } from "../conf/env.js";
 import { logEvent } from "../services/logService.js";
 import redisClient from "../services/Redis.js";
-import generateDeviceFingerprint from "../utils/generateDeviceFingerprint.js";
+import generateDeviceFingerprint, { getDeviceName, getLocationFromIP } from "../utils/generateDeviceFingerprint.js";
 
 const options = {
   httpOnly: true,
@@ -109,7 +109,11 @@ const generateAccessAndRefreshToken = async (
         issuedAt: new Date(),
       });
       const decryptedEmail = await decrypt(user.email);
-      sendMail(decryptedEmail, "NEW-DEVICE-LOGIN");
+      sendMail(decryptedEmail, "NEW-DEVICE-LOGIN", {
+        deviceName: getDeviceName(req.headers["user-agent"] || ""),
+        time: new Date().toUTCString(),
+        location: await getLocationFromIP(req),
+      });
     }
 
     await user.save({ validateBeforeSave: false });
@@ -488,7 +492,8 @@ export const logoutUser = async (req: Request, res: Response) => {
     const currentUserAgent = await generateDeviceFingerprint(req);
 
     const filteredTokens = user.refreshTokens.filter(
-      (token) => !(token.ip === currentIp && token.userAgent === currentUserAgent)
+      (token) =>
+        !(token.ip === currentIp && token.userAgent === currentUserAgent)
     );
 
     user.refreshTokens.splice(0);
@@ -508,7 +513,6 @@ export const logoutUser = async (req: Request, res: Response) => {
       .clearCookie("__accessToken", { ...options, maxAge: 0 })
       .clearCookie("__refreshToken", { ...options, maxAge: 0 })
       .json({ message: "User logged out successfully" });
-
   } catch (error) {
     handleError(error as ApiError, res, "Failed to logout", "LOGOUT_ERROR");
   }

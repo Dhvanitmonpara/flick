@@ -13,6 +13,7 @@ import EmailVerificationPage from './pages/EmailVerificationPage'
 import * as React from 'react'
 import SetupUserPage from './pages/SetupUserPage'
 import PostPage from './pages/PostPage'
+import ResetPassword from './pages/ResetPassword'
 
 // router
 const router = createBrowserRouter([
@@ -71,6 +72,10 @@ const router = createBrowserRouter([
           {
             path: "signup",
             element: <SignUpPage />,
+          },
+          {
+            path: "reset-password",
+            element: <ResetPassword />,
           },
         ],
       },

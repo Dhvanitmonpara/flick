@@ -76,6 +76,12 @@ export const useErrorHandler = () => {
     hasRetried = false,
   ): Promise<any> => {
     if (axios.isAxiosError(error) && error.response?.status === 401) {
+      if (error.response.data.code === "INVALID_SESSION") {
+        onError?.();
+        removeProfile()
+        return;
+      }
+
       const shouldRefresh = error.response.data?.error === "Unauthorized" && !hasRetried;
 
       if (shouldRefresh) {

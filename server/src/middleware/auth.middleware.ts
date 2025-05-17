@@ -63,7 +63,7 @@ const verifyUserJWT = async (
     const decodedToken = jwt.verify(token, env.accessTokenSecret) as JwtPayload;
 
     if (!decodedToken || typeof decodedToken == "string") {
-      throw new ApiError(401, "Invalid Access Token");
+      throw new ApiError(401, "Invalid Access Token", "INVALID_ACCESS_TOKEN");
     }
 
     const user = await userModel
@@ -87,7 +87,7 @@ const verifyUserJWT = async (
     );
 
     if (!isSessionValid) {
-      throw new ApiError(401, "Refresh token session is not valid");
+      throw new ApiError(401, "Refresh token session is not valid", "INVALID_SESSION");
     }
 
     const mappedUser = {
