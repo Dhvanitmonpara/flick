@@ -1,7 +1,7 @@
 import { Link, NavLink } from "react-router-dom"
 import ThemeToggler from "./ThemeToggler"
 import UserProfile from "./UserProfile";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import axios, { AxiosError } from "axios";
 import useProfileStore from "@/store/profileStore";
 import { toast } from "sonner";
@@ -16,11 +16,14 @@ const navLinks = [
 
 function Header() {
 
+  const [fetching, setFetching] = useState(true)
   const { setProfile, profile } = useProfileStore()
   const { handleError } = useErrorHandler()
 
   const fetchUser = useCallback(async () => {
     try {
+      setFetching(true)
+
       const user = await axios.get(`${env.serverApiEndpoint}/users/me`, {
         withCredentials: true,
       })
@@ -33,6 +36,8 @@ function Header() {
       setProfile(user.data.data)
     } catch (error) {
       handleError(error as AxiosError | Error, "Something went wrong while fetching user", undefined, () => fetchUser(), "Failed to fetch user")
+    }finally{
+      setFetching(false)
     }
   }, [handleError, setProfile])
 
@@ -63,7 +68,7 @@ function Header() {
           <div className="flex gap-4">
             <CreatePost />
             <ThemeToggler />
-            <UserProfile />
+           {fetching ? <span className="bg-zinc-300 animate-pulse h-10 w-10 rounded-full"></span> : <UserProfile />}
           </div>
         </div>
       </nav>

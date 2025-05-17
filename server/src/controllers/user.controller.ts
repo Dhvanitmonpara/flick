@@ -21,6 +21,7 @@ import generateDeviceFingerprint, {
   getDeviceName,
   getLocationFromIP,
 } from "../utils/generateDeviceFingerprint.js";
+import { toObjectId } from "../utils/toObject.js";
 
 const options = {
   httpOnly: true,
@@ -64,7 +65,12 @@ export interface UserDocument extends Document {
 }
 
 async function isUsernameTaken(username: string) {
-  const existingUser = await userModel.findOne({ username }).exec();
+  const existingUser = await userModel
+    .findOne({ username })
+    .select(
+      "-__v -createdAt -updatedAt -password -email -lookupEmail -bookmarks -college -branch -suspension -isBlocked -termsAccepted -theme"
+    )
+    .exec();
   return !!existingUser;
 }
 
@@ -77,7 +83,11 @@ const generateAccessAndRefreshToken = async (
   req: Request
 ) => {
   try {
-    const user = (await userModel.findById(userId)) as UserDocument;
+    const user = (await userModel
+      .findById(userId)
+      .select(
+        "-__v -createdAt -updatedAt -password -lookupEmail -bookmarks -college -branch -suspension -isBlocked -termsAccepted -theme"
+      )) as UserDocument;
     const accessToken = user.generateAccessToken();
     const refreshToken = user.generateRefreshToken();
     const userAgent = await generateDeviceFingerprint(req);
@@ -187,7 +197,11 @@ export const initializeUser = async (req: Request, res: Response) => {
     if (!college) throw new ApiError(404, "College not found");
 
     const hashedEmail = await hashEmailForLookup(email.toLowerCase());
-    const existingUser = await userModel.findOne({ email: hashedEmail });
+    const existingUser = await userModel
+      .findOne({ email: hashedEmail })
+      .select(
+        "-__v -createdAt -updatedAt -password -email -lookupEmail -bookmarks -college -branch -suspension -isBlocked -termsAccepted -theme"
+      );
 
     if (existingUser)
       throw new ApiError(400, "User with this email already exists");
@@ -349,9 +363,17 @@ export const loginUser = async (req: Request, res: Response) => {
 
     if (email) {
       const encryptedEmail = await hashEmailForLookup(email.toLowerCase());
-      existingUser = await userModel.findOne({ lookupEmail: encryptedEmail });
+      existingUser = await userModel
+        .findOne({ lookupEmail: encryptedEmail })
+        .select(
+          "-__v -createdAt -updatedAt -email -lookupEmail -bookmarks -college -branch -termsAccepted -theme"
+        );
     } else if (username) {
-      existingUser = await userModel.findOne({ username });
+      existingUser = await userModel
+        .findOne({ username })
+        .select(
+          "-__v -createdAt -updatedAt -email -lookupEmail -bookmarks -college -branch -termsAccepted -theme"
+        );
     } else {
       throw new ApiError(400, "Email or username is required");
     }
@@ -424,7 +446,11 @@ export const terminateAllSessions = async (req: Request, res: Response) => {
       throw new ApiError(400, "User not found");
     }
 
-    const user = await userModel.findById(req.user._id);
+    const user = await userModel
+      .findById(req.user._id)
+      .select(
+        "-__v -createdAt -updatedAt -email -lookupEmail -bookmarks -college -branch -suspension -isBlocked -termsAccepted -theme"
+      );
     if (!user) throw new ApiError(400, "User not found");
 
     const currentIp =
@@ -467,10 +493,28 @@ export const getUserData = async (req: Request, res: Response) => {
       return;
     }
 
+    if (!req.user.college)
+      throw new ApiError(
+        404,
+        "College not found for this user",
+        "COLLEGE_NOT_FOUND"
+      );
+
+    const college = await CollegeModel.findById(
+      toObjectId(req.user.college)
+    ).select("-state -city -createdAt -updatedAt -__v");
+    if (!college)
+      throw new ApiError(
+        404,
+        "College not found for this user",
+        "COLLEGE_NOT_FOUND"
+      );
+
     const user = {
       ...req.user,
       password: null,
       refreshToken: null,
+      college,
     };
 
     res
@@ -487,7 +531,11 @@ export const logoutUser = async (req: Request, res: Response) => {
       throw new ApiError(400, "User not found");
     }
 
-    const user = await userModel.findById(req.user._id);
+    const user = await userModel
+      .findById(req.user._id)
+      .select(
+        "-__v -createdAt -updatedAt -password -email -lookupEmail -bookmarks -college -branch -suspension -isBlocked -termsAccepted -theme"
+      );
     if (!user) {
       throw new ApiError(400, "User not found");
     }
@@ -529,7 +577,11 @@ export const initializeForgotPassword = async (req: Request, res: Response) => {
 
     const hashedEmail = await hashEmailForLookup(email.toLowerCase());
 
-    const user = await userModel.findOne({ lookupEmail: hashedEmail });
+    const user = await userModel
+      .findOne({ lookupEmail: hashedEmail })
+      .select(
+        "-__v -createdAt -updatedAt -password -email -bookmarks -college -branch -suspension -isBlocked -termsAccepted -theme"
+      );
     if (!user) throw new ApiError(400, "User not found");
 
     const mailResponse = await sendMail(email, "OTP");
@@ -594,7 +646,11 @@ export const forgotPassword = async (req: Request, res: Response) => {
     const storedPassword = await redisClient.get(`password:${hashedEmail}`);
     if (!storedPassword) throw new ApiError(400, "Password not found");
 
-    const user = await userModel.findOne({ lookupEmail: hashedEmail });
+    const user = await userModel
+      .findOne({ lookupEmail: hashedEmail })
+      .select(
+        "-__v -createdAt -updatedAt -email -bookmarks -college -branch -suspension -isBlocked -termsAccepted -theme"
+      );
     if (!user) throw new ApiError(400, "User not found");
 
     const decryptedPassword = await decrypt(storedPassword);
@@ -664,7 +720,11 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
       throw new ApiError(401, "Invalid Access Token");
     }
 
-    const user = (await userModel.findById(decodedToken?._id)) as UserDocument;
+    const user = (await userModel
+      .findById(decodedToken?._id)
+      .select(
+        "-__v -createdAt -updatedAt -password -email -lookupEmail -bookmarks -college -branch -suspension -isBlocked -termsAccepted -theme"
+      )) as UserDocument;
 
     if (!user) {
       throw new ApiError(401, "Invalid Refresh Token");
@@ -792,7 +852,7 @@ export const acceptTerms = async (req: Request, res: Response) => {
       $set: {
         termsAccepted: true,
       },
-    });
+    })
 
     logEvent({
       req,
