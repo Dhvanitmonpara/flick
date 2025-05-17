@@ -25,6 +25,8 @@ export type TLogAction =
   | "user_reset_email_otp"
   | "user_logged_in_self"
   | "user_logged_out_self"
+  | "user_forgot_password"
+  | "user_initialized_forgot_password"
   | "admin_blocked_content"
   | "admin_unblocked_content"
   | "admin_shadow_banned_content"

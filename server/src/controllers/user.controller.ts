@@ -467,6 +467,130 @@ export const logoutUser = async (req: Request, res: Response) => {
   }
 };
 
+export const initializeForgotPassword = async (req: Request, res: Response) => {
+  try {
+    const { username, password } = req.body;
+    if (!username) throw new ApiError(400, "Username is required");
+
+    const user = await userModel.findOne({ username });
+    if (!user) throw new ApiError(400, "User not found");
+
+    const decryptedEmail = await decrypt(user.email);
+
+    const mailResponse = await sendMail(decryptedEmail, "OTP");
+    if (!mailResponse.success)
+      throw new ApiError(500, mailResponse.error || "Failed to send OTP");
+    if (!mailResponse.otpCode) throw new ApiError(500, "Failed to send OTP");
+
+    const encryptedOtp = await hashOTP(mailResponse.otpCode);
+    if (!encryptedOtp) throw new ApiError(500, "Failed to encrypt OTP");
+
+    const encryptedPassword = await encrypt(password);
+
+    const passwordResponse = await redisClient.set(
+      `password:${user.lookupEmail}`,
+      encryptedPassword,
+      "EX",
+      300
+    );
+
+    if (passwordResponse !== "OK") {
+      throw new ApiError(500, "Failed to set password in Redis");
+    }
+
+    const otpResponse = await redisClient.set(
+      `otp:${user.lookupEmail}`,
+      encryptedOtp,
+      "EX",
+      65
+    );
+
+    if (otpResponse !== "OK") {
+      throw new ApiError(500, "Failed to set OTP in Redis");
+    }
+
+    logEvent({
+      req,
+      action: "user_initialized_forgot_password",
+      platform: "web",
+      userId: user._id.toString(),
+    });
+
+    res.status(200).json({
+      message: "OTP sent successfully",
+    });
+  } catch (error) {
+    handleError(
+      error as ApiError,
+      res,
+      "Failed to forgot password",
+      "INITIALIZE_FORGOT_PASSWORD_ERROR"
+    );
+  }
+};
+
+export const forgotPassword = async (req: Request, res: Response) => {
+  try {
+    const { username } = req.body;
+    if (!username) throw new ApiError(400, "Username is required");
+
+    const user = await userModel.findOne({ username });
+    if (!user) throw new ApiError(400, "User not found");
+
+    const storedPassword = await redisClient.get(`forgot:${user.lookupEmail}`);
+    if (!storedPassword) throw new ApiError(400, "Password not found");
+
+    const decryptedPassword = await decrypt(storedPassword);
+
+    const { accessToken, refreshToken, ip, userAgent } =
+      await generateAccessAndRefreshToken(user._id, req);
+
+    user.password = decryptedPassword;
+    const matchingTokenIndex = user.refreshTokens.findIndex(
+      (token) => token.userAgent === userAgent && token.ip === ip
+    );
+
+    if (matchingTokenIndex !== -1) {
+      user.refreshTokens[matchingTokenIndex].token = refreshToken;
+      user.refreshTokens[matchingTokenIndex].issuedAt = new Date();
+    } else {
+      user.refreshTokens.push({
+        token: refreshToken,
+        userAgent,
+        ip,
+        issuedAt: new Date(),
+      });
+    }
+
+    await user.save({ validateBeforeSave: false });
+
+    await redisClient.del(`forgot:${user.lookupEmail}`);
+
+    logEvent({
+      req,
+      action: "user_forgot_password",
+      platform: "web",
+      metadata: { ip, userAgent },
+      userId: user._id.toString(),
+    });
+
+    res
+      .status(200)
+      .cookie("__accessToken", accessToken, options)
+      .cookie("__refreshToken", refreshToken, options)
+      .json({
+        message: "Password updated successfully",
+      });
+  } catch (error) {
+    handleError(
+      error as ApiError,
+      res,
+      "Failed to forgot password",
+      "FORGOT_PASSWORD_ERROR"
+    );
+  }
+};
+
 export const refreshAccessToken = async (req: Request, res: Response) => {
   try {
     const incomingRefreshToken =

@@ -10,6 +10,8 @@ import {
   verifyOtp,
   heartbeat,
   acceptTerms,
+  initializeForgotPassword,
+  forgotPassword,
 } from "../controllers/user.controller.js";
 import { verifyUserJWT } from "../middleware/auth.middleware.js";
 
@@ -22,6 +24,8 @@ router.route("/accept-terms").post(verifyUserJWT, acceptTerms);
 router.route("/login").post(loginUser);
 router.route("/logout").post(verifyUserJWT, logoutUser);
 router.route("/heartbeat").patch(heartbeat as RequestHandler);
+router.route("/forgot/init").post(initializeForgotPassword);
+router.route("/forgot").post(forgotPassword);
 router.route("/refresh").post(refreshAccessToken);
 router.route("/otp/send").post(sendOtp);
 router.route("/otp/verify").post(verifyOtp);

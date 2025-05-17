@@ -50,6 +50,8 @@ const logSchema = new mongoose.Schema(
         "user_created_feedback",
         "user_updated_feedback",
         "user_deleted_feedback",
+        "user_forgot_password",
+        "user_initialized_forgot_password",
 
         "admin_banned_user",
         "admin_unbanned_user",
