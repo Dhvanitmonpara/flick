@@ -17,7 +17,10 @@ import CollegeModel from "../models/college.model.js";
 import { env } from "../conf/env.js";
 import { logEvent } from "../services/logService.js";
 import redisClient from "../services/Redis.js";
-import generateDeviceFingerprint, { getDeviceName, getLocationFromIP } from "../utils/generateDeviceFingerprint.js";
+import generateDeviceFingerprint, {
+  getDeviceName,
+  getLocationFromIP,
+} from "../utils/generateDeviceFingerprint.js";
 
 const options = {
   httpOnly: true,
@@ -520,15 +523,15 @@ export const logoutUser = async (req: Request, res: Response) => {
 
 export const initializeForgotPassword = async (req: Request, res: Response) => {
   try {
-    const { username, password } = req.body;
-    if (!username) throw new ApiError(400, "Username is required");
+    const { email, password } = req.body;
+    if (!email) throw new ApiError(400, "Username is required");
 
-    const user = await userModel.findOne({ username });
+    const hashedEmail = await hashEmailForLookup(email.toLowerCase());
+
+    const user = await userModel.findOne({ lookupEmail: hashedEmail });
     if (!user) throw new ApiError(400, "User not found");
 
-    const decryptedEmail = await decrypt(user.email);
-
-    const mailResponse = await sendMail(decryptedEmail, "OTP");
+    const mailResponse = await sendMail(email, "OTP");
     if (!mailResponse.success)
       throw new ApiError(500, mailResponse.error || "Failed to send OTP");
     if (!mailResponse.otpCode) throw new ApiError(500, "Failed to send OTP");
@@ -582,14 +585,16 @@ export const initializeForgotPassword = async (req: Request, res: Response) => {
 
 export const forgotPassword = async (req: Request, res: Response) => {
   try {
-    const { username } = req.body;
-    if (!username) throw new ApiError(400, "Username is required");
+    const { email } = req.body;
+    if (!email) throw new ApiError(400, "Username is required");
 
-    const user = await userModel.findOne({ username });
-    if (!user) throw new ApiError(400, "User not found");
+    const hashedEmail = await hashEmailForLookup(email.toLowerCase());
 
-    const storedPassword = await redisClient.get(`forgot:${user.lookupEmail}`);
+    const storedPassword = await redisClient.get(`forgot:${hashedEmail}`);
     if (!storedPassword) throw new ApiError(400, "Password not found");
+
+    const user = await userModel.findOne({ lookupEmail: hashedEmail });
+    if (!user) throw new ApiError(400, "User not found");
 
     const decryptedPassword = await decrypt(storedPassword);
 

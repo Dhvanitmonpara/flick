@@ -48,16 +48,33 @@ const sendMail = async (
 
     switch (type) {
       case "OTP":
-        html = `<div style="font-family: Arial, sans-serif; padding: 20px; line-height: 1.6;">
-        <h2 style="color: #4CAF50;">Your OTP Code</h2>
-          <p>Dear user,</p>
-          <p>Your <strong>One-Time Password (OTP)</strong> is:</p>
-          <p style="font-size: 1.5em; font-weight: bold; color: #333;">${otpCode}</p>
-          <p>This code will expire in <strong>1 minute</strong>. Please do not share it with anyone for security reasons.</p>
-          <hr style="border: none; border-top: 1px solid #ccc;" />
-          <p style="color: #888;">Thank you for using Flick!</p>
-          <p style="color: #888;">Best regards,<br />The Flick Team</p>
-        </div>`;
+        html = `<div style="font-family: 'Segoe UI', Roboto, Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 30px; background-color: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 8px;">
+  <h2 style="color: #4CAF50; margin-top: 0;">🔐 Your OTP Code</h2>
+
+  <p style="font-size: 16px; color: #333;">Hi there,</p>
+
+  <p style="font-size: 16px; color: #333;">
+    Your <strong>One-Time Password (OTP)</strong> is:
+  </p>
+
+  <p style="font-size: 28px; font-weight: bold; color: #000; margin: 20px 0; letter-spacing: 3px; text-align: center;">
+    ${otpCode}
+  </p>
+
+  <p style="font-size: 14px; color: #555;">
+    This code will expire in <strong>1 minute</strong>. For your safety, do not share it with anyone.
+  </p>
+
+  <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;" />
+
+  <p style="font-size: 13px; color: #999;">
+    Thank you for using <strong>Flick</strong>!  
+  </p>
+  <p style="font-size: 13px; color: #999;">
+    — The Flick Team
+  </p>
+</div>
+`;
         break;
       case "WELCOME":
         html = `<div style="font-family: Arial, sans-serif; padding: 20px; line-height: 1.6;">
@@ -69,21 +86,43 @@ const sendMail = async (
         </div>`;
         break;
       case "NEW-DEVICE-LOGIN":
-        html = `<div style="font-family: Arial, sans-serif; padding: 20px; line-height: 1.6;">
-          <h2 style="color: #4CAF50;">New Device Login</h2>
-          <p>Dear user,</p>
-          <p>A new device logged in to your account.</p>
-          <p>Device details:</p>
-          <ul>
-            <li>Device Name: ${details.deviceName}</li>
-            <li>Location: ${details.location ?? "Unknown"}</li>
-            <li>Time: ${details.time}</li>
-          </ul>
-          <p>If that was not you then click the link below to reset your password.</p>
-          <p><a href="http://localhost:5173/auth/reset-password">Reset Password</a></p>
-          <hr style="border: none; border-top: 1px solid #ccc;" />
-          <p style="color: #888;">Best regards,<br />The Flick Team</p>
-        </div>`;
+        html = `<div style="font-family: 'Segoe UI', Arial, sans-serif; padding: 24px; max-width: 600px; margin: auto; background-color: #f9f9f9; border: 1px solid #eaeaea; border-radius: 8px; color: #333;">
+  <h2 style="color: #d10f25; margin-top: 0;">🔒 Security Alert</h2>
+
+  <p>Hi there,</p>
+  <p><strong>A new device has logged into your account.</strong></p>
+
+  <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+    <tbody>
+      <tr>
+        <td style="padding: 8px 0;"><strong>📱 Device Name:</strong></td>
+        <td style="padding: 8px 0;">${details.deviceName}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0;"><strong>📍 Location:</strong></td>
+        <td style="padding: 8px 0;">${details.location ?? "Unknown"}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0;"><strong>🕒 Time:</strong></td>
+        <td style="padding: 8px 0;">${details.time}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>If this wasn’t you, we recommend resetting your password immediately:</p>
+
+  <a href="http://localhost:5173/auth/password-recovery" style="display: inline-block; padding: 12px 20px; background-color: #d10f25; color: white; text-decoration: none; border-radius: 5px; margin-top: 10px;">
+    Reset Password
+  </a>
+
+  <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;" />
+
+  <p style="color: #888; font-size: 12px;">
+    Regards,<br />
+    The <strong>Flick</strong> Team
+  </p>
+</div>
+`;
         break;
       case "FEEDBACK-RECEIVED":
         html = `<div style="font-family: Arial, sans-serif; padding: 20px; line-height: 1.6;">

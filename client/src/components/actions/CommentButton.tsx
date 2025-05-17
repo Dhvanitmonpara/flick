@@ -21,9 +21,9 @@ function CommentButton() {
         </DialogTrigger>
         <DialogContent onClick={(e) => e.stopPropagation()}>
           <DialogHeader>
-            <DialogTitle>Terms and Conditions</DialogTitle>
+            <DialogTitle>Comment</DialogTitle>
           </DialogHeader>
-          <CreateComment setOpen={setOpen} />
+          <CreateComment defaultIsWriting setOpen={setOpen} />
         </DialogContent>
       </Dialog>
     </>

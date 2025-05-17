@@ -9,11 +9,12 @@ import AuthLayout from './layouts/AuthLayout'
 import RootLayout from './layouts/RootLayout'
 import AppLayout from './layouts/AppLayout'
 import FeedPage from './pages/FeedPage'
-import EmailVerificationPage from './pages/EmailVerificationPage'
 import * as React from 'react'
 import SetupUserPage from './pages/SetupUserPage'
 import PostPage from './pages/PostPage'
 import ResetPassword from './pages/ResetPassword'
+import EnterEmail from './pages/EnterEmail'
+import OtpVerificationPage from './pages/OtpVerificationPage'
 
 // router
 const router = createBrowserRouter([
@@ -63,7 +64,7 @@ const router = createBrowserRouter([
           },
           {
             path: "otp/:email",
-            element: <EmailVerificationPage />,
+            element: <OtpVerificationPage onFailedRedirect='/auth/signin' onVerifiedRedirect='/auth/signup' />,
           },
           {
             path: "setup/:email",
@@ -74,8 +75,20 @@ const router = createBrowserRouter([
             element: <SignUpPage />,
           },
           {
-            path: "reset-password",
+            path: "password-recovery",
             element: <ResetPassword />,
+          },
+          {
+            path: "password-recovery/setup/:email",
+            element: <ResetPassword />,
+          },
+          {
+            path: "password-recovery",
+            element: <OtpVerificationPage onFailedRedirect='/auth/password-recovery/enter-email' onVerifiedRedirect='/auth/password-recovery/setup' />,
+          },
+          {
+            path: "password-recovery/enter-email",
+            element: <EnterEmail />,
           },
         ],
       },

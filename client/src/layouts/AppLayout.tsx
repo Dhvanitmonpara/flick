@@ -1,12 +1,17 @@
 import { ReactNode } from "react"
-import { Link, Outlet, useLocation } from "react-router-dom"
+import { Link, Outlet, useLocation, useSearchParams } from "react-router-dom"
 import { PiCardsThreeFill, PiCardsThreeLight } from "react-icons/pi";
 import { RiGraduationCapFill, RiGraduationCapLine } from "react-icons/ri";
 import { BiBarChartSquare, BiSolidBarChartSquare } from "react-icons/bi";
 import { PiFireFill, PiFireLight } from "react-icons/pi";
 import { Separator } from "@/components/ui/separator";
+import TerminateSessions from "@/components/actions/TerminateSessions";
 
 function AppLayout() {
+
+  const [searchParams] = useSearchParams();
+  const reset = searchParams.get('reset');
+
   return (
     <div className="flex max-w-[88rem] mx-auto w-full min-h-screen pr-8">
       <div className="hidden md:block w-[270px] space-y-1 py-6 px-4">
@@ -23,6 +28,7 @@ function AppLayout() {
         <Tab to="/btech" text="B.tech" />
       </div>
       <Outlet />
+      {(reset === "true") && <TerminateSessions />}
     </div>
   )
 }

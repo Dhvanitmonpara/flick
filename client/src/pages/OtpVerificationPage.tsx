@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 const OTP_EXPIRE_TIME = 60;
 const MAX_ATTEMPTS = 5;
 
-const EmailVerificationPage = () => {
+const OtpVerificationPage = ({ onVerifiedRedirect, onFailedRedirect }: { onVerifiedRedirect: string, onFailedRedirect: string }) => {
   const [timeLeft, setTimeLeft] = useState(OTP_EXPIRE_TIME);
   const [otp, setOtp] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -25,9 +25,9 @@ const EmailVerificationPage = () => {
 
   useEffect(() => {
     if (!email) {
-      navigate("/auth/signup");
+      navigate(onFailedRedirect);
     }
-  }, [navigate, email]);
+  }, [navigate, email, onFailedRedirect]);
 
   const handleOtpChange = (newOtp: string) => {
     setOtp(newOtp);
@@ -44,7 +44,7 @@ const EmailVerificationPage = () => {
   }, [timeLeft]);
 
   const sendOtp = useCallback(async () => {
-    if (!email) navigate("/auth/signup")
+    if (!email) navigate(onFailedRedirect)
     try {
       const mailResponse: AxiosResponse = await axios.post(
         `${import.meta.env.VITE_SERVER_API_URL}/users/otp/send`,
@@ -58,7 +58,7 @@ const EmailVerificationPage = () => {
     } catch (error) {
       console.error("Error sending OTP:", error);
     }
-  }, [navigate, email])
+  }, [email, navigate, onFailedRedirect])
 
   const handleResendOTP = () => {
     if (attempts >= MAX_ATTEMPTS) {
@@ -74,7 +74,7 @@ const EmailVerificationPage = () => {
       setIsLoading(true)
 
       if (!email) {
-        navigate("/auth/signup")
+        navigate(onFailedRedirect)
         return
       }
 
@@ -91,7 +91,7 @@ const EmailVerificationPage = () => {
 
       if (response.data.isVerified) {
         toast.success("OTP verified successfully!");
-        navigate(`/auth/setup/${email}`);
+        navigate(`${onVerifiedRedirect}/${email}`);
       }
     } catch (error) {
       if (error instanceof AxiosError) {
@@ -179,4 +179,4 @@ const EmailVerificationPage = () => {
   );
 };
 
-export default EmailVerificationPage;
+export default OtpVerificationPage;
