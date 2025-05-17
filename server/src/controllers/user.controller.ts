@@ -206,12 +206,12 @@ export const initializeUser = async (req: Request, res: Response) => {
       throw new ApiError(500, mailResponse.error || "Failed to send OTP");
     if (!mailResponse.otpCode) throw new ApiError(500, "Failed to send OTP");
 
-    const encryptedOtp = await hashOTP(mailResponse.otpCode);
-    if (!encryptedOtp) throw new ApiError(500, "Failed to encrypt OTP");
+    const hashedOTP = await hashOTP(mailResponse.otpCode);
+    if (!hashedOTP) throw new ApiError(500, "Failed to hash OTP");
 
     const otpResponse = await redisClient.set(
       `otp:${email}`,
-      encryptedOtp,
+      hashedOTP,
       "EX",
       65
     );
@@ -529,8 +529,8 @@ export const initializeForgotPassword = async (req: Request, res: Response) => {
       throw new ApiError(500, mailResponse.error || "Failed to send OTP");
     if (!mailResponse.otpCode) throw new ApiError(500, "Failed to send OTP");
 
-    const encryptedOtp = await hashOTP(mailResponse.otpCode);
-    if (!encryptedOtp) throw new ApiError(500, "Failed to encrypt OTP");
+    const hashedOTP = await hashOTP(mailResponse.otpCode);
+    if (!hashedOTP) throw new ApiError(500, "Failed to encrypt OTP");
 
     const encryptedPassword = await encrypt(password);
 
@@ -547,7 +547,7 @@ export const initializeForgotPassword = async (req: Request, res: Response) => {
 
     const otpResponse = await redisClient.set(
       `otp:${user.lookupEmail}`,
-      encryptedOtp,
+      hashedOTP,
       "EX",
       65
     );

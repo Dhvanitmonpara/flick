@@ -5,6 +5,7 @@ import jwt, { JwtPayload } from "jsonwebtoken";
 import handleError from "../services/HandleError.js";
 import { env } from "../conf/env.js";
 import adminModel from "../models/admin.model.js";
+import generateDeviceFingerprint from "../utils/generateDeviceFingerprint.js";
 
 const lazyVerifyJWT = async (
   req: Request,
@@ -67,11 +68,26 @@ const verifyUserJWT = async (
 
     const user = await userModel
       .findById(decodedToken?._id)
-      .select("-password -refreshTokens -email")
+      .select("-password -email -__v")
       .lean();
 
     if (!user) {
       throw new ApiError(401, "Invalid Access Token");
+    }
+
+    const currentIp =
+      req.headers["cf-connecting-ip"] ||
+      req.headers["x-forwarded-for"] ||
+      req.ip;
+    const ip = Array.isArray(currentIp) ? currentIp[0] : currentIp || "";
+    const currentUserAgent = await generateDeviceFingerprint(req);
+
+    const isSessionValid = user.refreshTokens.some(
+      (token) => token.ip === ip && token.userAgent === currentUserAgent
+    );
+
+    if (!isSessionValid) {
+      throw new ApiError(401, "Refresh token session is not valid");
     }
 
     const mappedUser = {
@@ -107,11 +123,20 @@ const termsAcceptedMiddleware = (
     const user = req.user;
     if (!user || !req.user?._id) throw new ApiError(401, "Unauthorized");
     if (!user.termsAccepted) {
-      throw new ApiError(403, "Please accept terms and conditions to proceed.", "TERMS_NOT_ACCEPTED" );
+      throw new ApiError(
+        403,
+        "Please accept terms and conditions to proceed.",
+        "TERMS_NOT_ACCEPTED"
+      );
     }
     next();
   } catch (error) {
-    handleError(error as ApiError, res, "Error checking suspension", "TERMS_NOT_ACCEPTED");
+    handleError(
+      error as ApiError,
+      res,
+      "Error checking suspension",
+      "TERMS_NOT_ACCEPTED"
+    );
   }
 };
 
@@ -133,7 +158,12 @@ const blockSuspensionMiddleware = (
     }
     next();
   } catch (error) {
-    handleError(error as ApiError, res, "Error checking suspension", "UNAUTHORIZED");
+    handleError(
+      error as ApiError,
+      res,
+      "Error checking suspension",
+      "UNAUTHORIZED"
+    );
   }
 };
 
