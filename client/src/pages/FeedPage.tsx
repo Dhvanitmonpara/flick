@@ -14,10 +14,8 @@ function FeedPage() {
 
   const [loading, setLoading] = useState(false)
   const { handleError } = useErrorHandler()
-  const { setPosts, posts } = usePostStore(state => ({
-    setPosts: state.setPosts,
-    posts: state.posts
-  }))
+  const posts = usePostStore(state=>state.posts)
+  const setPosts = usePostStore(state=>state.setPosts)
 
   const fetchPosts = useCallback(async () => {
     try {

@@ -23,11 +23,9 @@ function PostPage() {
   const [loading, setLoading] = useState(false)
   const [loadingPosts, setLoadingPosts] = useState(false)
 
-  const { comments, setComments, resetComments } = useCommentStore(state => ({
-    comments: state.comments,
-    setComments: state.setComments,
-    resetComments: state.resetComments
-  }))
+  const comments = useCommentStore(state=>state.comments)
+  const setComments = useCommentStore(state=>state.setComments)
+  const resetComments = useCommentStore(state=>state.resetComments)
 
   const { handleError } = useErrorHandler()
 
