@@ -17,7 +17,10 @@ const navLinks = [
 function Header() {
 
   const [fetching, setFetching] = useState(true)
-  const { setProfile, profile } = useProfileStore()
+  const { setProfile, profile } = useProfileStore((state) => ({
+    setProfile: state.setProfile,
+    profile: state.profile
+  }))
   const { handleError } = useErrorHandler()
 
   const fetchUser = useCallback(async () => {
@@ -36,7 +39,7 @@ function Header() {
       setProfile(user.data.data)
     } catch (error) {
       handleError(error as AxiosError | Error, "Something went wrong while fetching user", undefined, () => fetchUser(), "Failed to fetch user")
-    }finally{
+    } finally {
       setFetching(false)
     }
   }, [handleError, setProfile])
@@ -68,7 +71,7 @@ function Header() {
           <div className="flex gap-4">
             <CreatePost />
             <ThemeToggler />
-           {fetching ? <span className="bg-zinc-300 animate-pulse h-10 w-10 rounded-full"></span> : <UserProfile />}
+            {fetching ? <span className="bg-zinc-300 animate-pulse h-10 w-10 rounded-full"></span> : <UserProfile />}
           </div>
         </div>
       </nav>

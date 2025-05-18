@@ -61,8 +61,8 @@ function PostDropdown({ type, id, editableData }: { type: ("post" | "comment"), 
   const [loading, setLoading] = useState(false);
 
   const { handleError } = useErrorHandler()
-  const { removePost } = usePostStore()
-  const { removeComment } = useCommentStore()
+  const removePost = usePostStore(state => state.removePost)
+  const removeComment = useCommentStore(state => state.removeComment)
 
   const openDialog = (type: DialogType) => {
     setDialogType(type);

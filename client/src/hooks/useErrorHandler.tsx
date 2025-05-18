@@ -9,7 +9,10 @@ import { toast } from "sonner";
 let globalRefreshPromise: Promise<IUser> | null = null;
 
 export const useErrorHandler = () => {
-  const { setProfile, removeProfile } = useProfileStore();
+  const { setProfile, removeProfile } = useProfileStore(state=>({
+    setProfile: state.setProfile,
+    removeProfile: state.removeProfile
+  }));
 
   const isComponentMounted = useRef(true);
   const abortController = useRef<AbortController | null>(null);

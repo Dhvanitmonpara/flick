@@ -16,6 +16,8 @@ import ResetPassword from './pages/ResetPassword'
 import EnterEmail from './pages/EnterEmail'
 import OtpVerificationPage from './pages/OtpVerificationPage'
 import PasswordRecoverySetup from './pages/PasswordRecoverySetup'
+import PrivateAppLayout from './layouts/PrivateAppLayout'
+import ProfilePage from './pages/ProfilePage'
 
 // router
 const router = createBrowserRouter([
@@ -51,6 +53,16 @@ const router = createBrowserRouter([
           {
             path: "trending",
             element: <h1>Trending</h1>,
+          },
+          {
+            path: "u",
+            element: <PrivateAppLayout />,
+            children: [
+              {
+                path: "profile",
+                element: <ProfilePage/>,
+              }
+            ]
           },
         ]
       },

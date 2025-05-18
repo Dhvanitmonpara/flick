@@ -23,12 +23,16 @@ function PostPage() {
   const [loading, setLoading] = useState(false)
   const [loadingPosts, setLoadingPosts] = useState(false)
 
-  const { comments, setComments, resetComments } = useCommentStore()
+  const { comments, setComments, resetComments } = useCommentStore(state => ({
+    comments: state.comments,
+    setComments: state.setComments,
+    resetComments: state.resetComments
+  }))
 
   const { handleError } = useErrorHandler()
 
   const { id } = useParams();
-  const { posts } = usePostStore()
+  const posts = usePostStore(state => state.posts)
   const navigate = useNavigate();
 
   const fetchComments = useCallback(async () => {
