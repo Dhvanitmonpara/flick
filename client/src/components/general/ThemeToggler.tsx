@@ -5,10 +5,8 @@ import { IoMdSunny, IoMdMoon } from "react-icons/io";
 
 function ThemeToggler() {
 
-  const { setTheme, profile } = useProfileStore(state => ({
-    setTheme: state.setTheme,
-    profile: state.profile
-  }))
+  const setTheme = useProfileStore(state => state.setTheme)
+  const profile = useProfileStore(state => state.profile)
 
   const themeHandler = () => {
     if (profile.theme === "dark") {

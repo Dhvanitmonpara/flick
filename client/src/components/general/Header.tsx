@@ -17,10 +17,8 @@ const navLinks = [
 function Header() {
 
   const [fetching, setFetching] = useState(true)
-  const { setProfile, profile } = useProfileStore((state) => ({
-    setProfile: state.setProfile,
-    profile: state.profile
-  }))
+  const profile = useProfileStore(state => state.profile);
+  const setProfile = useProfileStore(state => state.setProfile);
   const { handleError } = useErrorHandler()
 
   const fetchUser = useCallback(async () => {

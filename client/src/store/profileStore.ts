@@ -48,9 +48,15 @@ const useProfileStore = create<ProfileState>((set) => ({
       },
     }),
   setTheme: (theme) =>
-    set((state) => ({
-      profile: { ...state.profile, theme },
-    })),
+    set((state) => {
+    if (state.profile.theme === theme) return { profile: { ...state.profile } };
+      return {
+        profile: {
+          ...state.profile,
+          theme,
+        },
+      };
+    }),
 }));
 
 export default useProfileStore;
