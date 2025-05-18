@@ -23,8 +23,6 @@ function Header() {
 
   const fetchUser = useCallback(async () => {
     try {
-      setFetching(true)
-
       const user = await axios.get(`${env.serverApiEndpoint}/users/me`, {
         withCredentials: true,
       })

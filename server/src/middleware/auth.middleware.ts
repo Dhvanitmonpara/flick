@@ -68,7 +68,7 @@ const verifyUserJWT = async (
 
     const user = await userModel
       .findById(decodedToken?._id)
-      .select("-password -email -__v -bookmarks")
+      .select("-password -email -__v")
       .lean();
 
     if (!user) {
@@ -102,7 +102,7 @@ const verifyUserJWT = async (
       },
       termsAccepted: user.termsAccepted ?? false,
       refreshTokens: [],
-      bookmarks: user.bookmarks ?? [],
+      bookmarks: user.bookmarks,
       branch: user.branch ?? "",
       college: user.college ?? null,
     };
