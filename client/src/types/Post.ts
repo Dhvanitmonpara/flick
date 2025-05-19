@@ -9,6 +9,7 @@ export interface IPost extends Document {
   isShadowBanned: boolean;
   karma: number;
   userVote?: "upvote" | "downvote";
+  bookmarked?: boolean
   upvoteCount: number;
   downvoteCount: number;
   views: number;

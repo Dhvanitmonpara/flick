@@ -10,7 +10,7 @@ import { IoBookmarkSharp, IoSettingsSharp } from 'react-icons/io5'
 const getCollegeProfile = (user: IUser | string) => isUser(user) && isCollege(user.college) ? user.college.profile : "Unknown College";
 
 function UserProfile() {
-  const profile = useProfileStore(state=>state.profile)
+  const profile = useProfileStore(state => state.profile)
   const navigate = useNavigate()
   return (
     <>
@@ -23,15 +23,15 @@ function UserProfile() {
             </Avatar>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
-            <DropdownMenuItem onClick={() => navigate("/u/profile")} className='flex items-center space-x-2'>
+            <DropdownMenuItem onClick={() => navigate("/u/profile")} className='flex items-center space-x-1 px-1'>
               <FaUser size={12} />
               <span>Profile</span>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate("/u/bookmarks")} className='flex items-center space-x-2'>
+            <DropdownMenuItem onClick={() => navigate("/u/bookmarks")} className='flex items-center space-x-1 px-1'>
               <IoBookmarkSharp size={12} />
               <span>Bookmarks</span>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate("/u/settings")} className='flex items-center space-x-2'>
+            <DropdownMenuItem onClick={() => navigate("/u/settings")} className='flex items-center space-x-1 px-1'>
               <IoSettingsSharp size={14} />
               <span>Settings</span>
             </DropdownMenuItem>

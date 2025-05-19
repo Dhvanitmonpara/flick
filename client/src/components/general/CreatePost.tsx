@@ -58,10 +58,8 @@ export const CreatePostForm = ({ setOpen, defaultData, id }: { setOpen?: React.D
   const [showTerms, setShowTerms] = useState(false);
 
   const profile = useProfileStore(state => state.profile)
-  const { addPost, updatePost } = usePostStore(state => ({
-    addPost: state.addPost,
-    updatePost: state.updatePost
-  }))
+  const addPost = usePostStore(state =>state.addPost)
+  const updatePost = usePostStore(state =>state.updatePost)
   const { handleError } = useErrorHandler()
 
   const isUpdating = !!defaultData

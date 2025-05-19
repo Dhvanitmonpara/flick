@@ -50,6 +50,7 @@ import userRouter from "./routes/user.routes.js";
 import voteRouter from "./routes/vote.routes.js";
 import collegeRouter from "./routes/college.routes.js";
 import manageRouter from "./routes/manage.route.js";
+import bookmarkRouter from "./routes/bookmark.route.js";
 import reportRouter from "./routes/report.routes.js";
 import adminRouter from "./routes/admin.routes.js";
 import { verifyAdminJWT } from "./middleware/auth.middleware.js";
@@ -88,6 +89,11 @@ app.use(
   `${commonPublicRoute}reports`,
   rateLimitMiddleware(apiLimiter),
   reportRouter
+);
+app.use(
+  `${commonPublicRoute}bookmarks`,
+  rateLimitMiddleware(apiLimiter),
+  bookmarkRouter
 );
 
 // admin routes

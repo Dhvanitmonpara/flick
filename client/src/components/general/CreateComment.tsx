@@ -32,10 +32,8 @@ function CreateComment({ parentCommentId, defaultData, commentId, setOpen, defau
 
   const { handleError } = useErrorHandler();
 
-  const { addComment, updateComment } = useCommentStore(state => ({
-    addComment: state.addComment,
-    updateComment: state.updateComment
-  }))
+  const addComment = useCommentStore(state=>state.addComment)
+  const updateComment = useCommentStore(state=>state.updateComment)
   const { id } = useParams()
   const isUpdating = !!defaultData && !!commentId;
 
