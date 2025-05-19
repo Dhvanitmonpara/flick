@@ -143,7 +143,7 @@ const updatePost = async (req: Request, res: Response) => {
       },
       sessionId: req.sessionId,
       userId: req.user._id.toString(),
-    })
+    });
 
     res.status(200).json({
       success: true,
@@ -324,7 +324,30 @@ const getPostsForFeed = async (req: Request, res: Response) => {
           $addFields: {
             userVote: { $arrayElemAt: ["$userVote.voteType", 0] },
           },
-        }
+        },
+        {
+          $lookup: {
+            from: "bookmarks",
+            let: {
+              postId: "$_id",
+              userId: toObjectId(req.user?._id),
+            },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $and: [
+                      { $eq: ["$postId", "$$postId"] },
+                      { $eq: ["$userId", "$$userId"] },
+                    ],
+                  },
+                },
+              },
+              { $project: { _id: 1 } },
+            ],
+            as: "bookmarkEntry",
+          },
+        },
       );
     }
 
@@ -337,6 +360,7 @@ const getPostsForFeed = async (req: Request, res: Response) => {
         upvoteCount: 1,
         downvoteCount: 1,
         userVote: 1,
+        bookmarkEntry: 1,
         postedBy: {
           _id: 1,
           username: 1,

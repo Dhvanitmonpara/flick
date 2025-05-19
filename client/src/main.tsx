@@ -18,6 +18,8 @@ import OtpVerificationPage from './pages/OtpVerificationPage'
 import PasswordRecoverySetup from './pages/PasswordRecoverySetup'
 import PrivateAppLayout from './layouts/PrivateAppLayout'
 import ProfilePage from './pages/ProfilePage'
+import SettingsPage from './pages/SettingsPage'
+import BookmarksPage from './pages/BookmarksPage'
 
 // router
 const router = createBrowserRouter([
@@ -61,7 +63,15 @@ const router = createBrowserRouter([
               {
                 path: "profile",
                 element: <ProfilePage/>,
-              }
+              },
+              {
+                path: "settings",
+                element: <SettingsPage/>,
+              },
+              {
+                path: "bookmarks",
+                element: <BookmarksPage/>,
+              },
             ]
           },
         ]

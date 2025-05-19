@@ -14,8 +14,8 @@ function FeedPage() {
 
   const [loading, setLoading] = useState(false)
   const { handleError } = useErrorHandler()
-  const posts = usePostStore(state=>state.posts)
-  const setPosts = usePostStore(state=>state.setPosts)
+  const posts = usePostStore(state => state.posts)
+  const setPosts = usePostStore(state => state.setPosts)
 
   const fetchPosts = useCallback(async () => {
     try {
@@ -39,6 +39,10 @@ function FeedPage() {
     document.title = "Feed | Flick"
     fetchPosts()
   }, [fetchPosts])
+
+  const removedPostOnAction = () => {
+    // TODO: Make this
+  }
 
   if (loading) {
     return (
@@ -76,6 +80,7 @@ function FeedPage() {
                   userVote={post.userVote ?? null}
                   username="Unknown"
                   title={post.title}
+                  bookmarked={post.bookmarked ?? false}
                   branch="Unknown"
                   viewsCount={post.views}
                   content={post.content}
@@ -99,10 +104,12 @@ function FeedPage() {
                 username={postedBy.username}
                 userVote={post.userVote ?? null}
                 title={post.title}
+                bookmarked={post.bookmarked ?? false}
                 branch={postedBy.branch}
                 viewsCount={post.views}
                 content={post.content}
                 avatarFallback=""
+                removedPostOnAction={removedPostOnAction}
                 createdAt={formatDate(post.createdAt)}
                 upvoteCount={post.upvoteCount}
                 downvoteCount={post.downvoteCount}

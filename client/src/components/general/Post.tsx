@@ -28,12 +28,14 @@ interface PostProps {
   viewsCount: number
   username: string
   branch: string
+  bookmarked: boolean
+  removedPostOnAction?: (id: string) => void
   topic?: {
     industry: string
   }
 }
 
-function Post({ avatar, userVote, avatarFallback, _id, createdAt, college, title, content, upvoteCount, downvoteCount, commentsCount, viewsCount, username, branch, topic }: PostProps) {
+function Post({ avatar, userVote, avatarFallback, _id, createdAt, college, title, content, upvoteCount, downvoteCount, commentsCount, viewsCount, username, branch, topic, bookmarked, removedPostOnAction }: PostProps) {
   console.log(topic)
   const navigate = useNavigate()
   return (
@@ -59,7 +61,7 @@ function Post({ avatar, userVote, avatarFallback, _id, createdAt, college, title
             </p>
           </div>
         </div>
-        <PostDropdown id={_id} type="post" key={_id} editableData={{ title, content }} />
+        <PostDropdown removePostOnAction={removedPostOnAction} bookmarked={bookmarked} id={_id} type="post" key={_id} editableData={{ title, content }} />
       </CardHeader>
       <CardContent>
         <h2 className="text-xl font-semibold">{title}</h2>

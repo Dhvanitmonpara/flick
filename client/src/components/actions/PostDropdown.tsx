@@ -32,6 +32,7 @@ import CreateComment from "../general/CreateComment";
 import usePostStore from "@/store/postStore";
 import useCommentStore from "@/store/commentStore";
 import { Textarea } from "../ui/textarea";
+import { FaBookmark } from "react-icons/fa";
 
 type DialogType = "DELETE" | "REPORT" | "EDIT" | "SAVE" | null;
 
@@ -55,7 +56,7 @@ const reportSchema = z.object({
 
 type ReportFormValues = z.infer<typeof reportSchema>;
 
-function PostDropdown({ type, id, editableData }: { type: ("post" | "comment"), id: string, editableData?: { title: string, content: string } }) {
+function PostDropdown({ type, id, editableData, removePostOnAction, bookmarked = false }: { type: ("post" | "comment"), id: string, editableData?: { title: string, content: string }, removePostOnAction?: (id: string) => void, bookmarked: boolean }) {
   const [dialogType, setDialogType] = useState<DialogType>(null);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -99,6 +100,34 @@ function PostDropdown({ type, id, editableData }: { type: ("post" | "comment"), 
     }
   }
 
+  const handleBookmark = async (marked: boolean) => {
+    try {
+      setLoading(true);
+      let res = null
+      if (marked) {
+        res = await axios.delete(
+          `${env.serverApiEndpoint}/bookmarks/delete/${id}`,
+          { withCredentials: true }
+        )
+      } else {
+        res = await axios.post(
+          `${env.serverApiEndpoint}/bookmarks`,
+          { postId: id },
+          { withCredentials: true }
+        )
+      }
+
+      if (res.status !== 201) throw new Error(`Failed to ${marked ? "unsave" : "save"} post`)
+      toast.success(`Successfully ${marked ? "unsave" : "save"} post`)
+      if (removePostOnAction && marked && location.pathname.includes("bookmarks")) removePostOnAction(id)
+
+    } catch (error) {
+      handleError(error as AxiosError | Error, `Failed to ${marked ? "unsave" : "save"} post`, undefined, () => handleBookmark(bookmarked), `Failed to ${marked ? "unsave" : "save"} post`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleReport = async (data: ReportFormValues) => {
     try {
       setLoading(true)
@@ -116,6 +145,7 @@ function PostDropdown({ type, id, editableData }: { type: ("post" | "comment"), 
 
       if (res.status !== 201) throw new Error(`Failed to report ${type}`)
       toast.success(`Successfully reported ${type}`)
+      if (removePostOnAction) removePostOnAction(id)
 
     } catch (error) {
       await handleError(error as AxiosError | Error, `Failed to report ${type}`, undefined, () => handleReport(data), `Failed to report ${type}`)
@@ -139,8 +169,8 @@ function PostDropdown({ type, id, editableData }: { type: ("post" | "comment"), 
             <RiEdit2Fill />
             <span>Edit</span>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); toast.info("This feature is not available yet.") }}>
-            <FaRegBookmark />
+          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleBookmark(bookmarked) }}>
+            {bookmarked ? <FaBookmark /> : <FaRegBookmark />}
             <span>Save</span>
           </DropdownMenuItem>
           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openDialog("DELETE") }} className="hover:!bg-red-400/50 dark:hover:!bg-red-600/40">
