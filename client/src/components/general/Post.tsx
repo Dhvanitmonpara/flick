@@ -12,6 +12,7 @@ import { VisuallyHidden } from "@radix-ui/react-visually-hidden"
 import { useNavigate } from "react-router-dom";
 import EngagementComponent from "./EngagementComponent";
 import PostDropdown from "../actions/PostDropdown";
+import { TPostTopic } from "@/types/postTopics";
 
 interface PostProps {
   avatar: string,
@@ -30,13 +31,10 @@ interface PostProps {
   branch: string
   bookmarked: boolean
   removedPostOnAction?: (id: string) => void
-  topic?: {
-    industry: string
-  }
+  topic: TPostTopic
 }
 
 function Post({ avatar, userVote, avatarFallback, _id, createdAt, college, title, content, upvoteCount, downvoteCount, commentsCount, viewsCount, username, branch, topic, bookmarked, removedPostOnAction }: PostProps) {
-  console.log(topic)
   const navigate = useNavigate()
   return (
     <Card onClick={() => navigate(`/p/${_id}`)} className="dark:bg-transparent bg-transparent border-x-0 border-t-0 border-b-zinc-300/60 dark:border-b-zinc-700/50 shadow-none rounded-none">
@@ -50,14 +48,18 @@ function Post({ avatar, userVote, avatarFallback, _id, createdAt, college, title
             <AvatarImage src={avatar} />
             <AvatarFallback>{avatarFallback}</AvatarFallback>
           </Avatar>
-          <div>
-            <h2>{college}</h2>
+          <div className="space-y-1">
+            <h2 className="flex items-center space-x-0.5 font-semibold text-zinc-900 dark:text-zinc-100">
+              <span>{branch}</span>
+              <BsDot size={14} />
+              <span className="text-xs text-zinc-600 dark:text-zinc-400">{createdAt}</span>
+            </h2>
             <p className="flex space-x-0.5 text-xs text-zinc-600 dark:text-zinc-400">
+              <span>{college}</span>
+              <BsDot size={16} />
               <span>{username}</span>
               <BsDot size={16} />
-              <span>{branch}</span>
-              <BsDot size={16} />
-              <span>{createdAt}</span>
+              <span>{topic}</span>
             </p>
           </div>
         </div>

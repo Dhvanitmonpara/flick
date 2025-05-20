@@ -34,7 +34,6 @@ const useProfileStore = create<ProfileState>((set) => ({
     set({
       profile: {
         _id: "",
-        bookmarks: [],
         branch: "",
         theme: "light",
         isBlocked: false,

@@ -4,6 +4,7 @@ import {
   deletePost,
   getPostById,
   getPostsForFeed,
+  IncrementView,
   updatePost,
 } from "../controllers/post.controller.js";
 import { blockSuspensionMiddleware, lazyVerifyJWT, termsAcceptedMiddleware, verifyUserJWT } from "../middleware/auth.middleware.js";
@@ -19,6 +20,7 @@ router
     createPost
   );
 router.route("/delete/:postId").delete(verifyUserJWT, deletePost);
+router.route("/view/:postId").post(IncrementView);
 router.route("/get/single/:id").get(lazyVerifyJWT, getPostById);
 router.route("/feed").get(lazyVerifyJWT, getPostsForFeed);
 router

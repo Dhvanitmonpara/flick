@@ -20,20 +20,20 @@ function FeedPage() {
   const fetchPosts = useCallback(async () => {
     try {
       setLoading(true)
+      if (posts && posts.length > 0) return
 
       const res = await axios.get(`${env.serverApiEndpoint}/posts/feed`, { withCredentials: true })
 
       if (res.status !== 200) {
         throw new Error("Failed to fetch posts")
       }
-      console.log(res.data.posts)
       setPosts(res.data.posts)
     } catch (error) {
       await handleError(error as AxiosError | Error, "Error fetching posts", undefined, () => fetchPosts(), "Failed to fetch posts")
     } finally {
       setLoading(false)
     }
-  }, [handleError, setPosts])
+  }, [handleError, posts, setPosts])
 
   useEffect(() => {
     document.title = "Feed | Flick"

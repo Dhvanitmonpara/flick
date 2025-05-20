@@ -9,11 +9,15 @@ import { CommentModel } from "../models/comments.model.js";
 import VoteModel from "../models/vote.model.js";
 import userModel from "../models/user.model.js";
 import { logEvent } from "../services/logService.js";
+import PostTopic from "../types/PostTopic.js";
+import redisClient from "../services/Redis.js";
 
 const createPost = async (req: Request, res: Response) => {
   try {
-    const { title, content } = req.body;
-    if (!title || !content) throw new ApiError(400, "All fields are required");
+    const { title, content, topic } = req.body;
+    if (!title || !content || !topic)
+      throw new ApiError(400, "All fields are required");
+    if (!PostTopic.includes(topic)) throw new ApiError(400, "Topic is invalid");
     if (!req.user?._id) throw new ApiError(401, "Unauthorized");
 
     const result = await validatePost(content);
@@ -369,6 +373,7 @@ const getPostsForFeed = async (req: Request, res: Response) => {
         downvoteCount: 1,
         userVote: 1,
         bookmarked: 1,
+        topic: 1,
         postedBy: {
           _id: 1,
           username: 1,
@@ -556,6 +561,7 @@ const getPostById = async (req: Request, res: Response) => {
         views: 1,
         createdAt: 1,
         upvoteCount: 1,
+        topic: 1,
         downvoteCount: 1,
         userVote: 1,
         bookmarked: 1,
@@ -590,4 +596,34 @@ const getPostById = async (req: Request, res: Response) => {
   }
 };
 
-export { createPost, updatePost, deletePost, getPostById, getPostsForFeed };
+const IncrementView = async (req: Request, res: Response) => {
+  try {
+    const { postId } = req.params;
+    if (!postId) throw new ApiError(400, "Post ID is required");
+
+    const currentIp =
+      req.headers["cf-connecting-ip"] ||
+      req.headers["x-forwarded-for"] ||
+      req.ip;
+    const ip = Array.isArray(currentIp) ? currentIp[0] : currentIp || "";
+
+    const redisKey = `view:${postId}:${ip}`;
+    const alreadyViewed = await redisClient.get(redisKey);
+
+    if (!alreadyViewed) {
+      await PostModel.findByIdAndUpdate(postId, { $inc: { views: 1 } });
+      await redisClient.set(redisKey, 1, "EX", 60 * 60 * 4); // 4 hours
+    }
+
+    res.status(200).json({ message: "View processed" });
+  } catch (error) {
+    handleError(
+      error as ApiError,
+      res,
+      "Error incrementing view",
+      "INCREMENT_VIEW_ERROR"
+    );
+  }
+};
+
+export { createPost, updatePost, deletePost, getPostById, getPostsForFeed, IncrementView };

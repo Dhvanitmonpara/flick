@@ -23,15 +23,26 @@ function PostPage() {
   const [loading, setLoading] = useState(false)
   const [loadingPosts, setLoadingPosts] = useState(false)
 
-  const comments = useCommentStore(state=>state.comments)
-  const setComments = useCommentStore(state=>state.setComments)
-  const resetComments = useCommentStore(state=>state.resetComments)
+  const comments = useCommentStore(state => state.comments)
+  const setComments = useCommentStore(state => state.setComments)
+  const resetComments = useCommentStore(state => state.resetComments)
 
   const { handleError } = useErrorHandler()
 
   const { id } = useParams();
   const posts = usePostStore(state => state.posts)
   const navigate = useNavigate();
+
+  const incrementView = useCallback(async () => {
+    try {
+      const res = await axios.post(`${env.serverApiEndpoint}/posts/view/${id}`, {}, { withCredentials: true })
+      if (res.status !== 200) {
+        throw new Error("Failed to increment view")
+      }
+    } catch (error) {
+      await handleError(error as AxiosError | Error, "Error incrementing view", undefined, incrementView, "Failed to increment view")
+    }
+  }, [handleError, id])
 
   const fetchComments = useCallback(async () => {
     try {
@@ -72,22 +83,23 @@ function PostPage() {
 
   useEffect(() => {
     resetComments();
-
+    
     if (!id) {
       navigate("/");
       return;
     }
-
+    
     const post = posts?.find((post) => post._id === id);
-
+    
     if (post) {
       setCurrentPost(post);
     } else {
       fetchPostById();
     }
-
+    
+    incrementView();
     fetchComments();
-  }, [fetchComments, fetchPostById, id, navigate, posts, resetComments]);
+  }, [fetchComments, fetchPostById, id, incrementView, navigate, posts, resetComments]);
 
   if (loadingPosts || !currentPost) {
     return <Loader2 className="animate-spin" />
@@ -100,8 +112,11 @@ function PostPage() {
           key={currentPost._id}
           _id={currentPost._id}
           avatar={getAvatarUrl(currentPost.postedBy)}
+          bookmarked={currentPost.bookmarked ?? false}
           college={getCollegeName(currentPost.postedBy)}
           username={getUsername(currentPost.postedBy)}
+          removedPostOnAction={() => navigate("/")}
+          topic={currentPost.topic}
           userVote={currentPost.userVote ?? null}
           title={currentPost.title}
           branch={isUser(currentPost.postedBy) ? currentPost.postedBy.branch : "Unknown Branch"}

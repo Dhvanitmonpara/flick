@@ -23,10 +23,13 @@ import { Textarea } from "../ui/textarea";
 import { Loader2 } from "lucide-react";
 import usePostStore from "@/store/postStore";
 import { TermsForm } from "./TermsForm";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { PostTopic } from "@/types/postTopics";
 
 const postSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters.").max(100, "Title must be at most 100 characters."),
   content: z.string().min(10, "Content must be at least 10 characters.").max(2000, "Content must be at most 2000 characters."),
+  topic: z.enum(PostTopic),
 });
 
 type PostFormValues = z.infer<typeof postSchema>;
@@ -52,14 +55,14 @@ function CreatePost() {
   );
 }
 
-export const CreatePostForm = ({ setOpen, defaultData, id }: { setOpen?: React.Dispatch<React.SetStateAction<boolean>>, defaultData?: PostFormValues, id?: string }) => {
+export const CreatePostForm = ({ setOpen, defaultData, id }: { setOpen?: React.Dispatch<React.SetStateAction<boolean>>, defaultData?: { title: string, content: string }, id?: string }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showTerms, setShowTerms] = useState(false);
 
   const profile = useProfileStore(state => state.profile)
-  const addPost = usePostStore(state =>state.addPost)
-  const updatePost = usePostStore(state =>state.updatePost)
+  const addPost = usePostStore(state => state.addPost)
+  const updatePost = usePostStore(state => state.updatePost)
   const { handleError } = useErrorHandler()
 
   const isUpdating = !!defaultData
@@ -163,6 +166,38 @@ export const CreatePostForm = ({ setOpen, defaultData, id }: { setOpen?: React.D
                 <FormMessage />
               </FormItem>
             )}
+          />
+
+          <FormField
+            control={form.control}
+            disabled={loading}
+            name="topic"
+            render={({ field }) => {
+              return (
+                <FormItem>
+                  <FormLabel>Topic</FormLabel>
+                  <FormControl>
+                    <Select
+                      required
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a topic" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PostTopic.map((topic) => (
+                          <SelectItem key={topic} value={topic}>
+                            {topic}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              );
+            }}
           />
 
           <FormField

@@ -146,6 +146,7 @@ export const getUserBookmarkedPosts = async (req: Request, res: Response) => {
           downvoteCount: 1,
           userVote: 1,
           bookmarked: 1,
+          topic: 1,
           postedBy: {
             _id: 1,
             username: 1,

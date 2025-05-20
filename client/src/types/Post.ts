@@ -1,4 +1,5 @@
 import { IUser } from "./User";
+import { TPostTopic } from "@/types/postTopics";
 
 export interface IPost extends Document {
   _id: string;
@@ -9,10 +10,11 @@ export interface IPost extends Document {
   isShadowBanned: boolean;
   karma: number;
   userVote?: "upvote" | "downvote";
-  bookmarked?: boolean
+  bookmarked?: boolean;
   upvoteCount: number;
   downvoteCount: number;
   views: number;
+  topic: TPostTopic;
   createdAt: string;
   updatedAt: string;
 }

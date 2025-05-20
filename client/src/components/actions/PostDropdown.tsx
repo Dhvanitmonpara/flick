@@ -63,6 +63,7 @@ function PostDropdown({ type, id, editableData, removePostOnAction, bookmarked =
 
   const { handleError } = useErrorHandler()
   const removePost = usePostStore(state => state.removePost)
+  const updatePost = usePostStore(state => state.updatePost)
   const removeComment = useCommentStore(state => state.removeComment)
 
   const openDialog = (type: DialogType) => {
@@ -119,7 +120,11 @@ function PostDropdown({ type, id, editableData, removePostOnAction, bookmarked =
 
       if (res.status !== 201) throw new Error(`Failed to ${marked ? "unsave" : "save"} post`)
       toast.success(`Successfully ${marked ? "unsave" : "save"} post`)
-      if (removePostOnAction && marked && location.pathname.includes("bookmarks")) removePostOnAction(id)
+      if (removePostOnAction && marked && location.pathname.includes("bookmarks")) {
+        removePostOnAction(id)
+      } else {
+        updatePost(id, { bookmarked: !marked })
+      }
 
     } catch (error) {
       handleError(error as AxiosError | Error, `Failed to ${marked ? "unsave" : "save"} post`, undefined, () => handleBookmark(bookmarked), `Failed to ${marked ? "unsave" : "save"} post`)
@@ -171,7 +176,7 @@ function PostDropdown({ type, id, editableData, removePostOnAction, bookmarked =
           </DropdownMenuItem>
           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleBookmark(bookmarked) }}>
             {bookmarked ? <FaBookmark /> : <FaRegBookmark />}
-            <span>Save</span>
+            <span>{bookmarked ? "Unsave" : "Save"}</span>
           </DropdownMenuItem>
           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openDialog("DELETE") }} className="hover:!bg-red-400/50 dark:hover:!bg-red-600/40">
             <RiDeleteBin6Fill />

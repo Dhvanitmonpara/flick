@@ -19,7 +19,7 @@ function UserProfile() {
           <DropdownMenuTrigger asChild>
             <Avatar className='cursor-pointer transition-colors duration-300 border-2 border-transparent hover:border-zinc-400'>
               <AvatarImage src={getCollegeProfile(profile)} alt={profile.username} />
-              <AvatarFallback className='bg-zinc-200 cursor-pointer select-none'>{profile.username.slice(0, 2)}</AvatarFallback>
+              <AvatarFallback className='bg-zinc-200 dark:bg-zinc-800 cursor-pointer select-none'>{profile.username.slice(0, 2)}</AvatarFallback>
             </Avatar>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
