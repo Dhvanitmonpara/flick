@@ -36,12 +36,6 @@ const userSchema = new mongoose.Schema(
     },
     college: { type: Schema.Types.ObjectId, ref: "College", trim: true },
     branch: { type: String, trim: true },
-    bookmarks: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "Post",
-      },
-    ],
     isBlocked: { type: Boolean, default: false },
     suspension: {
       ends: {

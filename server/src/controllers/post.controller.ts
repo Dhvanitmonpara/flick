@@ -31,7 +31,7 @@ const createPost = async (req: Request, res: Response) => {
     const user = await userModel
       .findById(req.user?._id)
       .populate({ path: "college", select: "_id name profile" })
-      .select("_id username branch bookmarks college")
+      .select("_id username branch college")
       .lean<{
         _id: Types.ObjectId;
         username: string;
@@ -42,7 +42,6 @@ const createPost = async (req: Request, res: Response) => {
           reason: string | null;
           howManyTimes: number;
         };
-        bookmarks: Types.ObjectId[];
         college: {
           _id: Types.ObjectId;
           name: string;
@@ -76,7 +75,6 @@ const createPost = async (req: Request, res: Response) => {
           profile: user.college.profile,
         },
         branch: user.branch,
-        bookmarks: user.bookmarks,
       },
       views: createdPost.views,
       createdAt: createdPost.createdAt,
@@ -348,6 +346,16 @@ const getPostsForFeed = async (req: Request, res: Response) => {
             as: "bookmarkEntry",
           },
         },
+        {
+          $addFields: {
+            bookmarked: { $gt: [{ $size: "$bookmarkEntry" }, 0] },
+          },
+        },
+        {
+          $project: {
+            bookmarkEntry: 0,
+          },
+        }
       );
     }
 
@@ -360,12 +368,11 @@ const getPostsForFeed = async (req: Request, res: Response) => {
         upvoteCount: 1,
         downvoteCount: 1,
         userVote: 1,
-        bookmarkEntry: 1,
+        bookmarked: 1,
         postedBy: {
           _id: 1,
           username: 1,
           branch: 1,
-          bookmarks: 1,
           college: {
             _id: 1,
             name: 1,
@@ -505,6 +512,39 @@ const getPostById = async (req: Request, res: Response) => {
           $addFields: {
             userVote: { $arrayElemAt: ["$userVote.voteType", 0] },
           },
+        },
+        {
+          $lookup: {
+            from: "bookmarks",
+            let: {
+              postId: "$_id",
+              userId: toObjectId(req.user?._id),
+            },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $and: [
+                      { $eq: ["$postId", "$$postId"] },
+                      { $eq: ["$userId", "$$userId"] },
+                    ],
+                  },
+                },
+              },
+              { $project: { _id: 1 } },
+            ],
+            as: "bookmarkEntry",
+          },
+        },
+        {
+          $addFields: {
+            bookmarked: { $gt: [{ $size: "$bookmarkEntry" }, 0] },
+          },
+        },
+        {
+          $project: {
+            bookmarkEntry: 0,
+          },
         }
       );
     }
@@ -518,11 +558,11 @@ const getPostById = async (req: Request, res: Response) => {
         upvoteCount: 1,
         downvoteCount: 1,
         userVote: 1,
+        bookmarked: 1,
         postedBy: {
           _id: 1,
           username: 1,
           branch: 1,
-          bookmarks: 1,
           college: {
             _id: 1,
             name: 1,

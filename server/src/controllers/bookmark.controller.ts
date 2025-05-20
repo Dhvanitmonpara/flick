@@ -36,13 +36,11 @@ export const getUserBookmarkedPosts = async (req: Request, res: Response) => {
     if (!req.user) throw new ApiError(401, "Unauthorized");
     const userId = req.user._id;
 
-    // Step 1: Get all bookmarked post IDs
     const bookmarks = await BookmarkModel.find({ userId }).select("postId");
     const postIds = bookmarks.map((b) => b.postId);
 
     if (!postIds.length) throw new ApiError(404, "No bookmarks found");
 
-    // Step 2: Build aggregation pipeline
     const aggregationPipeline: any[] = [
       {
         $match: {
@@ -147,6 +145,7 @@ export const getUserBookmarkedPosts = async (req: Request, res: Response) => {
           upvoteCount: 1,
           downvoteCount: 1,
           userVote: 1,
+          bookmarked: 1,
           postedBy: {
             _id: 1,
             username: 1,
