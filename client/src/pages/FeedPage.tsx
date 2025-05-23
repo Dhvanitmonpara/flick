@@ -80,6 +80,7 @@ function FeedPage() {
                   userVote={post.userVote ?? null}
                   username="Unknown"
                   title={post.title}
+                  topic={post.topic}
                   bookmarked={post.bookmarked ?? false}
                   branch="Unknown"
                   viewsCount={post.views}
@@ -101,6 +102,7 @@ function FeedPage() {
                 _id={post._id}
                 avatar={getAvatarUrl(postedBy)}
                 college={getCollegeName(postedBy)}
+                topic={post.topic}
                 username={postedBy.username}
                 userVote={post.userVote ?? null}
                 title={post.title}

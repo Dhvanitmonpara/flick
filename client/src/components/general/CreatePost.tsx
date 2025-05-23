@@ -34,13 +34,13 @@ const postSchema = z.object({
 
 type PostFormValues = z.infer<typeof postSchema>;
 
-function CreatePost() {
+function CreatePost({ className }: { className?: string }) {
   const [open, setOpen] = useState(false);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="flex items-center cursor-pointer space-x-2 px-4 py-2 rounded-md bg-zinc-200 hover:bg-zinc-300 text-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-700/70 active:scale-95 transition-all dark:text-zinc-200">
+        <Button className={`flex items-center cursor-pointer space-x-3 px-4 py-4 rounded-md w-full justify-start text-lg font-normal bg-transparent dark:bg-transparent bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-200/50 dark:hover:bg-zinc-800/40 ${className}`}>
           <FaPlus />
           <span>create</span>
         </Button>

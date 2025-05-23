@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { env } from "@/conf/env"
+import FileInput from "@/components/FileInput"
 
 const branch = z.enum(["CSE", "BCA", "ECE", "IT", "ME"]);
 
@@ -91,6 +92,33 @@ function SignUpPage() {
     <div className="max-w-md w-full mx-auto px-6 py-8 border dark:border-zinc-800 rounded-lg shadow-lg">
       <h1 className="text-3xl font-semibold mb-6 text-center">Sign Up</h1>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+        <FileInput
+          onFileInput={async (file) => {
+            console.log("first")
+            const formData = new FormData();
+            formData.append('studentId', file); // must match what your backend expects
+
+            const response = await axios.post(
+              `${env.ocrServerApiEndpoint}/extract`,
+              formData,
+              {
+                headers: {
+                  'Content-Type': 'multipart/form-data', // let axios handle boundary
+                },
+              }
+            );
+
+            return response.data;
+          }}
+          setData={(result) => {
+            console.log('Upload result:', result)
+            // Handle your API response here
+          }}
+          name="profileImage"
+          required={true}
+          maxSizeMB={10}
+          placeholder="Upload your profile picture"
+        />
         <Input
           id="email"
           disabled={isSubmitting}
@@ -145,7 +173,7 @@ function SignUpPage() {
           </div>
         </div>
         {errors.confirmPassword && <p className="text-red-500 text-sm !mt-1">{errors.confirmPassword?.message}</p>}
-        
+
         <Controller
           control={control}
           name="branch"

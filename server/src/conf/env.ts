@@ -33,6 +33,10 @@ if (!env.accessTokenSecret) {
   throw new Error("ACCESS_TOKEN_SECRET environment variable is not set");
 }
 
+if(!env.adminAccessTokenSecret) {
+  throw new Error("ADMIN_ACCESS_TOKEN_SECRET environment variable is not set");
+}
+
 if (!env.refreshTokenSecret) {
   throw new Error("REFRESH_TOKEN_SECRET environment variable is not set");
 }

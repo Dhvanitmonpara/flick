@@ -6,16 +6,26 @@ import { BiBarChartSquare, BiSolidBarChartSquare } from "react-icons/bi";
 import { PiFireFill, PiFireLight } from "react-icons/pi";
 import { Separator } from "@/components/ui/separator";
 import TerminateSessions from "@/components/actions/TerminateSessions";
+import useProfileStore from "@/store/profileStore";
+import CreatePost from "@/components/general/CreatePost";
+import AuthCard from "@/components/general/AuthCard";
 
 function AppLayout() {
 
+  const profile = useProfileStore(state => state.profile)
   const [searchParams] = useSearchParams();
   const reset = searchParams.get('reset');
 
   return (
     <div className="flex max-w-[88rem] mx-auto w-full min-h-screen pr-8">
       <div className="hidden md:block w-[270px] space-y-1 py-6 px-4">
+        <div className="flex justify-center items-center">
+          <Link to="/">
+            <img className="h-14 w-14 p-2" src={profile.theme === "dark" ? "/logo-b.png" : "/logo-w.png"} alt="logo" />
+          </Link>
+        </div>
         <section className="space-y-2">
+          <CreatePost />
           <Tab to="/" text="Feed" activeIcon={<PiCardsThreeFill size={22} />} passiveIcon={<PiCardsThreeLight size={22} />} />
           <Tab to="/college" text="My College" activeIcon={<RiGraduationCapFill size={22} />} passiveIcon={<RiGraduationCapLine size={22} />} />
           <Tab to="/polls" text="Polls" activeIcon={<BiSolidBarChartSquare size={22} />} passiveIcon={<BiBarChartSquare size={22} />} />
@@ -26,6 +36,7 @@ function AppLayout() {
         <Tab to="/bca" text="Bca" />
         <Tab to="/mca" text="Mca" />
         <Tab to="/btech" text="B.tech" />
+        <AuthCard />
       </div>
       <Outlet />
       {(reset === "true") && <TerminateSessions />}

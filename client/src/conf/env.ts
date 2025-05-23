@@ -2,11 +2,16 @@ export const env = {
   serverUri: import.meta.env.VITE_SERVER_URI,
   serverApiEndpoint: import.meta.env.VITE_SERVER_API_ENDPOINT,
   baseUrl: import.meta.env.VITE_BASE_URL,
+  ocrServerApiEndpoint: import.meta.env.VITE_OCR_SERVER_API_ENDPOINT,
   geminiKey: import.meta.env.VITE_GEMINI_KEY,
 };
 
 if (!env.serverApiEndpoint) {
   throw new Error("Missing VITE_SERVER_API_ENDPOINT env variable");
+}
+
+if(!env.ocrServerApiEndpoint){
+  throw new Error("Missing VITE_OCR_SERVER_API_ENDPOINT env variable")
 }
 
 if (!env.serverUri) {
