@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { AlertCircleIcon, ImageUpIcon, XIcon } from "lucide-react"
 import { FileWithPreview, useFileUpload } from "@/hooks/use-file-upload"
+import { cn } from "@/lib/utils"
 
 interface FileInputProps {
   onFileInput?: (file: File) => Promise<any> | void
@@ -68,7 +69,7 @@ export default function FileInput({
   const previewUrl = files[0]?.preview ?? null
 
   return (
-    <div className={`flex flex-col gap-2 ${className}`}>
+    <div className={`flex flex-col gap-2 bg-zinc-200 dark:bg-zinc-800 rounded-md ${className}`}>
       <div className="relative">
         <div
           role="button"
@@ -77,9 +78,11 @@ export default function FileInput({
           onDragLeave={disabled ? undefined : handleDragLeave}
           onDragOver={disabled ? undefined : handleDragOver}
           onDrop={disabled ? undefined : handleDrop}
-          data-dragging={isDragging || undefined}
-          data-disabled={disabled || undefined}
-          className="border-input hover:bg-accent/50 data-[dragging=true]:bg-accent/50 has-[input:focus]:border-ring has-[input:focus]:ring-ring/50 relative flex min-h-52 flex-col items-center justify-center overflow-hidden rounded-xl border border-dashed p-4 transition-colors data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 has-[img]:border-none has-[input:focus]:ring-[3px]"
+          className={cn(
+            "border-input hover:bg-accent/50 relative flex min-h-52 flex-col items-center justify-center overflow-hidden rounded-xl border border-dashed p-4 transition-colors has-[img]:border-none has-[input:focus]:border-ring has-[input:focus]:ring-[3px]",
+            isDragging && "bg-accent/50",
+            disabled && "pointer-events-none opacity-50"
+          )}
         >
           <input
             {...getInputProps()}
@@ -92,7 +95,7 @@ export default function FileInput({
             aria-describedby={ariaDescribedBy}
           />
           {previewUrl ? (
-            <div className="absolute inset-0">
+            <div className="absolute inset-0 pointer-events-none">
               <img
                 src={previewUrl}
                 alt={files[0]?.file?.name ?? "Uploaded image"}
@@ -133,13 +136,6 @@ export default function FileInput({
           <span>{errors[0]}</span>
         </div>
       )}
-
-      <p aria-live="polite" role="region" className="text-muted-foreground mt-2 text-center text-xs">
-        Single image uploader w/ max size ∙{" "}
-        <a href="https://github.com/origin-space/originui/tree/main/docs/use-file-upload.md" className="hover:text-foreground underline">
-          API
-        </a>
-      </p>
     </div>
   )
 }

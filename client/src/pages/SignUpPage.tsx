@@ -95,16 +95,15 @@ function SignUpPage() {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         <FileInput
           onFileInput={async (file) => {
-            console.log("first")
             const formData = new FormData();
-            formData.append('studentId', file); // must match what your backend expects
+            formData.append('studentId', file);
 
             const response = await axios.post(
               `${env.ocrServerApiEndpoint}/extract`,
               formData,
               {
                 headers: {
-                  'Content-Type': 'multipart/form-data', // let axios handle boundary
+                  'Content-Type': 'multipart/form-data',
                 },
               }
             );
@@ -112,22 +111,18 @@ function SignUpPage() {
             return response.data;
           }}
           setData={(result) => {
-            if (!result.data){
-              toast.info("Please upload a valid image")
+            if (!result.data) {
+              toast.info("Please upload a valid college id card")
               return
             }
             const { email, branch } = result.data;
-            if (email) {
-              setValue("email", email);
-            }
-            if (branch) {
-              setValue("branch", branch);
-            }
+            if (email) setValue("email", email);
+            if (branch) setValue("branch", branch);
           }}
-          name="profileImage"
-          required={true}
+          name="studentId"
+          required={false}
           maxSizeMB={10}
-          placeholder="Upload your profile picture"
+          placeholder="Upload a scan of your college id card"
         />
         <Input
           id="email"
