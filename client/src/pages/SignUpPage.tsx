@@ -51,6 +51,7 @@ function SignUpPage() {
     register,
     handleSubmit,
     control,
+    setValue,
     formState: { errors },
   } = useForm<SignInFormData>({
     resolver: zodResolver(signInSchema),
@@ -111,8 +112,17 @@ function SignUpPage() {
             return response.data;
           }}
           setData={(result) => {
-            console.log('Upload result:', result)
-            // Handle your API response here
+            if (!result.data){
+              toast.info("Please upload a valid image")
+              return
+            }
+            const { email, branch } = result.data;
+            if (email) {
+              setValue("email", email);
+            }
+            if (branch) {
+              setValue("branch", branch);
+            }
           }}
           name="profileImage"
           required={true}
