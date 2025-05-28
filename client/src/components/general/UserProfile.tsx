@@ -5,6 +5,7 @@ import { IUser } from '@/types/User';
 import { isCollege, isUser } from '@/utils/helpers';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem } from '../ui/dropdown-menu';
 import { FaUser } from 'react-icons/fa';
+import { MdFeedback } from "react-icons/md";
 import { IoBookmarkSharp, IoSettingsSharp } from 'react-icons/io5'
 
 const getCollegeProfile = (user: IUser | string) => isUser(user) && isCollege(user.college) ? user.college.profile : "Unknown College";
@@ -30,6 +31,10 @@ function UserProfile() {
             <DropdownMenuItem onClick={() => navigate("/u/bookmarks")} className='flex items-center space-x-1 px-1'>
               <IoBookmarkSharp size={12} />
               <span>Bookmarks</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/feedback")} className='flex items-center space-x-1 px-1'>
+              <MdFeedback size={12} />
+              <span>Feedback</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate("/u/settings")} className='flex items-center space-x-1 px-1'>
               <IoSettingsSharp size={14} />

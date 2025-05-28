@@ -36,8 +36,6 @@ const signInSchema = z.object({
   path: ["confirmPassword"],
 });
 
-const inputStyling = "bg-zinc-200 dark:bg-zinc-800 focus:border-zinc-900 focus-visible:ring-zinc-900 dark:focus:border-zinc-100 dark:focus-visible:ring-zinc-100"
-
 type SignInFormData = z.infer<typeof signInSchema>
 
 function SignUpPage() {
@@ -127,7 +125,7 @@ function SignUpPage() {
         <Input
           id="email"
           disabled={isSubmitting}
-          className={inputStyling}
+          variant="filled"
           type="email"
           placeholder="Enter your email"
           {...register("email")}
@@ -144,7 +142,7 @@ function SignUpPage() {
             type={isPasswordShowing ? "text" : "password"}
             disabled={isSubmitting}
             placeholder="Enter password"
-            className={inputStyling}
+            variant="filled"
             {...register("password")}
             required
           />
@@ -161,8 +159,8 @@ function SignUpPage() {
         <div className="w-full flex relative">
           <Input
             id="confirm-password"
-            className={inputStyling}
             disabled={isSubmitting}
+            variant="filled"
             type={isConfirmPasswordShowing ? "text" : "password"}
             placeholder="Confirm password"
             {...register("confirmPassword")}
@@ -189,7 +187,7 @@ function SignUpPage() {
               defaultValue={field.value}
               value={field.value}
             >
-              <SelectTrigger className={inputStyling}>
+              <SelectTrigger className="bg-zinc-200 dark:bg-zinc-800 focus:border-zinc-900 focus-visible:ring-zinc-900 dark:focus:border-zinc-100 dark:focus-visible:ring-zinc-100">
                 <SelectValue placeholder="Branch" />
               </SelectTrigger>
               <SelectContent className="bg-zinc-200 dark:bg-zinc-800">

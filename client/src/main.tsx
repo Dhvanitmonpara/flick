@@ -20,6 +20,7 @@ import PrivateAppLayout from './layouts/PrivateAppLayout'
 import ProfilePage from './pages/ProfilePage'
 import SettingsPage from './pages/SettingsPage'
 import BookmarksPage from './pages/BookmarksPage'
+import FeedbackPage from './pages/FeedbackPage'
 
 // router
 const router = createBrowserRouter([
@@ -31,6 +32,10 @@ const router = createBrowserRouter([
       {
         path: "home",
         element: <LandingPage />,
+      },
+      {
+        path: "feedback",
+        element: <FeedbackPage />,
       },
       {
         path: "",
@@ -62,15 +67,15 @@ const router = createBrowserRouter([
             children: [
               {
                 path: "profile",
-                element: <ProfilePage/>,
+                element: <ProfilePage />,
               },
               {
                 path: "settings",
-                element: <SettingsPage/>,
+                element: <SettingsPage />,
               },
               {
                 path: "bookmarks",
-                element: <BookmarksPage/>,
+                element: <BookmarksPage />,
               },
             ]
           },

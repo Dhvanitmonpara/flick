@@ -16,8 +16,6 @@ const signInSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
 })
 
-const inputStyling = "bg-zinc-200 dark:bg-zinc-800 focus:border-zinc-900 focus-visible:ring-zinc-900 dark:focus:border-zinc-100 dark:focus-visible:ring-zinc-100"
-
 type SignInFormData = z.infer<typeof signInSchema>
 
 function SignInPage() {
@@ -65,8 +63,8 @@ function SignInPage() {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         <div>
           <Input
-            className={inputStyling}
             type="email"
+            variant="filled"
             disabled={isSubmitting}
             placeholder="you@example.com"
             {...register("email")}
@@ -79,8 +77,8 @@ function SignInPage() {
         <div className="w-full flex relative">
           <Input
             id="password"
-            className={inputStyling}
             disabled={isSubmitting}
+            variant="filled"
             type={isPasswordShowing ? "text" : "password"}
             placeholder="••••••••"
             {...register("password")}
