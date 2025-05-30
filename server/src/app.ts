@@ -49,6 +49,7 @@ import commentRouter from "./routes/comment.routes.js";
 import userRouter from "./routes/user.routes.js";
 import voteRouter from "./routes/vote.routes.js";
 import collegeRouter from "./routes/college.routes.js";
+import feedbackRouter from "./routes/feedback.routes.js";
 import manageRouter from "./routes/manage.route.js";
 import bookmarkRouter from "./routes/bookmark.route.js";
 import reportRouter from "./routes/report.routes.js";
@@ -94,6 +95,11 @@ app.use(
   `${commonPublicRoute}bookmarks`,
   rateLimitMiddleware(apiLimiter),
   bookmarkRouter
+);
+app.use(
+  `${commonPublicRoute}feedback`,
+  rateLimitMiddleware(apiLimiter),
+  feedbackRouter
 );
 
 // admin routes
