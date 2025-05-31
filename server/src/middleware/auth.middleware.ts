@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import userModel from "../models/user.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import jwt, { JwtPayload } from "jsonwebtoken";
-import handleError from "../services/HandleError.js";
+import handleError from "../utils/HandleError.js";
 import { env } from "../conf/env.js";
 import adminModel from "../models/admin.model.js";
 import generateDeviceFingerprint from "../utils/generateDeviceFingerprint.js";

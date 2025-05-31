@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createReport } from "../controllers/reports.controller.js";
+import { createReport } from "../controllers/report.controller.js";
 import {
   blockSuspensionMiddleware,
   verifyUserJWT,

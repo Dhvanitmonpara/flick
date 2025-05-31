@@ -1,6 +1,6 @@
 import { RateLimiterRedis, RateLimiterRes } from "rate-limiter-flexible";
 import { Request, Response, NextFunction } from "express";
-import redisClient from "../services/Redis.js";
+import redisClient from "../services/redis.service.js";
 
 const apiLimiter = new RateLimiterRedis({
   storeClient: redisClient,

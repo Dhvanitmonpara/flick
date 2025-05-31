@@ -1,11 +1,11 @@
 import { Request, Response } from "express";
-import { CommentModel } from "../models/comments.model.js";
+import { CommentModel } from "../models/comment.model.js";
 import mongoose from "mongoose";
 import { ApiError } from "../utils/ApiError.js";
-import handleError from "../services/HandleError.js";
+import handleError from "../utils/HandleError.js";
 import VoteModel from "../models/vote.model.js";
 import { toObjectId } from "../utils/toObject.js";
-import { logEvent } from "../services/logService.js";
+import { logEvent } from "../services/log.service.js";
 
 export const getCommentsByPostId = async (req: Request, res: Response) => {
   try {

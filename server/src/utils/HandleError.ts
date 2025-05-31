@@ -1,5 +1,5 @@
 import { Response } from "express";
-import { ApiError } from "../utils/ApiError.js";
+import { ApiError } from "./ApiError.js";
 import { LogModel } from "../models/log.model.js";
 import { env } from "../conf/env.js";
 

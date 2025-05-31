@@ -7,16 +7,16 @@ import {
   encrypt,
   hashEmailForLookup,
   hashOTP,
-} from "../services/cryptographer.js";
-import handleError from "../services/HandleError.js";
+} from "../utils/cryptographer.js";
+import handleError from "../utils/HandleError.js";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import sendMail from "../utils/sendMail.js";
-import OtpVerifier from "../services/otpVerifier.js";
-import { generateUuidBasedUsername } from "../services/userServices.js";
+import OtpVerifier from "../services/otpVerifier.service.js";
+import { generateUuidBasedUsername } from "../services/user.services.js";
 import CollegeModel from "../models/college.model.js";
 import { env } from "../conf/env.js";
-import { logEvent } from "../services/logService.js";
-import redisClient from "../services/Redis.js";
+import { logEvent } from "../services/log.service.js";
+import redisClient from "../services/redis.service.js";
 import generateDeviceFingerprint, {
   getDeviceName,
   getLocationFromIP,

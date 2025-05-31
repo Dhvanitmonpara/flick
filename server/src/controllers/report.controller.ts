@@ -1,13 +1,13 @@
 import { Request, Response } from "express";
-import handleError from "../services/HandleError.js";
+import handleError from "../utils/HandleError.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ReportModel } from "../models/report.model.js";
 import mongoose, { ClientSession } from "mongoose";
 import { PostModel } from "../models/post.model.js";
 import userModel from "../models/user.model.js";
-import { logEvent } from "../services/logService.js";
+import { logEvent } from "../services/log.service.js";
 import { TLogAction } from "../types/Log.js";
-import { CommentModel } from "../models/comments.model.js";
+import { CommentModel } from "../models/comment.model.js";
 
 const ALLOWED_STATUSES = ["pending", "resolved", "ignored"];
 interface FieldToUpdate {

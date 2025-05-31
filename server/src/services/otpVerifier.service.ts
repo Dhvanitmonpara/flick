@@ -1,5 +1,5 @@
-import { hashEmailForLookup } from "./cryptographer.js";
-import redisClient from "./Redis.js";
+import { hashEmailForLookup } from "../utils/cryptographer.js";
+import redisClient from "./redis.service.js";
 
 const OtpVerifier = async (email: string, otp: string, isEmailEncrypted: boolean = false) => {
   try {

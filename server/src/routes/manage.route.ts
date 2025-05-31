@@ -16,7 +16,7 @@ import {
   getUsersByQuery,
   banComment,
   unbanComment,
-} from "../controllers/reports.controller.js";
+} from "../controllers/report.controller.js";
 import { deleteFeedback, getFeedbackById, listFeedbacks, updateFeedbackStatus } from "../controllers/feedback.controller.js";
 import { getLogs } from "../controllers/log.controller.js";
 

@@ -1,9 +1,9 @@
 import { Request, Response } from "express";
 import FeedbackModel from "../models/feedback.model.js";
-import handleError from "../services/HandleError.js";
+import handleError from "../utils/HandleError.js";
 import { toObjectId } from "../utils/toObject.js";
 import { ApiError } from "../utils/ApiError.js";
-import { logEvent } from "../services/logService.js";
+import { logEvent } from "../services/log.service.js";
 
 export async function createFeedback(req: Request, res: Response) {
   try {

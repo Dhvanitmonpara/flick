@@ -2,8 +2,8 @@ import { Request, Response } from "express";
 import CollegeModel from "../models/college.model.js";
 import mongoose from "mongoose";
 import { ApiError } from "../utils/ApiError.js";
-import handleError from "../services/HandleError.js";
-import { logEvent } from "../services/logService.js";
+import handleError from "../utils/HandleError.js";
+import { logEvent } from "../services/log.service.js";
 
 interface CollegeFilter {
   city?: string;

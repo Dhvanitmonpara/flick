@@ -1,16 +1,16 @@
 import { Response, Request } from "express";
 import { PostModel } from "../models/post.model.js";
-import handleError from "../services/HandleError.js";
+import handleError from "../utils/HandleError.js";
 import { ApiError } from "../utils/ApiError.js";
 import mongoose, { Types } from "mongoose";
 import { validatePost } from "../utils/moderator.js";
 import { toObjectId } from "../utils/toObject.js";
-import { CommentModel } from "../models/comments.model.js";
+import { CommentModel } from "../models/comment.model.js";
 import VoteModel from "../models/vote.model.js";
 import userModel from "../models/user.model.js";
-import { logEvent } from "../services/logService.js";
+import { logEvent } from "../services/log.service.js";
 import PostTopic from "../types/PostTopic.js";
-import redisClient from "../services/Redis.js";
+import redisClient from "../services/redis.service.js";
 
 const createPost = async (req: Request, res: Response) => {
   try {

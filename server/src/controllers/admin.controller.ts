@@ -1,13 +1,13 @@
 import { CookieOptions, Request, Response } from "express";
 import adminModel from "../models/admin.model.js";
 import { ApiError } from "../utils/ApiError.js";
-import handleError from "../services/HandleError.js";
+import handleError from "../utils/HandleError.js";
 import mongoose from "mongoose";
-import { hashEmailForLookup, hashOTP } from "../services/cryptographer.js";
+import { hashEmailForLookup, hashOTP } from "../utils/cryptographer.js";
 import sendMail from "../utils/sendMail.js";
 import crypto from "crypto";
-import { logEvent } from "../services/logService.js";
-import redisClient from "../services/Redis.js";
+import { logEvent } from "../services/log.service.js";
+import redisClient from "../services/redis.service.js";
 import generateDeviceFingerprint from "../utils/generateDeviceFingerprint.js";
 
 export interface AdminDocument extends Document {
