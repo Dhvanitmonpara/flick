@@ -1,11 +1,15 @@
 import { Worker } from "bullmq";
 import { deadLetterQueue, queueConnectionConfig } from "../services/queue.service.js";
-import handleNotification from "../services/notification.service.js";
+import NotificationService from "../services/notification.service.js";
+import redisClient from "../services/redis.service.js";
+import { io } from "../app.js";
+
+const notificationService = new NotificationService(redisClient, io);
 
 const highPriorityWorker = new Worker(
   "high-priority",
   async (job) => {
-    await handleNotification(job.data);
+    await notificationService.handleNotification(job.data);
   },
   {
     connection: queueConnectionConfig,
