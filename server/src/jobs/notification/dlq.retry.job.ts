@@ -1,10 +1,7 @@
-import { io } from "../app.js";
-import NotificationService from "../services/notification.service.js";
-import redisClient from "../services/redis.service.js";
-
-const DLQ_STREAM = "notifications:dlq";
-const MAX_DLQ_RETRIES = 2;
-const BATCH_SIZE = 100;
+import { io } from "../../app.js";
+import NotificationService from "../../services/notification.service.js";
+import redisClient from "../../services/redis.service.js";
+import { moveToDLQ } from "./../notification/dlq.helper.js";
 
 const notificationService = new NotificationService(redisClient, io);
 
@@ -52,7 +49,7 @@ export const retryDlqNotifications = async () => {
         await moveToDLQ(
           failed.map((f) => ({ ...f, _redisId: f._redisId })),
           "DLQ Retry Failed",
-          parseInt(failed[0].retries || "0", 10) + 1
+          parseInt(failed[0]._retries || "0", 10) + 1
         );
 
         // remove the retried messages regardless
