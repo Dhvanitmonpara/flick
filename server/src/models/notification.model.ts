@@ -2,14 +2,6 @@ import mongoose, { Schema } from "mongoose";
 
 const notificationSchema = new mongoose.Schema(
   {
-    title: {
-      type: String,
-      required: true,
-    },
-    body: {
-      type: String,
-      required: true,
-    },
     seen: {
       type: Boolean,
       default: false,

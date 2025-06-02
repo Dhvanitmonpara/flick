@@ -4,7 +4,7 @@ import { randomUUID } from "crypto";
 import CircuitBreaker from "./circuiteBreaker.helper.js";
 import Lock from "./lock.helper.js";
 import NotificationService, {
-  TNotificationWihMetadata,
+  TRawNotificationWithMetadata,
 } from "../../services/notification.service.js";
 import config from "./config.js";
 import {
@@ -78,7 +78,7 @@ const startNotificationWorker = async () => {
 
       lock.startHeartbeat();
 
-      let notifications: TNotificationWihMetadata[] = [];
+      let notifications: TRawNotificationWithMetadata[] = [];
 
       // First try to recover pending messages
       const pending = await fetchPendingMessages(CONSUMER_NAME);
@@ -108,7 +108,7 @@ const startNotificationWorker = async () => {
                 return null;
               }
             })
-            .filter((n): n is TNotificationWihMetadata => n !== null);
+            .filter((n): n is TRawNotificationWithMetadata => n !== null);
         }
       }
 

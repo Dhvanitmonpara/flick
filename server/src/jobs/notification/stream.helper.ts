@@ -1,5 +1,5 @@
 import NotificationService, {
-  TNotificationWihMetadata,
+  TRawNotificationWithMetadata,
 } from "../../services/notification.service.js";
 import redisClient from "../../services/redis.service.js";
 import {
@@ -35,7 +35,7 @@ const initializeStream = async () => {
 const parseNotification = ([
   id,
   fields,
-]: RedisStreamEntry): TNotificationWihMetadata => {
+]: RedisStreamEntry): TRawNotificationWithMetadata => {
   const obj = parseStreamEntry([id, fields]);
   const retryCount = parseInt(obj._retries ?? "0", 10);
 
@@ -43,11 +43,11 @@ const parseNotification = ([
     ...obj,
     _retries: retryCount,
     _redisId: id,
-  } as unknown as TNotificationWihMetadata;
+  } as unknown as TRawNotificationWithMetadata;
 };
 
 async function insertWithRetry(
-  notifications: TNotificationWihMetadata[],
+  notifications: TRawNotificationWithMetadata[],
   notificationService: NotificationService,
   circuitBreaker: CircuitBreaker
 ) {
