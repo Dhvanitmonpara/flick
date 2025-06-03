@@ -1,70 +1,97 @@
 import { io } from "../../app.js";
 import NotificationService from "../../services/notification.service.js";
 import redisClient from "../../services/redis.service.js";
-import { moveToDLQ } from "./../notification/dlq.helper.js";
+import { moveToDLQ } from "../notification/dlq.helper.js";
+import { parseNotification } from "./stream.helper.js";
 
 const notificationService = new NotificationService(redisClient, io);
 
-const parseDlqEntry = ([id, fields]: [string, string[]]) => {
-  const obj: Record<string, string> = {};
-  for (let i = 0; i < fields.length; i += 2) {
-    obj[fields[i]] = fields[i + 1];
-  }
-  return { ...obj, _redisId: id };
-};
+const DLQ_STREAM = "notifications:dlq";
+const BATCH_SIZE = 100;
+const MAX_DLQ_RETRIES = 3;
+const PERMADEAD_STREAM = "notifications:permadead";
 
 export const retryDlqNotifications = async () => {
-  const entries = await redisClient.xrange(DLQ_STREAM, "-", "+", "COUNT", BATCH_SIZE);
-
+  const entries = await redisClient.xrange(
+    DLQ_STREAM,
+    "-",
+    "+",
+    "COUNT",
+    BATCH_SIZE
+  );
   if (!entries || entries.length === 0) return;
 
   const toRetry = [];
-  const toKill = [];
+  const toPermadead = [];
 
   for (const entry of entries) {
-    const n = parseDlqEntry(entry);
-    const retries = parseInt(n.retries || "0", 10);
+    const n = parseNotification(entry);
+    const retries = parseInt(n._retries || "0", 10);
 
     if (retries >= MAX_DLQ_RETRIES) {
-      toKill.push(n._redisId); // optionally move to `permadead`
-      continue;
+      toPermadead.push(n);
+    } else {
+      toRetry.push(n);
     }
-
-    toRetry.push(n);
   }
 
+  // Retry
   if (toRetry.length > 0) {
     try {
-      const { successIds, failed } = await notificationService.insertNotificationsToMongo(toRetry);
+      const { successIds, failed } =
+        await notificationService.insertNotificationsToMongo(toRetry);
 
-      // ACK successful: remove from DLQ
+      // Remove successful ones
       if (successIds.length > 0) {
-        const pipeline = redisClient.multi();
-        for (const id of successIds) pipeline.xdel(DLQ_STREAM, id);
-        await pipeline.exec();
+        await redisClient
+          .multi(successIds.map((id) => ["xdel", DLQ_STREAM, id]))
+          .exec();
       }
 
-      // re-DLQ the ones that failed again
+      // Requeue failed ones back into DLQ
       if (failed.length > 0) {
-        await moveToDLQ(
-          failed.map((f) => ({ ...f, _redisId: f._redisId })),
-          "DLQ Retry Failed",
-          parseInt(failed[0]._retries || "0", 10) + 1
-        );
+        const failedWithRetry = failed.map((n) => ({
+          ...n,
+          _retries: String(parseInt(n._retries || "0", 10) + 1),
+        }));
 
-        // remove the retried messages regardless
-        const failedIds = failed.map((f) => f._redisId);
-        const pipeline = redisClient.multi();
-        for (const id of failedIds) pipeline.xdel(DLQ_STREAM, id);
-        await pipeline.exec();
+        await moveToDLQ(failedWithRetry, "DLQ Retry Failed");
+
+        const failedIds = failed.map((n) => n._redisId);
+        await redisClient
+          .multi(failedIds.map((id) => ["xdel", DLQ_STREAM, id]))
+          .exec();
       }
     } catch (err) {
-      console.error("DLQ retry job failed:", err);
+      console.error("DLQ retry failed:", err);
     }
   }
 
-  if (toKill.length > 0) {
-    console.warn(`Permadead notifications (exceeded retry limit):`, toKill);
-    // optionally move to a new stream `notifications:permadead`
+  // Move permadead
+  if (toPermadead.length > 0) {
+    try {
+      const pipeline = redisClient.multi();
+      for (const n of toPermadead) {
+        const { _redisId, ...payload } = n;
+        pipeline.xadd(
+          PERMADEAD_STREAM,
+          "*",
+          ...Object.entries({
+            ...payload,
+            reason: "Exceeded DLQ retry limit",
+            timestamp: String(Date.now()),
+          }).flat()
+        );
+
+        pipeline.xdel(DLQ_STREAM, n._redisId);
+      }
+      await pipeline.exec();
+      console.warn(
+        "Moved permadead notifications:",
+        toPermadead.map((n) => n._redisId)
+      );
+    } catch (err) {
+      console.error("Failed to move permadead notifications:", err);
+    }
   }
 };

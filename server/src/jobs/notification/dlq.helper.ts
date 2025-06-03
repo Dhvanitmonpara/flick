@@ -1,11 +1,11 @@
-import { TNotificationWihMetadata } from "../../services/notification.service.js";
+import { TRawNotificationWithMetadata } from "../../services/notification.service.js";
 import redisClient from "../../services/redis.service.js";
 
 const DLQ_STREAM_KEY = "dlq:notifications";
 const DLQ_STREAM_MAX_LEN = 10000;
 
 const moveToDLQ = async (
-  notifications: TNotificationWihMetadata[],
+  notifications: TRawNotificationWithMetadata[],
   reason: string,
   retryCount = 0
 ) => {
@@ -13,22 +13,24 @@ const moveToDLQ = async (
     const pipeline = redisClient.pipeline();
 
     for (const n of notifications) {
+      const { _redisId, ...rest } = n;
+
+      // Clean + flatten the object for Redis
+      const flatFields = Object.entries({
+        ...rest,
+        reason,
+        retryCount: String(n._retries ?? retryCount),
+        timestamp: String(Date.now()),
+      }).flatMap(([k, v]) => [k, typeof v === "object" ? JSON.stringify(v) : String(v)]);
+
       pipeline.xadd(
         DLQ_STREAM_KEY,
         "MAXLEN",
         "~",
         DLQ_STREAM_MAX_LEN,
         "*", // auto-generated ID
-        "id", n._redisId,
-        "receiverId", n.receiverId || "",
-        "actorUsernames", JSON.stringify(n.actorUsernames || []),
-        "title", n.title || "",
-        "body", n.body || "",
-        "postId", n.postId ? String(n.postId) : "",
-        "type", n.type,
-        "reason", reason,
-        "retryCount", String(n._retries ?? retryCount),
-        "timestamp", String(Date.now())
+        "id", _redisId,
+        ...flatFields
       );
     }
 
