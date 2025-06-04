@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import BookmarkModel from "../models/bookmarks.model.js";
+import BookmarkModel from "../models/bookmark.model.js";
 import handleError from "../utils/HandleError.js";
 import { ApiError } from "../utils/ApiError.js";
 import { PostModel } from "../models/post.model.js";

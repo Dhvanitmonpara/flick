@@ -21,25 +21,27 @@ const CONSUMER_NAME = `consumer-${randomUUID().slice(0, 8)}`;
 const LOCK_KEY = `lock:${config.STREAM_KEY}:notificationJob`;
 const MAX_CONSUMER_IDLE_TIME = 3 * 60 * 1000; // 3 mins
 
-let lastActivityTimestamp = Date.now();
-let shutdownRequested = false;
-let workerRunning = false;
+const state = {
+  lastActivityTimestamp: Date.now(),
+  shutdownRequested: false,
+  workerRunning: false,
+};
 
 const lock = new Lock(redisClient, LOCK_KEY, 30);
 const circuitBreaker = new CircuitBreaker();
 const notificationService = new NotificationService(redisClient, io);
 
 process.on("SIGINT", () => {
-  shutdownRequested = true;
-  workerRunning = false;
+  state.shutdownRequested = true;
+  state.workerRunning = false;
 });
 process.on("SIGTERM", () => {
-  shutdownRequested = true;
-  workerRunning = false;
+  state.shutdownRequested = true;
+  state.workerRunning = false;
 });
 
 const shouldStartConsumer = () => {
-  return lastActivityTimestamp > Date.now() - MAX_CONSUMER_IDLE_TIME;
+  return state.lastActivityTimestamp > Date.now() - MAX_CONSUMER_IDLE_TIME;
 };
 
 const startNotificationWorker = async () => {
@@ -61,7 +63,7 @@ const startNotificationWorker = async () => {
         continue;
       }
 
-      if (shutdownRequested) {
+      if (state.shutdownRequested) {
         console.log("Shutdown in progress...");
         lock.stopHeartbeat();
         await lock.releaseLock();
@@ -83,6 +85,8 @@ const startNotificationWorker = async () => {
       // First try to recover pending messages
       const pending = await fetchPendingMessages(CONSUMER_NAME);
       if (pending.length > 0) {
+        console.log("pending", pending.length, "messages found");
+        if (pending.length > 0) console.log(pending[0]);
         notifications = pending.map(parseNotification);
       } else {
         // Otherwise fetch new messages (non-blocking)
@@ -96,6 +100,8 @@ const startNotificationWorker = async () => {
           config.STREAM_KEY,
           ">"
         )) as [string, RedisStreamEntry[]][] | null;
+
+        console.log(response)
 
         if (response && response.length > 0) {
           const [, messages] = response[0];
@@ -114,13 +120,14 @@ const startNotificationWorker = async () => {
 
       if (notifications.length > 0) {
         // Update activity timestamp — new notifications are being processed
-        lastActivityTimestamp = Date.now();
+        state.lastActivityTimestamp = Date.now();
 
         const successIds = await insertWithRetry(
           notifications,
           notificationService,
           circuitBreaker
         );
+        console.log(successIds.length, "notifications processed");
 
         if (successIds.length > 0) {
           await redisClient.xack(
@@ -151,18 +158,19 @@ const startNotificationWorker = async () => {
 };
 
 const notifyUserActivity = async () => {
-  lastActivityTimestamp = Date.now();
+  state.lastActivityTimestamp = Date.now();
+  console.log(state.workerRunning)
+  if (state.workerRunning) return;
 
-  if (workerRunning) return;
-
-  workerRunning = true;
+  state.workerRunning = true;
 
   try {
+    console.log("started")
     await startNotificationWorker();
   } catch (e) {
     console.error("Notification worker failed:", e);
   } finally {
-    workerRunning = false;
+    state.workerRunning = false;
   }
 };
 

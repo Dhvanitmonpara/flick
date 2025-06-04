@@ -68,6 +68,7 @@ async function insertWithRetry(
         circuitBreaker.reset();
         break;
       }
+      console.log(failed)
 
       console.warn(`Attempt ${attempt}: ${failed.length} notifications failed`);
 

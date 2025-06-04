@@ -32,6 +32,13 @@ const notificationSchema = new mongoose.Schema(
       ],
       default: "general",
     },
+    _redisId: {
+      type: String,
+    },
+    _retries: {
+      type: Number,
+      default: 0,
+    }
   },
   { timestamps: true }
 );

@@ -7,10 +7,10 @@ import { PostModel } from "../models/post.model.js";
 import { CommentModel } from "../models/comment.model.js";
 import { logEvent } from "../services/log.service.js";
 import { TLogAction } from "../types/Log.js";
-import NotificationService from "../services/notification.service.js";
 import redisClient from "../services/redis.service.js";
 import { io } from "../app.js";
-import { toObjectId } from "../utils/toObject.js";
+import NotificationService from "../services/notification.service.js";
+import { notifyUserActivity } from "../jobs/notification/processor.js";
 
 const notificationService = new NotificationService(redisClient, io);
 
@@ -75,6 +75,7 @@ export const createVote = async (req: Request, res: Response) => {
         postId: targetId,
         receiverId: ownerId,
       });
+      notifyUserActivity()
     }
 
     const action: TLogAction = `user_${voteType}d_${targetType}`;

@@ -127,6 +127,7 @@ class NotificationService {
 
       return { successIds, failed };
     } catch (err: any) {
+      console.log("Error inserting to Mongo", err);
       // Mongo will throw if even 1 doc fails, but insertMany may have partial success
       const successIds =
         err?.result?.insertedDocs?.map((doc: any) => doc._redisId) || [];
