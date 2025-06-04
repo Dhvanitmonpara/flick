@@ -24,7 +24,7 @@ const MAX_CONSUMER_IDLE_TIME = 3 * 60 * 1000; // 3 mins
 const state = {
   lastActivityTimestamp: Date.now(),
   shutdownRequested: false,
-  workerRunning: false,
+  isWorkerRunning: false,
 };
 
 const lock = new Lock(redisClient, LOCK_KEY, 30);
@@ -33,11 +33,11 @@ const notificationService = new NotificationService(redisClient, io);
 
 process.on("SIGINT", () => {
   state.shutdownRequested = true;
-  state.workerRunning = false;
+  state.isWorkerRunning = false;
 });
 process.on("SIGTERM", () => {
   state.shutdownRequested = true;
-  state.workerRunning = false;
+  state.isWorkerRunning = false;
 });
 
 const shouldStartConsumer = () => {
@@ -73,7 +73,7 @@ const startNotificationWorker = async () => {
 
       const gotLock = await lock.acquireLock();
       if (!gotLock) {
-        console.log("notificationJob already running. Skipping.");
+        console.log("notificationWorker already running. Skipping.");
         await new Promise((res) => setTimeout(res, sleepDuration));
         continue;
       }
@@ -101,7 +101,7 @@ const startNotificationWorker = async () => {
           ">"
         )) as [string, RedisStreamEntry[]][] | null;
 
-        console.log(response)
+        console.log(response);
 
         if (response && response.length > 0) {
           const [, messages] = response[0];
@@ -159,18 +159,19 @@ const startNotificationWorker = async () => {
 
 const notifyUserActivity = async () => {
   state.lastActivityTimestamp = Date.now();
-  console.log(state.workerRunning)
-  if (state.workerRunning) return;
+  console.log(state.isWorkerRunning);
+  if (state.isWorkerRunning) return;
 
-  state.workerRunning = true;
+  state.isWorkerRunning = true;
+  state.shutdownRequested = false;
 
   try {
-    console.log("started")
+    console.log("started");
     await startNotificationWorker();
   } catch (e) {
     console.error("Notification worker failed:", e);
   } finally {
-    state.workerRunning = false;
+    state.isWorkerRunning = false;
   }
 };
 
