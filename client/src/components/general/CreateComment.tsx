@@ -16,6 +16,7 @@ import { z } from "zod";
 import { TermsForm } from "./TermsForm";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
 import { DialogDescription } from "@radix-ui/react-dialog";
+import { FaX } from "react-icons/fa6";
 
 const commentSchema = z.object({
   content: z.string().min(3, "Content must be at least 3 characters.").max(2000, "Content must be at most 2000 characters."),
@@ -120,10 +121,16 @@ function CreateComment({ parentCommentId, defaultData, commentId, setOpen, defau
     }
   }
 
+  const handleEscape = () => {
+    setIsWriting(false)
+    setError("")
+    form.reset()
+  }
+
   return (
     <>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 relative">
           <FormField
             control={form.control}
             name="content"
@@ -142,7 +149,7 @@ function CreateComment({ parentCommentId, defaultData, commentId, setOpen, defau
                             form.handleSubmit(onSubmit)();
                           }
                           if (e.key === "Escape") {
-                            if (!field.value) setIsWriting(false);
+                            if (!field.value) handleEscape()
                             else setWarningOpen(true);
                           }
                         }}
@@ -152,8 +159,7 @@ function CreateComment({ parentCommentId, defaultData, commentId, setOpen, defau
                         rows={1}
                         onFocus={() => setIsWriting(true)}
                         onBlurCapture={() => {
-                          if (!field.value) setIsWriting(false);
-                          else setWarningOpen(true);
+                          if (!field.value) handleEscape()
                         }}
                         {...field}
                         onChange={(e) => {
@@ -162,6 +168,12 @@ function CreateComment({ parentCommentId, defaultData, commentId, setOpen, defau
                         }}
                         className={`${isWriting ? "min-h-40" : "h-10"} transition-all ${hasBanned ? "border-red-500" : ""}`}
                       />
+                      <button className="absolute top-4 right-6" onClick={() => {
+                        if (!field.value) handleEscape()
+                        else setWarningOpen(true);
+                      }}>
+                        <FaX />
+                      </button>
                       {field.value && (
                         <div className="mt-2 text-sm">
                           <span className="font-semibold">Preview:</span>
@@ -198,8 +210,7 @@ function CreateComment({ parentCommentId, defaultData, commentId, setOpen, defau
             <Button onClick={() => {
               form.reset();
               setWarningOpen(false);
-              setIsWriting(false);
-              setError("")
+              handleEscape()
             }} variant="destructive">Discard</Button>
           </DialogFooter>
         </DialogContent>
