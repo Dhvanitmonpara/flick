@@ -9,10 +9,7 @@ import { logEvent } from "../services/log.service.js";
 import { TLogAction } from "../types/Log.js";
 import redisClient from "../services/redis.service.js";
 import { io } from "../app.js";
-import NotificationService from "../services/notification.service.js";
 import { notifyUserActivity } from "../jobs/notification/processor.js";
-
-const notificationService = new NotificationService(redisClient, io);
 
 export const createVote = async (req: Request, res: Response) => {
   try {
@@ -69,13 +66,12 @@ export const createVote = async (req: Request, res: Response) => {
     });
 
     if (voteType === "upvote") {
-      notificationService.handleNotification({
+      notifyUserActivity({
         type: targetType === "post" ? "upvoted_post" : "upvoted_comment",
         actorUsername: req.user.username,
         postId: targetId,
         receiverId: ownerId,
       });
-      notifyUserActivity()
     }
 
     const action: TLogAction = `user_${voteType}d_${targetType}`;

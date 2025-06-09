@@ -9,5 +9,5 @@ export function toObjectId(id: string | Types.ObjectId): Types.ObjectId {
     return new mongoose.Types.ObjectId(id);
   }
 
-  throw new Error("Invalid ObjectId provided");
+  throw new Error(`Invalid ObjectId provided for conversion: ${id}`);
 }

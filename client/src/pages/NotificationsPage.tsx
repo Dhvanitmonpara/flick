@@ -26,11 +26,11 @@ function NotificationsPage() {
       {notifications.map((n) => (
         <NotificationCard
           key={n._id || n._redisId}
-          postId={n.postId}
           _redisId={n._redisId}
           actorUsernames={n.actorUsernames}
           post={n.post}
           _id={n._id}
+          content={n.content}
           receiverId={n.receiverId}
           seen={n.seen}
           type={n.type}

@@ -16,6 +16,7 @@ type TBaseNotification = {
   postId: string;
   receiverId: string;
   type: TNotificationType;
+  content?: string;
 };
 type TMetadata = {
   _redisId: string;
@@ -70,6 +71,7 @@ class NotificationService {
             receiverId: raw.receiverId,
             type: raw.type,
             actorUsernames: [],
+            content: raw.content,
             _redisId: raw._redisId,
             _retries: raw._retries,
           },

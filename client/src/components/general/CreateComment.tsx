@@ -32,8 +32,8 @@ function CreateComment({ parentCommentId, defaultData, commentId, setOpen, defau
 
   const { handleError } = useErrorHandler();
 
-  const addComment = useCommentStore(state=>state.addComment)
-  const updateComment = useCommentStore(state=>state.updateComment)
+  const addComment = useCommentStore(state => state.addComment)
+  const updateComment = useCommentStore(state => state.updateComment)
   const { id } = useParams()
   const isUpdating = !!defaultData && !!commentId;
 
@@ -181,7 +181,7 @@ function CreateComment({ parentCommentId, defaultData, commentId, setOpen, defau
             }}
           />
 
-          {isWriting && <Button disabled={loading || Boolean(error)} type="submit" className="w-full">
+          {isWriting && <Button onClick={e => e.stopPropagation()} disabled={loading || Boolean(error)} type="submit" className="w-full">
             {loading ? <><Loader2 className="animate-spin" /> {isUpdating ? "Updating..." : "Posting..."}</> : (isUpdating ? "Update" : "Post")}
           </Button>}
           {error && <p className="text-red-500 text-sm">{error}</p>}
@@ -199,6 +199,7 @@ function CreateComment({ parentCommentId, defaultData, commentId, setOpen, defau
               form.reset();
               setWarningOpen(false);
               setIsWriting(false);
+              setError("")
             }} variant="destructive">Discard</Button>
           </DialogFooter>
         </DialogContent>

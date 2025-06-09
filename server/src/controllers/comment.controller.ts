@@ -6,6 +6,7 @@ import handleError from "../utils/HandleError.js";
 import VoteModel from "../models/vote.model.js";
 import { toObjectId } from "../utils/toObject.js";
 import { logEvent } from "../services/log.service.js";
+import { notifyUserActivity } from "../jobs/notification/processor.js";
 
 export const getCommentsByPostId = async (req: Request, res: Response) => {
   try {
@@ -181,15 +182,21 @@ export const createComment = async (req: Request, res: Response) => {
 
     if (!content || !postId) throw new ApiError(400, "All fields are required");
     if (!req.user || !req.user?._id) throw new ApiError(401, "Unauthorized");
-
-    const newComment = new CommentModel({
+    
+    const newComment = await CommentModel.create({
       content,
       postId: toObjectId(postId),
       commentedBy: toObjectId(req.user._id),
-      parentCommentId: toObjectId(parentCommentId) || null,
+      parentCommentId: parentCommentId ? toObjectId(parentCommentId) : null,
     });
 
-    await newComment.save();
+    notifyUserActivity({
+      type: "replied",
+      actorUsername: req.user.username,
+      postId: postId,
+      receiverId: req.user._id.toString(),
+      content: content.substring(0, 100),
+    });
 
     logEvent({
       action: "user_created_comment",

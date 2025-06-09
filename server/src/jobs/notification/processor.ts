@@ -4,6 +4,7 @@ import { randomUUID } from "crypto";
 import CircuitBreaker from "./circuiteBreaker.helper.js";
 import Lock from "./lock.helper.js";
 import NotificationService, {
+  TRawNotification,
   TRawNotificationWithMetadata,
 } from "../../services/notification.service.js";
 import config from "./config.js";
@@ -157,13 +158,15 @@ const startNotificationWorker = async () => {
   }
 };
 
-const notifyUserActivity = async () => {
+const notifyUserActivity = async (data: TRawNotification) => {
   state.lastActivityTimestamp = Date.now();
   console.log(state.isWorkerRunning);
   if (state.isWorkerRunning) return;
 
   state.isWorkerRunning = true;
   state.shutdownRequested = false;
+
+  notificationService.handleNotification(data);
 
   try {
     console.log("started");

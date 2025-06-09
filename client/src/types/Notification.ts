@@ -15,6 +15,7 @@ interface INotification {
   receiverId: string;
   actorUsernames: string[];
   _retries?: number;
+  content?: string;
   postId: string;
   post?: IPost | null
   _redisId: string;
