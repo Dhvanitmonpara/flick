@@ -21,6 +21,7 @@ import ProfilePage from './pages/ProfilePage'
 import SettingsPage from './pages/SettingsPage'
 import BookmarksPage from './pages/BookmarksPage'
 import FeedbackPage from './pages/FeedbackPage'
+import NotificationsPage from './pages/NotificationsPage'
 
 // router
 const router = createBrowserRouter([
@@ -42,12 +43,16 @@ const router = createBrowserRouter([
         element: <AppLayout />,
         children: [
           {
-            path: "/p/:id",
+            path: "p/:id",
             element: <PostPage />,
           },
           {
             path: "",
             element: <FeedPage />,
+          },
+          {
+            path: "notifications",
+            element: <NotificationsPage />,
           },
           {
             path: "college",

@@ -54,6 +54,7 @@ import manageRouter from "./routes/manage.route.js";
 import bookmarkRouter from "./routes/bookmark.route.js";
 import reportRouter from "./routes/report.routes.js";
 import adminRouter from "./routes/admin.routes.js";
+import notificationRouter from "./routes/notification.routes.js";
 import { verifyAdminJWT } from "./middleware/auth.middleware.js";
 import { sessionMiddleware } from "./middleware/session.middleware.js";
 import {
@@ -100,6 +101,11 @@ app.use(
   `${commonPublicRoute}feedback`,
   rateLimitMiddleware(apiLimiter),
   feedbackRouter
+);
+app.use(
+  `${commonPublicRoute}notifications`,
+  rateLimitMiddleware(apiLimiter),
+  notificationRouter
 );
 
 // admin routes

@@ -6,6 +6,8 @@ import useProfileStore from "@/store/profileStore";
 import { toast } from "sonner";
 import { useErrorHandler } from "@/hooks/useErrorHandler";
 import { env } from "@/conf/env";
+import { IoMdNotifications } from "react-icons/io";
+import { Link } from "react-router-dom";
 
 function AuthCard() {
 
@@ -39,7 +41,11 @@ function AuthCard() {
   return (
     <div className="flex justify-center items-center gap-4">
       <ThemeToggler />
-      {fetching ? <span className="bg-zinc-300 animate-pulse h-10 w-10 rounded-full"></span> : <UserProfile />}
+      {fetching ? <span className="bg-zinc-300 animate-pulse h-10 w-10 rounded-full"></span> : <>
+        <Link to="/notifications">
+          <IoMdNotifications />
+        </Link>
+        <UserProfile /></>}
     </div>
   )
 }
