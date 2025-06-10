@@ -168,12 +168,12 @@ function CreateComment({ parentCommentId, defaultData, commentId, setOpen, defau
                         }}
                         className={`${isWriting ? "min-h-40" : "h-10"} transition-all ${hasBanned ? "border-red-500" : ""}`}
                       />
-                      <button className="absolute top-4 right-6" onClick={() => {
+                      {isWriting && <button className="absolute top-4 right-6" onClick={() => {
                         if (!field.value) handleEscape()
                         else setWarningOpen(true);
                       }}>
                         <FaX />
-                      </button>
+                      </button>}
                       {field.value && (
                         <div className="mt-2 text-sm">
                           <span className="font-semibold">Preview:</span>

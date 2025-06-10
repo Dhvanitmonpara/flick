@@ -11,8 +11,6 @@ import { startCleanupTasks, stopCleanupTasks } from "./cleanup.helper.js";
 import config from "./config.js";
 import { moveToDLQ } from "./dlq.helper.js";
 
-const MAX_RETRIES = 3;
-
 const initializeStream = async () => {
   try {
     await redisClient.xgroup(
@@ -55,7 +53,7 @@ async function insertWithRetry(
   let allSuccessIds: string[] = [];
   let attempt = 0;
 
-  while (attempt < MAX_RETRIES && toRetry.length > 0) {
+  while (attempt < config.MAX_RETRIES && toRetry.length > 0) {
     attempt++;
 
     try {
@@ -72,7 +70,7 @@ async function insertWithRetry(
 
       console.warn(`Attempt ${attempt}: ${failed.length} notifications failed`);
 
-      if (attempt >= MAX_RETRIES) {
+      if (attempt >= config.MAX_RETRIES) {
         await moveToDLQ(failed, "Mongo insert failed after retries", attempt);
         break;
       }
@@ -86,7 +84,7 @@ async function insertWithRetry(
 
       circuitBreaker.recordFailure();
 
-      if (attempt >= MAX_RETRIES) {
+      if (attempt >= config.MAX_RETRIES) {
         await moveToDLQ(toRetry, "Mongo insert failed after retries", attempt);
         break;
       }

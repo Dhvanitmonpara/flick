@@ -2,22 +2,18 @@ import { io } from "../../app.js";
 import NotificationService from "../../services/notification.service.js";
 import redisClient from "../../services/redis.service.js";
 import { moveToDLQ } from "../notification/dlq.helper.js";
+import config from "./config.js";
 import { parseNotification } from "./stream.helper.js";
 
 const notificationService = new NotificationService(redisClient, io);
 
-const DLQ_STREAM = "notifications:dlq";
-const BATCH_SIZE = 100;
-const MAX_DLQ_RETRIES = 3;
-const PERMADEAD_STREAM = "notifications:permadead";
-
 export const retryDlqNotifications = async () => {
   const entries = await redisClient.xrange(
-    DLQ_STREAM,
+    config.DLQ_STREAM,
     "-",
     "+",
     "COUNT",
-    BATCH_SIZE
+    config.DLQ_BATCH_SIZE
   );
   if (!entries || entries.length === 0) return;
 
@@ -28,7 +24,7 @@ export const retryDlqNotifications = async () => {
     const n = parseNotification(entry);
     const retries = parseInt(n._retries || "0", 10);
 
-    if (retries >= MAX_DLQ_RETRIES) {
+    if (retries >= config.MAX_DLQ_RETRIES) {
       toPermadead.push(n);
     } else {
       toRetry.push(n);
@@ -44,7 +40,7 @@ export const retryDlqNotifications = async () => {
       // Remove successful ones
       if (successIds.length > 0) {
         await redisClient
-          .multi(successIds.map((id) => ["xdel", DLQ_STREAM, id]))
+          .multi(successIds.map((id) => ["xdel", config.DLQ_STREAM, id]))
           .exec();
       }
 
@@ -59,7 +55,7 @@ export const retryDlqNotifications = async () => {
 
         const failedIds = failed.map((n) => n._redisId);
         await redisClient
-          .multi(failedIds.map((id) => ["xdel", DLQ_STREAM, id]))
+          .multi(failedIds.map((id) => ["xdel", config.DLQ_STREAM, id]))
           .exec();
       }
     } catch (err) {
@@ -74,7 +70,7 @@ export const retryDlqNotifications = async () => {
       for (const n of toPermadead) {
         const { _redisId, ...payload } = n;
         pipeline.xadd(
-          PERMADEAD_STREAM,
+          config.PERMADEAD_STREAM,
           "*",
           ...Object.entries({
             ...payload,
@@ -83,7 +79,7 @@ export const retryDlqNotifications = async () => {
           }).flat()
         );
 
-        pipeline.xdel(DLQ_STREAM, n._redisId);
+        pipeline.xdel(config.DLQ_STREAM, n._redisId);
       }
       await pipeline.exec();
       console.warn(

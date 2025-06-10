@@ -1,8 +1,6 @@
 import { TRawNotificationWithMetadata } from "../../services/notification.service.js";
 import redisClient from "../../services/redis.service.js";
-
-const DLQ_STREAM_KEY = "dlq:notifications";
-const DLQ_STREAM_MAX_LEN = 10000;
+import config from "./config.js";
 
 const moveToDLQ = async (
   notifications: TRawNotificationWithMetadata[],
@@ -24,10 +22,10 @@ const moveToDLQ = async (
       }).flatMap(([k, v]) => [k, typeof v === "object" ? JSON.stringify(v) : String(v)]);
 
       pipeline.xadd(
-        DLQ_STREAM_KEY,
+        config.DLQ_STREAM,
         "MAXLEN",
         "~",
-        DLQ_STREAM_MAX_LEN,
+        config.DLQ_STREAM_MAX_LEN,
         "*", // auto-generated ID
         "id", _redisId,
         ...flatFields

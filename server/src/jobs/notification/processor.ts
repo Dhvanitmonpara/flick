@@ -1,6 +1,5 @@
 import redisClient from "../../services/redis.service.js";
 import { io } from "../../app.js";
-import { randomUUID } from "crypto";
 import CircuitBreaker from "./circuiteBreaker.helper.js";
 import Lock from "./lock.helper.js";
 import NotificationService, {
@@ -16,11 +15,7 @@ import {
   startCleanupTasks,
   stopCleanupTasks,
 } from "./stream.helper.js";
-import { RedisStreamEntry } from "../../utils/parseStreamEntry.js";
-
-const CONSUMER_NAME = `consumer-${randomUUID().slice(0, 8)}`;
-const LOCK_KEY = `lock:${config.STREAM_KEY}:notificationJob`;
-const MAX_CONSUMER_IDLE_TIME = 3 * 60 * 1000; // 3 mins
+import { RedisStreamEntry } from "../../utils/parseStreamEntry.js"
 
 const state = {
   lastActivityTimestamp: Date.now(),
@@ -28,7 +23,7 @@ const state = {
   isWorkerRunning: false,
 };
 
-const lock = new Lock(redisClient, LOCK_KEY, 30);
+const lock = new Lock(redisClient, config.LOCK_KEY, 30);
 const circuitBreaker = new CircuitBreaker();
 const notificationService = new NotificationService(redisClient, io);
 
@@ -36,7 +31,7 @@ process.on("SIGINT", closeNotificationProcess);
 process.on("SIGTERM", closeNotificationProcess);
 
 const shouldStartConsumer = () => {
-  return state.lastActivityTimestamp > Date.now() - MAX_CONSUMER_IDLE_TIME;
+  return state.lastActivityTimestamp > Date.now() - config.MAX_CONSUMER_IDLE_TIME;
 };
 
 const startNotificationWorker = async () => {
@@ -78,7 +73,7 @@ const startNotificationWorker = async () => {
       let notifications: TRawNotificationWithMetadata[] = [];
 
       // First try to recover pending messages
-      const pending = await fetchPendingMessages(CONSUMER_NAME);
+      const pending = await fetchPendingMessages(config.CONSUMER_NAME);
       if (pending.length > 0) {
         console.log("pending", pending.length, "messages found");
         if (pending.length > 0) console.log(pending[0]);
@@ -88,7 +83,7 @@ const startNotificationWorker = async () => {
         const response = (await redisClient.xreadgroup(
           "GROUP",
           config.GROUP_NAME,
-          CONSUMER_NAME,
+          config.CONSUMER_NAME,
           "COUNT",
           config.BATCH_SIZE,
           "STREAMS",
