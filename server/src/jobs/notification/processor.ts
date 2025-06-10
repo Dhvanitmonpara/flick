@@ -32,14 +32,8 @@ const lock = new Lock(redisClient, LOCK_KEY, 30);
 const circuitBreaker = new CircuitBreaker();
 const notificationService = new NotificationService(redisClient, io);
 
-process.on("SIGINT", () => {
-  state.shutdownRequested = true;
-  state.isWorkerRunning = false;
-});
-process.on("SIGTERM", () => {
-  state.shutdownRequested = true;
-  state.isWorkerRunning = false;
-});
+process.on("SIGINT", closeNotificationProcess);
+process.on("SIGTERM", closeNotificationProcess);
 
 const shouldStartConsumer = () => {
   return state.lastActivityTimestamp > Date.now() - MAX_CONSUMER_IDLE_TIME;
@@ -101,8 +95,6 @@ const startNotificationWorker = async () => {
           config.STREAM_KEY,
           ">"
         )) as [string, RedisStreamEntry[]][] | null;
-
-        console.log(response);
 
         if (response && response.length > 0) {
           const [, messages] = response[0];
@@ -178,4 +170,13 @@ const notifyUserActivity = async (data: TRawNotification) => {
   }
 };
 
-export { notifyUserActivity };
+async function closeNotificationProcess() {
+  state.shutdownRequested = true;
+  state.isWorkerRunning = false;
+  lock.stopHeartbeat();
+  await lock.releaseLock();
+  stopCleanupTasks();
+  circuitBreaker.reset();
+}
+
+export { notifyUserActivity, closeNotificationProcess };

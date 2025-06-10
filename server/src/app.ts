@@ -31,6 +31,21 @@ const corsOptions: CorsOptions = {
   optionsSuccessStatus: 200,
 };
 
+async function shutdown() {
+  await Promise.all([
+    highPriorityQueue.close(),
+    lowPriorityQueue.close(),
+    deadLetterQueue.close(),
+    notificationWorker.close(),
+    redisClient.quit(),
+  ]);
+
+  process.exit();
+}
+
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);
+
 // CORS middleware
 app.use(cors(corsOptions));
 app.options("*", cors(corsOptions));
@@ -39,7 +54,7 @@ app.use(cookieParser());
 app.use(express.json({ limit: "16kb" }));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(express.static("public"));
-app.set('trust proxy', true);
+app.set("trust proxy", true);
 
 const commonPublicRoute = "/api/public/v1/";
 const commonAdminRoute = "/api/admin/v1/";
@@ -62,6 +77,13 @@ import {
   authLimiter,
   rateLimitMiddleware,
 } from "./middleware/ratelimit.middleware.js";
+import {
+  deadLetterQueue,
+  highPriorityQueue,
+  lowPriorityQueue,
+} from "./services/queue.service.js";
+import notificationWorker from "./workers/notification.worker.js";
+import redisClient from "./services/redis.service.js";
 
 // global middlewares
 app.use(sessionMiddleware);

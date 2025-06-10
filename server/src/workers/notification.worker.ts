@@ -25,3 +25,5 @@ notificationWorker.on("failed", async (job, err) => {
     reason: err.message,
   });
 });
+
+export default notificationWorker;

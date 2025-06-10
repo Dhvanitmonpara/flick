@@ -20,6 +20,9 @@ const notificationSchema = new mongoose.Schema(
         required: true,
       },
     ],
+    content: {
+      type: String,
+    },
     type: {
       type: String,
       enum: [
