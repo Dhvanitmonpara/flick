@@ -154,7 +154,7 @@ const EngagementComponent = ({
 
       {show.includes('comments') && (
         <div className="flex items-center gap-1">
-          <CommentButton />
+          <CommentButton parentCommentId={targetType === "comment" ? _id : null} />
           <span className="text-sm text-gray-600 dark:text-gray-400 w-3">{optimisticCounts.comments}</span>
         </div>
       )}

@@ -5,6 +5,7 @@ import { env } from "@/conf/env";
 import { useErrorHandler } from "@/hooks/useErrorHandler";
 import useCommentStore from "@/store/commentStore";
 import usePostStore from "@/store/postStore";
+import { IComment } from "@/types/Comment";
 import { IPost } from "@/types/Post";
 import { IUser } from "@/types/User";
 import { formatDate, isCollege, isUser } from "@/utils/helpers";
@@ -51,7 +52,8 @@ function PostPage() {
       if (res.status !== 200) {
         throw new Error("Failed to fetch comments")
       }
-      setComments(res.data.comments)
+      const commentTree = buildCommentTree(res.data.comments)
+      setComments(commentTree)
     } catch (error) {
       await handleError(error as AxiosError | Error, "Error fetching comments", undefined, fetchComments, "Failed to fetch comments")
     } finally {
@@ -83,20 +85,20 @@ function PostPage() {
 
   useEffect(() => {
     resetComments();
-    
+
     if (!id) {
       navigate("/");
       return;
     }
-    
+
     const post = posts?.find((post) => post._id === id);
-    
+
     if (post) {
       setCurrentPost(post);
     } else {
       fetchPostById();
     }
-    
+
     incrementView();
     fetchComments();
   }, [fetchComments, fetchPostById, id, incrementView, navigate, posts, resetComments]);
@@ -133,26 +135,38 @@ function PostPage() {
       {loading
         ? <Loader2 className="animate-spin" />
         : (comments
-          ? comments.map(({ _id, commentedBy, content, createdAt, upvoteCount, downvoteCount, userVote }) => (
-            <Comment
-              key={_id}
-              _id={_id}
-              avatar={getAvatarUrl(commentedBy)}
-              college={getCollegeName(commentedBy)}
-              commentedBy={getUsername(commentedBy)}
-              userVote={userVote ?? null}
-              branch={isUser(commentedBy) ? commentedBy.branch : "Unknown Branch"}
-              content={content}
-              avatarFallback=""
-              createdAt={formatDate(createdAt)}
-              upvoteCount={upvoteCount}
-              downvoteCount={downvoteCount}
-            />
+          ? comments.map((comment) => (
+            <Comment comment={comment} />
           ))
           : <p>Comments not found</p>
         )}
     </div >
   )
+}
+
+function buildCommentTree(comments: IComment[]): IComment[] {
+  const commentMap = new Map<string, IComment>();
+  const roots: IComment[] = [];
+
+  // Add all comments to map and init children
+  comments.forEach(comment => {
+    comment.children = [];
+    commentMap.set(comment._id, comment);
+  });
+
+  // Link children to their parent
+  comments.forEach(comment => {
+    if (comment.parentCommentId) {
+      const parent = commentMap.get(comment.parentCommentId);
+      if (parent) {
+        parent.children!.push(comment);
+      }
+    } else {
+      roots.push(comment);
+    }
+  });
+
+  return roots;
 }
 
 export default PostPage

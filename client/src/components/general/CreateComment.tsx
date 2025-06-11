@@ -24,7 +24,7 @@ const commentSchema = z.object({
 
 type CommentFormValues = z.infer<typeof commentSchema>;
 
-function CreateComment({ parentCommentId, defaultData, commentId, setOpen, defaultIsWriting = false }: { parentCommentId?: string, defaultData?: CommentFormValues, commentId?: string, setOpen?: React.Dispatch<React.SetStateAction<boolean>>, defaultIsWriting?: boolean }) {
+function CreateComment({ parentCommentId, defaultData, commentId, setOpen, defaultIsWriting = false }: { parentCommentId?: string | null, defaultData?: CommentFormValues, commentId?: string, setOpen?: React.Dispatch<React.SetStateAction<boolean>>, defaultIsWriting?: boolean }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showTerms, setShowTerms] = useState(false);

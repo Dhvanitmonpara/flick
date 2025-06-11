@@ -56,7 +56,7 @@ const reportSchema = z.object({
 
 type ReportFormValues = z.infer<typeof reportSchema>;
 
-function PostDropdown({ type, id, editableData, removePostOnAction, bookmarked = false }: { type: ("post" | "comment"), id: string, editableData?: { title: string, content: string }, removePostOnAction?: (id: string) => void, bookmarked: boolean }) {
+function PostDropdown({ type, id, editableData, removePostOnAction, showBookmark = true, bookmarked = false }: { type: ("post" | "comment"), id: string, editableData?: { title: string, content: string }, removePostOnAction?: (id: string) => void, showBookmark?: boolean, bookmarked?: boolean }) {
   const [dialogType, setDialogType] = useState<DialogType>(null);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -174,10 +174,10 @@ function PostDropdown({ type, id, editableData, removePostOnAction, bookmarked =
             <RiEdit2Fill />
             <span>Edit</span>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleBookmark(bookmarked) }}>
+          {showBookmark && <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleBookmark(bookmarked) }}>
             {bookmarked ? <FaBookmark /> : <FaRegBookmark />}
             <span>{bookmarked ? "Unsave" : "Save"}</span>
-          </DropdownMenuItem>
+          </DropdownMenuItem>}
           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openDialog("DELETE") }} className="hover:!bg-red-400/50 dark:hover:!bg-red-600/40">
             <RiDeleteBin6Fill />
             <span>Delete</span>

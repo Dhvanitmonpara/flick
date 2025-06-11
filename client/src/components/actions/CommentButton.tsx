@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import CreateComment from "../general/CreateComment";
 
-function CommentButton() {
+function CommentButton({ parentCommentId }: { parentCommentId?: string | null }) {
   const [open, setOpen] = useState(false)
   return (
     <>
@@ -23,7 +23,7 @@ function CommentButton() {
           <DialogHeader>
             <DialogTitle>Comment</DialogTitle>
           </DialogHeader>
-          <CreateComment defaultIsWriting setOpen={setOpen} />
+          <CreateComment parentCommentId={parentCommentId} defaultIsWriting setOpen={setOpen} />
         </DialogContent>
       </Dialog>
     </>
