@@ -6,7 +6,6 @@ type TNotificationType =
   | "upvoted_comment"
   | "replied"
   | "posted"
-  | "re-posted";
 
 interface INotification {
   _id?: string;

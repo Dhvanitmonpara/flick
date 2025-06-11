@@ -12,21 +12,19 @@ import CreateComment from "../general/CreateComment";
 function CommentButton({ parentCommentId }: { parentCommentId?: string | null }) {
   const [open, setOpen] = useState(false)
   return (
-    <>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogTrigger asChild>
-          <button onClick={(e) => e.stopPropagation()} aria-label={"comments"} className="p-0.5 focus:outline-none">
-            <FaComment className="text-gray-400 text-lg m-0.5" />
-          </button>
-        </DialogTrigger>
-        <DialogContent onClick={(e) => e.stopPropagation()}>
-          <DialogHeader>
-            <DialogTitle>Comment</DialogTitle>
-          </DialogHeader>
-          <CreateComment parentCommentId={parentCommentId} defaultIsWriting setOpen={setOpen} />
-        </DialogContent>
-      </Dialog>
-    </>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <button onClick={(e) => e.stopPropagation()} aria-label={"comments"} className="p-0.5 focus:outline-none">
+          <FaComment className="text-gray-400 text-lg m-0.5" />
+        </button>
+      </DialogTrigger>
+      <DialogContent onClick={(e) => e.stopPropagation()}>
+        <DialogHeader>
+          <DialogTitle>Comment</DialogTitle>
+        </DialogHeader>
+        <CreateComment parentCommentId={parentCommentId} defaultIsWriting setOpen={setOpen} />
+      </DialogContent>
+    </Dialog>
   )
 }
 

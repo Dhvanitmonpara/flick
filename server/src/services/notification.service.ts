@@ -10,7 +10,6 @@ type TNotificationType =
   | "upvoted_comment"
   | "replied"
   | "posted"
-  | "re-posted";
 
 type TBaseNotification = {
   postId: string;

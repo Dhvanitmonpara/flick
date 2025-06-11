@@ -1,7 +1,6 @@
 import { INotification } from "@/types/Notification"
 import { useNavigate } from "react-router-dom"
 import { PiArrowFatUpFill } from "react-icons/pi";
-import { BiRepost } from "react-icons/bi";
 import { FaComment } from "react-icons/fa";
 
 function NotificationCard({ _redisId, actorUsernames, post, _id, seen, type, content }: Partial<INotification>) {
@@ -15,7 +14,6 @@ function NotificationCard({ _redisId, actorUsernames, post, _id, seen, type, con
       <div className="flex justify-center items-center">
         {(type === "upvoted_post" || type === "upvoted_comment") && <PiArrowFatUpFill className="text-blue-500 text-3xl" />}
         {(type === "replied" || type === "posted") && <FaComment className="text-red-500 text-2xl" />}
-        {type === "re-posted" && <BiRepost className="text-green-500 text-3xl" />}
       </div>
       <div className="flex flex-col">
         {(type === "upvoted_post" || type === "upvoted_comment") && <p>{actorUsernames && actorUsernames[0]} {actorUsernames && actorUsernames.length > 1 ? "and" : ""} {actorUsernames && actorUsernames.length > 2 ? `${actorUsernames.length - 1} others` : actorUsernames && actorUsernames[1]} liked your {type === "upvoted_post" ? "post" : "comment"}</p>}

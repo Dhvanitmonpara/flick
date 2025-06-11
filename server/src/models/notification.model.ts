@@ -31,7 +31,6 @@ const notificationSchema = new mongoose.Schema(
         "upvoted_comment",
         "replied",
         "posted",
-        "re-posted",
       ],
       default: "general",
     },
