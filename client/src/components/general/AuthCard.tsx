@@ -9,7 +9,7 @@ import { env } from "@/conf/env";
 import { IoMdNotifications } from "react-icons/io";
 import { Link } from "react-router-dom";
 
-function AuthCard() {
+function AuthCard({ className }: { className?: string }) {
 
   const [fetching, setFetching] = useState(true)
   const setProfile = useProfileStore(state => state.setProfile);
@@ -39,7 +39,7 @@ function AuthCard() {
   }, [fetchUser])
 
   return (
-    <div className="flex justify-center items-center gap-4">
+    <div className={`flex justify-center items-center gap-4 ${className}`}>
       <ThemeToggler />
       {fetching ? <span className="bg-zinc-300 animate-pulse h-10 w-10 rounded-full"></span> : <>
         <Link to="/notifications">

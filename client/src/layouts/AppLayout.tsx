@@ -1,4 +1,4 @@
-import { ReactNode } from "react"
+import { ReactNode, useState } from "react"
 import { Link, Outlet, useLocation, useSearchParams } from "react-router-dom"
 import { PiCardsThreeFill, PiCardsThreeLight } from "react-icons/pi";
 import { RiGraduationCapFill, RiGraduationCapLine } from "react-icons/ri";
@@ -10,23 +10,39 @@ import useProfileStore from "@/store/profileStore";
 import CreatePost from "@/components/general/CreatePost";
 import AuthCard from "@/components/general/AuthCard";
 import { PostTopic } from "@/types/postTopics";
+import { IoMdArrowDropdown, IoMdArrowDropup } from "react-icons/io";
+import { PostBranches } from "@/types/PostBranchs";
 
 function AppLayout() {
 
-  const profile = useProfileStore(state => state.profile)
   const [searchParams] = useSearchParams();
   const reset = searchParams.get('reset');
 
   return (
     <div className="flex max-w-[88rem] mx-auto w-full min-h-screen pr-8">
-      <div className="hidden md:block w-[270px] space-y-1 py-6 px-4">
+      <Sidebar />
+      <Outlet />
+      {(reset === "true") && <TerminateSessions />}
+    </div>
+  )
+}
+
+function Sidebar() {
+
+  const [showAllBranches, setShowAllBranches] = useState(false);
+  const [showAllTopics, setShowAllTopics] = useState(false);
+
+  const profile = useProfileStore(state => state.profile)
+
+  return (
+    <div className="hidden md:block min-w-[270px] w-[270px] h-screen overflow-y-auto no-scrollbar space-y-1 px-4">
+      <div className="py-6">
         <div className="flex justify-center items-center">
           <Link to="/">
             <img className="h-14 w-14 p-2" src={profile.theme === "dark" ? "/logo-b.png" : "/logo-w.png"} alt="logo" />
           </Link>
         </div>
         <section className="space-y-2">
-          <CreatePost />
           <Tab to="/" text="Feed" activeIcon={<PiCardsThreeFill size={22} />} passiveIcon={<PiCardsThreeLight size={22} />} />
           <Tab to="/college" text="My College" activeIcon={<RiGraduationCapFill size={22} />} passiveIcon={<RiGraduationCapLine size={22} />} />
           <Tab to="/polls" text="Polls" activeIcon={<BiSolidBarChartSquare size={22} />} passiveIcon={<BiBarChartSquare size={22} />} />
@@ -34,19 +50,51 @@ function AppLayout() {
         </section>
         <Separator />
         <Heading text="Branches" />
-        <Tab to="/bca" text="Bca" />
-        <Tab to="/mca" text="Mca" />
-        <Tab to="/btech" text="B.tech" />
-
+        {showAllBranches
+          ? <>
+            {PostBranches.map((branch) => (
+              <Tab key={branch} to={`/branch/${branch.toLowerCase().replace(" ", "+")}`} text={branch} />
+            ))}
+            <button className="flex justify-center items-center space-x-1 cursor-pointer text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 pl-4 py-2" onClick={() => setShowAllBranches(false)}>
+              <span>Show less</span>
+              <IoMdArrowDropup className="text-xl" />
+            </button>
+          </>
+          : <>
+            {PostBranches.filter((_, index) => index < 5).map((branch) => (
+              <Tab key={branch} to={`/branch/${branch.toLowerCase().replace(" ", "+")}`} text={branch} />
+            ))}
+            <button className="flex justify-center items-center space-x-1 cursor-pointer text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 pl-4 py-2" onClick={() => setShowAllBranches(true)}>
+              <span>Show more</span>
+              <IoMdArrowDropdown className="text-xl" />
+            </button>
+          </>
+        }
         <Separator />
         <Heading text="Topics" />
-        {PostTopic.map((topic)=>(
-          <Tab key={topic} to={`/topic/${topic}`} text={topic} />
-        ))}
-        <AuthCard />
+        {showAllTopics
+          ? <>
+            {PostTopic.map((topic) => (
+              <Tab key={topic} to={`/topic/${topic.replace(" / ", "_").replace(" ", "+")}`} text={topic} />
+            ))}
+            <button className="flex justify-center items-center space-x-1 cursor-pointer text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 pl-4 py-2" onClick={() => setShowAllTopics(false)}>
+              <span>Show less</span>
+              <IoMdArrowDropup className="text-xl" />
+            </button>
+          </>
+          : <>
+            {PostTopic.filter((_, index) => index < 5).map((topic) => (
+              <Tab key={topic} to={`/topic/${topic.replace(" / ", "_").replace(" ", "+")}`} text={topic} />
+            ))}
+            <button className="flex justify-center items-center space-x-1 cursor-pointer text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 pl-4 py-2" onClick={() => setShowAllTopics(true)}>
+              <span>Show more</span>
+              <IoMdArrowDropdown className="text-xl" />
+            </button>
+          </>
+        }
       </div>
-      <Outlet />
-      {(reset === "true") && <TerminateSessions />}
+      <CreatePost className="sticky bottom-0" />
+      <AuthCard className="sticky bottom-0 bg-zinc-200 dark:bg-zinc-800 rounded-md" />
     </div>
   )
 }

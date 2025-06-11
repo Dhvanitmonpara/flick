@@ -68,7 +68,6 @@ function Comment({ comment, className, depth = 0 }: { comment: IComment, classNa
               <span className="text-sm font-semibold text-zinc-600 dark:text-zinc-400">View replies ({comment.children.length})</span>
               <IoMdArrowDropdown className="text-xl" />
             </button>
-
         )}
       </Card>
     </>
