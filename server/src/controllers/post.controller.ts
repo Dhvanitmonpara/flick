@@ -58,6 +58,7 @@ const createPost = async (req: Request, res: Response) => {
     const createdPost = await PostModel.create({
       title,
       content,
+      topic,
       postedBy: toObjectId(req.user._id),
       likes: [],
     });
@@ -70,6 +71,7 @@ const createPost = async (req: Request, res: Response) => {
       _id: createdPost._id,
       title: createdPost.title,
       content: createdPost.content,
+      topic: createdPost.topic,
       postedBy: {
         _id: user._id,
         username: user.username,

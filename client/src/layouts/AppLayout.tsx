@@ -9,6 +9,7 @@ import TerminateSessions from "@/components/actions/TerminateSessions";
 import useProfileStore from "@/store/profileStore";
 import CreatePost from "@/components/general/CreatePost";
 import AuthCard from "@/components/general/AuthCard";
+import { PostTopic } from "@/types/postTopics";
 
 function AppLayout() {
 
@@ -36,6 +37,12 @@ function AppLayout() {
         <Tab to="/bca" text="Bca" />
         <Tab to="/mca" text="Mca" />
         <Tab to="/btech" text="B.tech" />
+
+        <Separator />
+        <Heading text="Topics" />
+        {PostTopic.map((topic)=>(
+          <Tab key={topic} to={`/topic/${topic}`} text={topic} />
+        ))}
         <AuthCard />
       </div>
       <Outlet />

@@ -22,7 +22,6 @@ declare global {
           issuedAt: Date;
           userAgent: string;
         }[];
-        bookmarks: Types.ObjectId[];
         branch: string;
         college: Types.ObjectId | null;
       };

@@ -16,7 +16,8 @@ const postSchema = new mongoose.Schema(
       required: true,
     },
     topic: {
-      type: [
+      type: String,
+      enum: [
         "Ask Flick", // AMA-style Q&A
         "Serious Discussion", // Longform thought, critical debate
         "Career Advice", // Jobs, interviews, tech growth

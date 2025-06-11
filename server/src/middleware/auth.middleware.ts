@@ -35,7 +35,6 @@ const lazyVerifyJWT = async (
         howManyTimes: 0,
       },
       refreshTokens: [],
-      bookmarks: [],
       branch: "",
       college: null,
     };
@@ -102,7 +101,6 @@ const verifyUserJWT = async (
       },
       termsAccepted: user.termsAccepted ?? false,
       refreshTokens: [],
-      bookmarks: user.bookmarks,
       branch: user.branch ?? "",
       college: user.college ?? null,
     };
