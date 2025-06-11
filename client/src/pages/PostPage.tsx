@@ -128,7 +128,7 @@ function PostPage() {
           createdAt={formatDate(currentPost.createdAt)}
           upvoteCount={currentPost.upvoteCount}
           downvoteCount={currentPost.downvoteCount}
-          commentsCount={comments?.length ?? 0}
+          commentsCount={currentPost.commentsCount ?? comments?.length ?? 0}
         />
       }
       <CreateComment />

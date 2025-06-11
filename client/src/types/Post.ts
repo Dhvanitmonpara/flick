@@ -14,6 +14,7 @@ export interface IPost extends Document {
   upvoteCount: number;
   downvoteCount: number;
   views: number;
+  commentsCount?: number;
   topic: TPostTopic;
   createdAt: string;
   updatedAt: string;

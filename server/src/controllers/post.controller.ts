@@ -262,6 +262,24 @@ const getPostsForFeed = async (req: Request, res: Response) => {
       },
       {
         $lookup: {
+          from: "comments",
+          localField: "_id",
+          foreignField: "postId",
+          as: "postComments",
+        },
+      },
+      {
+        $addFields: {
+          commentsCount: { $size: "$postComments" },
+        },
+      },
+      {
+        $project: {
+          userComments: 0, // clean up junk
+        },
+      },
+      {
+        $lookup: {
           from: "votes",
           localField: "_id",
           foreignField: "postId",
@@ -369,6 +387,7 @@ const getPostsForFeed = async (req: Request, res: Response) => {
         content: 1,
         views: 1,
         createdAt: 1,
+        commentsCount: 1,
         upvoteCount: 1,
         downvoteCount: 1,
         userVote: 1,
@@ -626,4 +645,11 @@ const IncrementView = async (req: Request, res: Response) => {
   }
 };
 
-export { createPost, updatePost, deletePost, getPostById, getPostsForFeed, IncrementView };
+export {
+  createPost,
+  updatePost,
+  deletePost,
+  getPostById,
+  getPostsForFeed,
+  IncrementView,
+};

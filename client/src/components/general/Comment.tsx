@@ -13,8 +13,11 @@ import EngagementComponent from "./EngagementComponent";
 import PostDropdown from "../actions/PostDropdown";
 import { isCollege, isUser } from "@/utils/helpers";
 import { IComment } from "@/types/Comment";
+import { useState } from "react";
+import { IoMdArrowDropdown, IoMdArrowDropup } from "react-icons/io";
 
 function Comment({ comment, className, depth = 0 }: { comment: IComment, className?: string, depth?: number }) {
+  const [isExpanded, setIsExpanded] = useState(false);
   return (
     <>
       <Card className={`dark:bg-transparent bg-transparent border-x-0 shadow-none rounded-none ${className}`}>
@@ -48,14 +51,24 @@ function Comment({ comment, className, depth = 0 }: { comment: IComment, classNa
           <EngagementComponent userVote={comment.userVote ?? null} _id={comment._id} targetType="comment" initialCounts={{ upvotes: comment.upvoteCount, downvotes: comment.downvoteCount, comments: comment.children?.length ?? 0 }} key={comment._id} show={['upvotes', "downvotes", "comments"]} />
         </CardFooter>
         {comment.children && comment.children.length > 0 && (
-          <div
-            className={`ml-6 pl-4 border-l-2 pt-2 ${depth > 3 ? "ml-2" : ""
-              } border-zinc-300 dark:border-zinc-700`}
-          >
-            {comment.children.map((child) => (
-              <Comment key={child._id} comment={child} depth={depth + 1} />
-            ))}
-          </div>
+          isExpanded ?
+            <div
+              className={`ml-6 pl-4 border-l-2 pt-2 ${depth > 3 ? "ml-2" : ""
+                } border-zinc-300 dark:border-zinc-700`}
+            >
+              {comment.children.map((child) => (
+                <Comment key={child._id} comment={child} depth={depth + 1} />
+              ))}
+              <button className="px-3 p-2 ml-4 my-2 transition-colors flex space-x-2 justify-center items-center hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-md" onClick={() => setIsExpanded(false)}>
+                <span className="text-sm font-semibold text-zinc-600 dark:text-zinc-400">Hide replies</span>
+                <IoMdArrowDropup className="text-xl" />
+              </button>
+            </div>
+            : <button className="px-3 p-2 ml-4 mb-2 transition-colors flex space-x-2 justify-center items-center hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-md" onClick={() => setIsExpanded(true)}>
+              <span className="text-sm font-semibold text-zinc-600 dark:text-zinc-400">View replies ({comment.children.length})</span>
+              <IoMdArrowDropdown className="text-xl" />
+            </button>
+
         )}
       </Card>
     </>

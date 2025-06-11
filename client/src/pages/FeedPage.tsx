@@ -90,7 +90,7 @@ function FeedPage() {
                   createdAt={formatDate(post.createdAt)}
                   upvoteCount={post.upvoteCount}
                   downvoteCount={post.downvoteCount}
-                  commentsCount={0}
+                  commentsCount={post.commentsCount ?? 0}
                 />
               )
             }
@@ -115,7 +115,7 @@ function FeedPage() {
                 createdAt={formatDate(post.createdAt)}
                 upvoteCount={post.upvoteCount}
                 downvoteCount={post.downvoteCount}
-                commentsCount={0}
+                commentsCount={post.commentsCount ?? 0}
               />
             )
           })
