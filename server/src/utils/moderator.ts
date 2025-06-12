@@ -7,7 +7,7 @@ export type ValidationResult =
   | { allowed: false; reasons: string[] }
   | { allowed: true };
 
-export async function validatePost(content: string): Promise<ValidationResult> {
+export async function validateContent(content: string): Promise<ValidationResult> {
   // Detect language (simplified version - you might want to use a proper language detection library)
   // For now, default to English
   const language = "en"; // This could be replaced with actual language detection

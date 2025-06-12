@@ -3,14 +3,17 @@ import { PostModel } from "../models/post.model.js";
 import handleError from "../utils/HandleError.js";
 import { ApiError } from "../utils/ApiError.js";
 import mongoose, { Types } from "mongoose";
-import { validatePost } from "../utils/moderator.js";
 import { toObjectId } from "../utils/toObject.js";
 import { CommentModel } from "../models/comment.model.js";
 import VoteModel from "../models/vote.model.js";
-import userModel from "../models/user.model.js";
 import { logEvent } from "../services/log.service.js";
 import PostTopic from "../types/PostTopic.js";
 import redisClient from "../services/redis.service.js";
+import PostService from "../services/post.service.js";
+import UserService from "../services/user.service.js";
+
+const postService = new PostService();
+const userService = new UserService();
 
 const createPost = async (req: Request, res: Response) => {
   try {
@@ -20,47 +23,41 @@ const createPost = async (req: Request, res: Response) => {
     if (!PostTopic.includes(topic)) throw new ApiError(400, "Topic is invalid");
     if (!req.user?._id) throw new ApiError(401, "Unauthorized");
 
-    const result = await validatePost(content);
-    if (!result.allowed) {
-      const msg =
-        result.reasons.length === 1
-          ? result.reasons[0]
-          : result.reasons.slice(0, -1).join(", ") +
-            " and " +
-            result.reasons.at(-1);
+    const {
+      allowed,
+      reasons: [msg],
+    } = await postService.validatePost(content);
 
+    if (!allowed)
       throw new ApiError(400, `Your post was blocked because ${msg}.`);
-    }
 
-    const user = await userModel
-      .findById(req.user?._id)
-      .populate({ path: "college", select: "_id name profile" })
-      .select("_id username branch college")
-      .lean<{
+    const user = await userService.getUserByIdAndPopulate<{
+      _id: Types.ObjectId;
+      username: string;
+      branch: string;
+      isBlocked: boolean;
+      suspension: {
+        ends: Date | null;
+        reason: string | null;
+        howManyTimes: number;
+      };
+      college: {
         _id: Types.ObjectId;
-        username: string;
-        branch: string;
-        isBlocked: boolean;
-        suspension: {
-          ends: Date | null;
-          reason: string | null;
-          howManyTimes: number;
-        };
-        college: {
-          _id: Types.ObjectId;
-          name: string;
-          profile: string;
-        };
-      }>();
+        name: string;
+        profile: string;
+      };
+    }>(req.user._id, {
+      select: ["_id", "username", "branch", "college"],
+      populate: [{ path: "college", select: "_id name profile" }],
+    });
 
     if (!user || !user.college) throw new ApiError(404, "User not found");
 
-    const createdPost = await PostModel.create({
+    const createdPost = await postService.create({
       title,
       content,
       topic,
       postedBy: toObjectId(req.user._id),
-      likes: [],
     });
 
     if (!createdPost) {
@@ -125,16 +122,11 @@ const updatePost = async (req: Request, res: Response) => {
 
     if (!req.user || !req.user?._id) throw new ApiError(401, "Unauthorized");
 
-    const updateFields: any = {};
+    const updateFields: Partial<Record<string, any>> = {};
     if (title) updateFields.title = title;
     if (content) updateFields.content = content;
 
-    const response = await PostModel.findByIdAndUpdate(
-      toObjectId(postId),
-      { $set: updateFields },
-      { new: true }
-    );
-
+    const response = await postService.update(toObjectId(postId), updateFields);
     if (!response) throw new ApiError(404, "Post not found");
 
     logEvent({
@@ -173,7 +165,7 @@ const deletePost = async (req: Request, res: Response) => {
 
     const objectPostId = toObjectId(postId);
 
-    const post = await PostModel.findById(objectPostId);
+    const post = await PostModel.findById(objectPostId).select("_id");
     if (!post) {
       throw new ApiError(404, "Post not found");
     }
@@ -218,198 +210,11 @@ const getPostsForFeed = async (req: Request, res: Response) => {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
 
-    const aggregationPipeline: any[] = [
-      {
-        $match: {
-          isBanned: false,
-          isShadowBanned: false,
-        },
-      },
-      {
-        $sort: { createdAt: -1 },
-      },
-      {
-        $skip: (page - 1) * limit,
-      },
-      {
-        $limit: limit,
-      },
-      {
-        $lookup: {
-          from: "users",
-          localField: "postedBy",
-          foreignField: "_id",
-          as: "postedBy",
-        },
-      },
-      {
-        $unwind: {
-          path: "$postedBy",
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $lookup: {
-          from: "colleges",
-          localField: "postedBy.college",
-          foreignField: "_id",
-          as: "postedBy.college",
-        },
-      },
-      {
-        $unwind: {
-          path: "$postedBy.college",
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $lookup: {
-          from: "comments",
-          localField: "_id",
-          foreignField: "postId",
-          as: "postComments",
-        },
-      },
-      {
-        $addFields: {
-          commentsCount: { $size: "$postComments" },
-        },
-      },
-      {
-        $project: {
-          userComments: 0, // clean up junk
-        },
-      },
-      {
-        $lookup: {
-          from: "votes",
-          localField: "_id",
-          foreignField: "postId",
-          as: "votes",
-        },
-      },
-      {
-        $addFields: {
-          upvoteCount: {
-            $size: {
-              $filter: {
-                input: "$votes",
-                as: "vote",
-                cond: { $eq: ["$$vote.voteType", "upvote"] },
-              },
-            },
-          },
-          downvoteCount: {
-            $size: {
-              $filter: {
-                input: "$votes",
-                as: "vote",
-                cond: { $eq: ["$$vote.voteType", "downvote"] },
-              },
-            },
-          },
-        },
-      },
-    ];
-
-    if (req.user?._id) {
-      aggregationPipeline.push(
-        {
-          $lookup: {
-            from: "votes",
-            let: {
-              postId: "$_id",
-              userId: toObjectId(req.user?._id),
-            },
-            pipeline: [
-              {
-                $match: {
-                  $expr: {
-                    $and: [
-                      { $eq: ["$postId", "$$postId"] },
-                      { $eq: ["$userId", "$$userId"] },
-                    ],
-                  },
-                },
-              },
-              {
-                $project: {
-                  _id: 0,
-                  voteType: 1,
-                },
-              },
-            ],
-            as: "userVote",
-          },
-        },
-        {
-          $addFields: {
-            userVote: { $arrayElemAt: ["$userVote.voteType", 0] },
-          },
-        },
-        {
-          $lookup: {
-            from: "bookmarks",
-            let: {
-              postId: "$_id",
-              userId: toObjectId(req.user?._id),
-            },
-            pipeline: [
-              {
-                $match: {
-                  $expr: {
-                    $and: [
-                      { $eq: ["$postId", "$$postId"] },
-                      { $eq: ["$userId", "$$userId"] },
-                    ],
-                  },
-                },
-              },
-              { $project: { _id: 1 } },
-            ],
-            as: "bookmarkEntry",
-          },
-        },
-        {
-          $addFields: {
-            bookmarked: { $gt: [{ $size: "$bookmarkEntry" }, 0] },
-          },
-        },
-        {
-          $project: {
-            bookmarkEntry: 0,
-          },
-        }
-      );
-    }
-
-    aggregationPipeline.push({
-      $project: {
-        title: 1,
-        content: 1,
-        views: 1,
-        createdAt: 1,
-        commentsCount: 1,
-        upvoteCount: 1,
-        downvoteCount: 1,
-        userVote: 1,
-        bookmarked: 1,
-        topic: 1,
-        postedBy: {
-          _id: 1,
-          username: 1,
-          branch: 1,
-          college: {
-            _id: 1,
-            name: 1,
-            profile: 1,
-            email: 1,
-          },
-        },
-      },
+    const posts = await postService.findPostsAndPopulate({
+      page,
+      limit,
+      userId: req.user?._id || null,
     });
-
-    const posts = await PostModel.aggregate(aggregationPipeline);
 
     res.status(200).json({
       posts,
@@ -436,171 +241,10 @@ const getPostById = async (req: Request, res: Response) => {
       throw new ApiError(400, "Invalid post ID.");
     }
 
-    const aggregationPipeline: any[] = [
-      {
-        $match: {
-          _id: new mongoose.Types.ObjectId(id),
-          isBanned: false,
-          isShadowBanned: false,
-        },
-      },
-      {
-        $lookup: {
-          from: "users",
-          localField: "postedBy",
-          foreignField: "_id",
-          as: "postedBy",
-        },
-      },
-      {
-        $unwind: {
-          path: "$postedBy",
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $lookup: {
-          from: "colleges",
-          localField: "postedBy.college",
-          foreignField: "_id",
-          as: "postedBy.college",
-        },
-      },
-      {
-        $unwind: {
-          path: "$postedBy.college",
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $lookup: {
-          from: "votes",
-          localField: "_id",
-          foreignField: "postId",
-          as: "votes",
-        },
-      },
-      {
-        $addFields: {
-          upvoteCount: {
-            $size: {
-              $filter: {
-                input: "$votes",
-                as: "vote",
-                cond: { $eq: ["$$vote.voteType", "upvote"] },
-              },
-            },
-          },
-          downvoteCount: {
-            $size: {
-              $filter: {
-                input: "$votes",
-                as: "vote",
-                cond: { $eq: ["$$vote.voteType", "downvote"] },
-              },
-            },
-          },
-        },
-      },
-    ];
-
-    if (req.user?._id) {
-      aggregationPipeline.push(
-        {
-          $lookup: {
-            from: "votes",
-            let: {
-              postId: "$_id",
-              userId: toObjectId(req.user._id),
-            },
-            pipeline: [
-              {
-                $match: {
-                  $expr: {
-                    $and: [
-                      { $eq: ["$postId", "$$postId"] },
-                      { $eq: ["$userId", "$$userId"] },
-                    ],
-                  },
-                },
-              },
-              {
-                $project: {
-                  _id: 0,
-                  voteType: 1,
-                },
-              },
-            ],
-            as: "userVote",
-          },
-        },
-        {
-          $addFields: {
-            userVote: { $arrayElemAt: ["$userVote.voteType", 0] },
-          },
-        },
-        {
-          $lookup: {
-            from: "bookmarks",
-            let: {
-              postId: "$_id",
-              userId: toObjectId(req.user?._id),
-            },
-            pipeline: [
-              {
-                $match: {
-                  $expr: {
-                    $and: [
-                      { $eq: ["$postId", "$$postId"] },
-                      { $eq: ["$userId", "$$userId"] },
-                    ],
-                  },
-                },
-              },
-              { $project: { _id: 1 } },
-            ],
-            as: "bookmarkEntry",
-          },
-        },
-        {
-          $addFields: {
-            bookmarked: { $gt: [{ $size: "$bookmarkEntry" }, 0] },
-          },
-        },
-        {
-          $project: {
-            bookmarkEntry: 0,
-          },
-        }
-      );
-    }
-
-    aggregationPipeline.push({
-      $project: {
-        title: 1,
-        content: 1,
-        views: 1,
-        createdAt: 1,
-        upvoteCount: 1,
-        topic: 1,
-        downvoteCount: 1,
-        userVote: 1,
-        bookmarked: 1,
-        postedBy: {
-          _id: 1,
-          username: 1,
-          branch: 1,
-          college: {
-            _id: 1,
-            name: 1,
-            profile: 1,
-            email: 1,
-          },
-        },
-      },
-    });
-
-    const posts = await PostModel.aggregate(aggregationPipeline);
+    const posts = await postService.getPostByIdAndPopulate({
+      postId: id,
+      userId: req.user?._id || null,
+    })
 
     if (!posts || posts.length === 0) {
       throw new ApiError(404, "Post not found");
@@ -622,19 +266,7 @@ const IncrementView = async (req: Request, res: Response) => {
     const { postId } = req.params;
     if (!postId) throw new ApiError(400, "Post ID is required");
 
-    const currentIp =
-      req.headers["cf-connecting-ip"] ||
-      req.headers["x-forwarded-for"] ||
-      req.ip;
-    const ip = Array.isArray(currentIp) ? currentIp[0] : currentIp || "";
-
-    const redisKey = `view:${postId}:${ip}`;
-    const alreadyViewed = await redisClient.get(redisKey);
-
-    if (!alreadyViewed) {
-      await PostModel.findByIdAndUpdate(postId, { $inc: { views: 1 } });
-      await redisClient.set(redisKey, 1, "EX", 60 * 60 * 4); // 4 hours
-    }
+    await postService.incrementView(toObjectId(postId), req);
 
     res.status(200).json({ message: "View processed" });
   } catch (error) {
