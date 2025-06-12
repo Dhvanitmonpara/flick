@@ -12,146 +12,14 @@ import handleError from "../utils/HandleError.js";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import sendMail from "../utils/sendMail.js";
 import OtpVerifier from "../services/otpVerifier.service.js";
-import { generateUuidBasedUsername } from "../services/user.services.js";
 import CollegeModel from "../models/college.model.js";
 import { env } from "../conf/env.js";
 import { logEvent } from "../services/log.service.js";
 import redisClient from "../services/redis.service.js";
-import generateDeviceFingerprint, {
-  getDeviceName,
-  getLocationFromIP,
-} from "../utils/generateDeviceFingerprint.js";
+import generateDeviceFingerprint from "../utils/generateDeviceFingerprint.js";
+import UserService, { UserDocument } from "../services/user.service.js";
 
-const options = {
-  httpOnly: true,
-  secure: process.env.ENVIRONMENT === "production",
-  sameSite:
-    process.env.NODE_ENV === "production"
-      ? ("none" as "none")
-      : ("lax" as "lax"),
-};
-
-const accessTokenExpiry = 60 * 1000 * parseInt(env.accessTokenExpiry); // In minutes
-const refreshTokenExpiry =
-  60 * 60 * 1000 * 24 * parseInt(env.refreshTokenExpiry); // In days
-
-export interface UserDocument extends Document {
-  password: string;
-  username: string;
-  _id: mongoose.Types.ObjectId | string;
-  isBlocked: boolean;
-  suspension: {
-    ends: Date;
-    reason: string;
-    howManyTimes: number;
-  };
-  email?: string;
-  isVerified: boolean;
-  refreshTokens: {
-    token: string;
-    ip: string;
-    issuedAt: Date;
-    userAgent: string;
-  }[];
-  isPasswordCorrect(password: string): Promise<boolean>;
-  save({
-    validateBeforeSave,
-  }: {
-    validateBeforeSave: boolean;
-  }): Promise<UserDocument>;
-  generateAccessToken(): string;
-  generateRefreshToken(): string;
-}
-
-async function isUsernameTaken(username: string) {
-  const existingUser = await userModel.findOne({ username }).exec();
-  return !!existingUser;
-}
-
-const generateUsername = async () => {
-  return generateUuidBasedUsername(isUsernameTaken);
-};
-
-const generateAccessAndRefreshToken = async (
-  userId: mongoose.Types.ObjectId,
-  req: Request
-) => {
-  try {
-    const user = (await userModel.findById(userId)) as UserDocument;
-    const accessToken = user.generateAccessToken();
-    const refreshToken = user.generateRefreshToken();
-    const userAgent = await generateDeviceFingerprint(req);
-    const rawIp =
-      req.headers["cf-connecting-ip"] ||
-      req.headers["x-forwarded-for"] ||
-      req.ip;
-
-    const ip = (Array.isArray(rawIp) ? rawIp[0] : rawIp || "")
-      .split(",")[0]
-      .trim();
-
-    // Find existing token index for this ip + userAgent
-    const existingTokenIndex = user.refreshTokens.findIndex(
-      (t) => t.ip === ip && t.userAgent === userAgent
-    );
-
-    if (existingTokenIndex !== -1) {
-      // Update the existing token in the array
-      user.refreshTokens[existingTokenIndex] = {
-        token: refreshToken,
-        userAgent,
-        ip,
-        issuedAt: new Date(),
-      };
-    } else {
-      if (!user.email) throw new ApiError(400, "Email is required");
-      user.refreshTokens.push({
-        token: refreshToken,
-        userAgent,
-        ip,
-        issuedAt: new Date(),
-      });
-      const decryptedEmail = await decrypt(user.email);
-      sendMail(decryptedEmail, "NEW-DEVICE-LOGIN", {
-        deviceName: getDeviceName(req.headers["user-agent"] || ""),
-        time: new Date().toUTCString(),
-        location: await getLocationFromIP(req),
-        email: decryptedEmail,
-      });
-    }
-
-    await user.save({ validateBeforeSave: false });
-
-    return { accessToken, refreshToken, userAgent, ip };
-  } catch (error) {
-    throw new ApiError(
-      500,
-      "Something went wrong while generating access and refresh token"
-    );
-  }
-};
-
-function validateStudentEmail(email: string) {
-  if (typeof email !== "string") {
-    throw new ApiError(400, "Invalid email format");
-  }
-
-  const parts = email.split("@");
-  if (parts.length !== 2) {
-    throw new ApiError(400, "Invalid email structure");
-  }
-
-  const [localPart, domain] = parts;
-
-  if (!/^\d+$/.test(localPart)) {
-    throw new ApiError(400, "Enrollment ID must be numeric");
-  }
-
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-  if (!emailRegex.test(email)) {
-    throw new ApiError(400, "Invalid email address format");
-  }
-}
+const userService = new UserService();
 
 export const heartbeat = async (req: Request, res: Response) => {
   const token = req.cookies?.__accessToken;
@@ -179,7 +47,7 @@ export const initializeUser = async (req: Request, res: Response) => {
     if (!email || !password || !branch)
       throw new ApiError(400, "All fields are required");
 
-    validateStudentEmail(email);
+    userService.validateStudentEmail(email);
 
     const college = await CollegeModel.findOne({
       emailDomain: email.split("@")[1],
@@ -269,7 +137,7 @@ export const registerUser = async (req: Request, res: Response) => {
       college: string;
     };
 
-    const username = await generateUsername();
+    const username = await userService.generateUsername();
 
     const createdUser = await userModel.create({
       username,
@@ -287,7 +155,7 @@ export const registerUser = async (req: Request, res: Response) => {
     }
 
     const { accessToken, refreshToken, userAgent, ip } =
-      await generateAccessAndRefreshToken(createdUser._id, req);
+      await userService.generateAccessAndRefreshToken(createdUser._id, req);
 
     if (!accessToken || !refreshToken) {
       res
@@ -314,12 +182,12 @@ export const registerUser = async (req: Request, res: Response) => {
     res
       .status(201)
       .cookie("__accessToken", accessToken, {
-        ...options,
-        maxAge: accessTokenExpiry,
+        ...userService.options,
+        maxAge: userService.accessTokenExpiry,
       })
       .cookie("__refreshToken", refreshToken, {
-        ...options,
-        maxAge: refreshTokenExpiry,
+        ...userService.options,
+        maxAge: userService.refreshTokenExpiry,
       })
       .json({
         message: "Form submitted successfully!",
@@ -371,7 +239,7 @@ export const loginUser = async (req: Request, res: Response) => {
       throw new ApiError(400, "Invalid password");
 
     const { accessToken, refreshToken, userAgent, ip } =
-      await generateAccessAndRefreshToken(
+      await userService.generateAccessAndRefreshToken(
         existingUser._id as mongoose.Types.ObjectId,
         req
       );
@@ -397,12 +265,12 @@ export const loginUser = async (req: Request, res: Response) => {
     res
       .status(200)
       .cookie("__accessToken", accessToken, {
-        ...options,
-        maxAge: accessTokenExpiry,
+        ...userService.options,
+        maxAge: userService.accessTokenExpiry,
       })
       .cookie("__refreshToken", refreshToken, {
-        ...options,
-        maxAge: refreshTokenExpiry,
+        ...userService.options,
+        maxAge: userService.refreshTokenExpiry,
       })
       .json({
         message: "User logged in successfully!",
@@ -514,8 +382,8 @@ export const logoutUser = async (req: Request, res: Response) => {
 
     res
       .status(200)
-      .clearCookie("__accessToken", { ...options, maxAge: 0 })
-      .clearCookie("__refreshToken", { ...options, maxAge: 0 })
+      .clearCookie("__accessToken", { ...userService.options, maxAge: 0 })
+      .clearCookie("__refreshToken", { ...userService.options, maxAge: 0 })
       .json({ message: "User logged out successfully" });
   } catch (error) {
     handleError(error as ApiError, res, "Failed to logout", "LOGOUT_ERROR");
@@ -600,7 +468,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
     const decryptedPassword = await decrypt(storedPassword);
 
     const { accessToken, refreshToken, ip, userAgent } =
-      await generateAccessAndRefreshToken(user._id, req);
+      await userService.generateAccessAndRefreshToken(user._id, req);
 
     user.password = decryptedPassword;
     const matchingTokenIndex = user.refreshTokens.findIndex(
@@ -633,8 +501,14 @@ export const forgotPassword = async (req: Request, res: Response) => {
 
     res
       .status(200)
-      .cookie("__accessToken", accessToken, options)
-      .cookie("__refreshToken", refreshToken, options)
+      .cookie("__accessToken", accessToken, {
+        ...userService.options,
+        maxAge: userService.accessTokenExpiry,
+      })
+      .cookie("__refreshToken", refreshToken, {
+        ...userService.options,
+        maxAge: userService.refreshTokenExpiry,
+      })
       .json({
         message: "Password updated successfully",
       });
@@ -678,20 +552,21 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
       throw new ApiError(401, "Refresh token is invalid or not recognized");
     }
 
-    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
-      user._id as mongoose.Types.ObjectId,
-      req
-    );
+    const { accessToken, refreshToken } =
+      await userService.generateAccessAndRefreshToken(
+        user._id as mongoose.Types.ObjectId,
+        req
+      );
 
     res
       .status(200)
       .cookie("__accessToken", accessToken, {
-        ...options,
-        maxAge: accessTokenExpiry,
+        ...userService.options,
+        maxAge: userService.accessTokenExpiry,
       })
       .cookie("__refreshToken", refreshToken, {
-        ...options,
-        maxAge: refreshTokenExpiry,
+        ...userService.options,
+        maxAge: userService.refreshTokenExpiry,
       })
       .json({ message: "Access token refreshed successfully" });
   } catch (error) {

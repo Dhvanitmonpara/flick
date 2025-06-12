@@ -7,8 +7,6 @@ import { PostModel } from "../models/post.model.js";
 import { CommentModel } from "../models/comment.model.js";
 import { logEvent } from "../services/log.service.js";
 import { TLogAction } from "../types/Log.js";
-import redisClient from "../services/redis.service.js";
-import { io } from "../app.js";
 import { notifyUserActivity } from "../jobs/notification/processor.js";
 
 export const createVote = async (req: Request, res: Response) => {
