@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { io } from "../app.js";
+import { io } from "../services/socket.service.js";
 import NotificationService from "../services/notification.service.js";
 import redisClient from "../services/redis.service.js";
 import { ApiError } from "../utils/ApiError.js";

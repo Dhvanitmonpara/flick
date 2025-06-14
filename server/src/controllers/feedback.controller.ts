@@ -58,14 +58,14 @@ export async function listFeedbacks(req: Request, res: Response) {
   try {
     if (!req.admin) throw new ApiError(401, "Unauthorized");
     const { limit = "50", skip = "0" } = req.query;
-
+    
     const parsedLimit = Math.max(1, Math.min(100, Number(limit)));
     const parsedSkip = Math.max(0, Number(skip));
-
+    
     const feedbacks = await FeedbackModel.find()
-      .sort({ createdAt: -1 })
-      .limit(parsedLimit)
-      .skip(parsedSkip)
+    .sort({ createdAt: -1 })
+    .limit(parsedLimit)
+    .skip(parsedSkip)
       .lean();
 
     if (!feedbacks) throw new ApiError(404, "Feedbacks not found");

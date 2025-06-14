@@ -2,20 +2,15 @@ import http from "http";
 import { env } from "./conf/env.js";
 import express from "express";
 import cors, { CorsOptions } from "cors";
-import { Server } from "socket.io";
 import cookieParser from "cookie-parser";
-// import './socketHandler.js'
+import "./services/socket.service.js"
+import "./jobs/cron/monthly.cron.js"
+import "./jobs/cron/weekly.cron.js"
 
 const allowedOrigins = [env.accessControlOrigin, env.adminAccessControlOrigin];
 
 const app = express();
-const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: allowedOrigins,
-    methods: ["GET", "POST"],
-  },
-});
+const server = http.createServer(app)
 
 const corsOptions: CorsOptions = {
   origin: (origin, callback) => {
@@ -30,21 +25,6 @@ const corsOptions: CorsOptions = {
   allowedHeaders: ["Content-Type", "Authorization"],
   optionsSuccessStatus: 200,
 };
-
-async function shutdown() {
-  await Promise.all([
-    highPriorityQueue.close(),
-    lowPriorityQueue.close(),
-    deadLetterQueue.close(),
-    notificationWorker.close(),
-    redisClient.quit(),
-  ]);
-
-  process.exit();
-}
-
-process.on("SIGINT", shutdown);
-process.on("SIGTERM", shutdown);
 
 // CORS middleware
 app.use(cors(corsOptions));
@@ -77,12 +57,6 @@ import {
   authLimiter,
   rateLimitMiddleware,
 } from "./middleware/ratelimit.middleware.js";
-import {
-  deadLetterQueue,
-  highPriorityQueue,
-  lowPriorityQueue,
-} from "./services/queue.service.js";
-import notificationWorker from "./workers/notification.worker.js";
 import redisClient from "./services/redis.service.js";
 
 // global middlewares
@@ -145,9 +119,8 @@ app.use(
 );
 app.use(
   `${commonAdminRoute}auth`,
-  verifyAdminJWT,
   rateLimitMiddleware(authLimiter),
   adminRouter
 );
 
-export { app, server, io };
+export { app, server, allowedOrigins };

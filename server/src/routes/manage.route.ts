@@ -40,8 +40,8 @@ router.route("/users/block/:userId").patch(blockUser);
 router.route("/users/unblock/:userId").patch(unblockUser);
 router.route("/users/suspension/:userId").patch(suspendUser).get(getSuspensionStatus);
 
-router.route("/feedback/:id").get(getFeedbackById).delete(deleteFeedback);
-router.route("/feedback/status/:id").get(getFeedbackById).delete(deleteFeedback).patch(updateFeedbackStatus)
+router.route("/feedback/single/:id").get(getFeedbackById).delete(deleteFeedback);
+router.route("/feedback/status/:id").patch(updateFeedbackStatus)
 router.route("/feedback/all").get(listFeedbacks)
 
 router.route("/logs").get(getLogs)

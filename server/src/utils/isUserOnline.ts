@@ -1,4 +1,4 @@
-import { io } from "../app.js";
+import { io } from "../services/socket.service.js";
 
 async function isUserOnline(userId: string): Promise<boolean> {
   const sockets = await io.in(userId).fetchSockets();

@@ -8,7 +8,6 @@ import { CommentModel } from "../models/comment.model.js";
 import VoteModel from "../models/vote.model.js";
 import { logEvent } from "../services/log.service.js";
 import PostTopic from "../types/PostTopic.js";
-import redisClient from "../services/redis.service.js";
 import PostService from "../services/post.service.js";
 import UserService from "../services/user.service.js";
 

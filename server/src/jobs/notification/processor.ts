@@ -1,5 +1,5 @@
 import redisClient from "../../services/redis.service.js";
-import { io } from "../../app.js";
+import { io } from "../../services/socket.service.js";
 import CircuitBreaker from "./circuiteBreaker.helper.js";
 import Lock from "./lock.helper.js";
 import NotificationService, {

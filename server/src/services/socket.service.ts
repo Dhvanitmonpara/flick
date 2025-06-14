@@ -1,4 +1,12 @@
-import { io } from "./app.js";
+import { Server } from "socket.io";
+import { allowedOrigins, server } from "../app.js";
+
+const io = new Server(server, {
+  cors: {
+    origin: allowedOrigins,
+    methods: ["GET", "POST"],
+  },
+});
 
 const handleSocketError = (socket: any, error: any) => {
   console.error(`Socket ${socket.id} error:`, error);
@@ -29,3 +37,5 @@ io.on("connection", (socket) => {
     }
   });
 });
+
+export { io };
