@@ -5,7 +5,6 @@ import handleError from "../utils/HandleError.js";
 import mongoose from "mongoose";
 import { hashEmailForLookup, hashOTP } from "../utils/cryptographer.js";
 import sendMail from "../utils/sendMail.js";
-import crypto from "crypto";
 import { logEvent } from "../services/log.service.js";
 import redisClient from "../services/redis.service.js";
 import generateDeviceFingerprint from "../utils/generateDeviceFingerprint.js";

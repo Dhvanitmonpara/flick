@@ -57,7 +57,6 @@ import {
   authLimiter,
   rateLimitMiddleware,
 } from "./middleware/ratelimit.middleware.js";
-import redisClient from "./services/redis.service.js";
 
 // global middlewares
 app.use(sessionMiddleware);
