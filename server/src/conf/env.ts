@@ -14,6 +14,7 @@ export const env = {
   encryptionKey: process.env.ENCRYPTION_KEY,
   adminAccessTokenSecret: process.env.ADMIN_ACCESS_TOKEN_SECRET,
   pepper: process.env.PEPPER,
+  userCheckDisposableMailApiKey: process.env.USERCHECK_DISPOSABLE_MAIL_API_KEY,
   perspectiveApiKey: process.env.PERSPECTIVE_API_KEY,
   gmailUser: process.env.GMAIL_USER,
   gmailAppPassword: process.env.GMAIL_APP_PASSWORD,

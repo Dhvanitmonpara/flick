@@ -54,10 +54,12 @@ export const initializeUser = async (req: Request, res: Response) => {
     });
     if (!college) throw new ApiError(404, "College not found");
 
-    const hashedEmail = await hashEmailForLookup(email.toLowerCase());
-    const existingUser = await userModel.findOne({ email: hashedEmail });
+    if (await userService.checkDisposableMail(email))
+      throw new ApiError(400, "Disposable email is not allowed");
 
-    if (existingUser)
+    const hashedEmail = await hashEmailForLookup(email.toLowerCase());
+
+    if (await userModel.findOne({ email: hashedEmail }))
       throw new ApiError(400, "User with this email already exists");
 
     const user = {

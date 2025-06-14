@@ -15,6 +15,8 @@ import generateDeviceFingerprint, {
 } from "../utils/generateDeviceFingerprint.js";
 import sendMail from "../utils/sendMail.js";
 import { Request } from "express";
+import axios from "axios";
+import { isDisposableEmail, isDisposableEmailDomain } from "disposable-email-domains-js";
 
 export interface UserDocument extends Document {
   password: string;
@@ -175,6 +177,43 @@ class UserService {
       throw new ApiError(400, "Invalid email address format");
     }
   }
+
+  checkDisposableMail = async (email: string) => {
+    try {
+      const emailDomain = email.split("@")[1];
+      const isDisposable = isDisposableEmail(email) || isDisposableEmailDomain(emailDomain);
+
+      if (isDisposable) {
+        return true;
+      }
+
+      const { data } = await axios.get(
+        `https://api.usercheck.com/email/${email}`,
+        {
+          headers: {
+            Authorization: `Bearer ${env.userCheckDisposableMailApiKey}`,
+          },
+        }
+      );
+
+      if (!data) {
+        return false;
+      }
+
+      const { disposable } = data;
+      if (typeof disposable !== "boolean") {
+        return false;
+      }
+      return disposable;
+    } catch (error) {
+      if (error instanceof Error) {
+        console.log("Error while checking disposable mail", error.message);
+      } else {
+        console.log("Error while checking disposable mail", error);
+      }
+      return false;
+    }
+  };
 
   async getUserByIdAndPopulate<T = any>(
     userId: Types.ObjectId,

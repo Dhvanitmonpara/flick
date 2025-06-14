@@ -17,6 +17,7 @@
     "bullmq": "^5.53.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
+    "disposable-email-domains-js": "^1.12.0",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "ioredis": "^5.6.1",
