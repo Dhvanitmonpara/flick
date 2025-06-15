@@ -77,14 +77,14 @@ function NotificationButton() {
       });
     });
 
-    socket.on("notifications-count", (notification) => {
+    socket.on("notification-count", (notification) => {
       console.log(notification)
       setNotificationCount(notification.count);
     })
 
     return () => {
       socket.off("notification");
-      socket.off("notifications-count");
+      socket.off("notification-count");
     };
   }, [socket])
 
@@ -95,9 +95,11 @@ function NotificationButton() {
   return (
     <Link className="relative" to="/notifications">
       <IoMdNotifications />
-      {notificationCount > 0 && <span className="absolute top-0 right-0 text-xs w-4 h-4 flex justify-center items-center bg-red-500 rounded-full">
-        {notificationCount}
-      </span>}
+      {notificationCount > 0
+        && <span className="absolute top-0 right-0 text-xs w-4 h-4 flex justify-center items-center bg-red-500 text-zinc-100 rounded-full">
+          {notificationCount}
+        </span>
+      }
     </Link>
   )
 }

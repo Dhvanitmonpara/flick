@@ -4,7 +4,7 @@ import { ApiError } from "../utils/ApiError.js";
 import handleError from "../utils/HandleError.js";
 import { io } from "../app.js";
 
-const notificationService = new NotificationService(io);
+const notificationService = new NotificationService();
 
 const listNotifications = async (req: Request, res: Response) => {
   try {

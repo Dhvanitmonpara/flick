@@ -1,8 +1,11 @@
 import { DefaultEventsMap, Server, Socket } from "socket.io";
 import { NotificationModel } from "../models/notification.model.js";
+import { toObjectId } from "../utils/toObject.js";
+
+const userIdToSocketMap = new Map<string, string>();
 
 class SocketService {
-  handleSocketError = (socket: any, error: any) => {
+ private handleSocketError = (socket: any, error: any) => {
     console.error(`Socket ${socket.id} error:`, error);
     socket.emit("operation-error", {
       code: error.code || "GENERIC_ERROR",
@@ -10,10 +13,10 @@ class SocketService {
     });
   };
 
-  getNotificationCount = async (userId: string) => {
+  private getNotificationCount = async (userId: string) => {
     try {
       const notificationCount = await NotificationModel.find({
-        receiverId: userId,
+        receiverId: toObjectId(userId),
         seen: false,
       }).countDocuments();
       return notificationCount ?? 0;
@@ -22,16 +25,15 @@ class SocketService {
       return 0;
     }
   };
+
   listenSocket = (
     socket: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>
   ) => {
-    console.log(`User connected: ${socket.id}`);
-
-    socket.emit("user-connected", { socketId: socket.id });
-
     socket.on("initial-setup", async (data) => {
       try {
         const { userId } = data;
+
+        if (!userIdToSocketMap.has(userId)) userIdToSocketMap.set(userId, socket.id);
 
         const notificationCount = await this.getNotificationCount(userId);
         socket.emit("notification-count", { count: notificationCount });
@@ -42,7 +44,8 @@ class SocketService {
 
     socket.on("disconnect", () => {
       try {
-        console.log(`User disconnected: ${socket.id}`);
+        const userId = socket.handshake.auth.userId;
+        if (userIdToSocketMap.has(userId)) userIdToSocketMap.delete(userId);
       } catch (error) {
         this.handleSocketError(socket, error);
       }
@@ -50,4 +53,4 @@ class SocketService {
   };
 }
 
-export { SocketService };
+export { SocketService, userIdToSocketMap };

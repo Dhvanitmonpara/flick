@@ -1,9 +1,9 @@
-import { IOServer } from "../services/socket.service.js";
-import isUserOnline from "../utils/isUserOnline.js";
 import redisClientInstance from "../services/redis.service.js";
 import { NotificationModel } from "../models/notification.model.js";
 import { PostModel } from "../models/post.model.js";
 import { v4 as uuid } from "uuid";
+import { io } from "../app.js";
+import { userIdToSocketMap } from "./socket.service.js";
 
 type TNotificationType =
   | "general"
@@ -31,11 +31,9 @@ class NotificationService {
   private readonly STREAM_KEY = "notifications";
   private readonly MAX_STREAM_LENGTH = 10000;
   private redisClient;
-  private io;
 
-  constructor(ioInstance: IOServer) {
+  constructor() {
     this.redisClient = redisClientInstance;
-    this.io = ioInstance;
   }
 
   private toRedisEntries(notification: TRawNotification): string[] {
@@ -45,8 +43,8 @@ class NotificationService {
   private async emitNotificationIfOnline(
     notification: TRawNotification
   ): Promise<boolean> {
-    const online = await isUserOnline(notification.receiverId);
-    if (online) {
+    const socketId = userIdToSocketMap.get(notification.receiverId.toString());
+    if (socketId) {
       const notificationId = uuid();
       await this.redisClient.hset(
         `user:notifications:${notification.receiverId}`,
@@ -57,9 +55,10 @@ class NotificationService {
         `user:notifications:${notification.receiverId}`,
         70
       );
-      this.io
-        .to(notification.receiverId)
-        .emit("notification", { ...notification, id: notificationId });
+      io.to(socketId).emit("notification", {
+        ...notification,
+        id: notificationId,
+      });
       return true;
     }
     return false;
