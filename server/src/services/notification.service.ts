@@ -1,6 +1,6 @@
 import { IOServer } from "../services/socket.service.js";
 import isUserOnline from "../utils/isUserOnline.js";
-import redisClient from "./redis.service.js";
+import redisClientInstance from "../services/redis.service.js";
 import { NotificationModel } from "../models/notification.model.js";
 import { PostModel } from "../models/post.model.js";
 import { v4 as uuid } from "uuid";
@@ -33,7 +33,7 @@ class NotificationService {
   private redisClient;
   private io;
 
-  constructor(redisClientInstance: typeof redisClient, ioInstance: IOServer) {
+  constructor(ioInstance: IOServer) {
     this.redisClient = redisClientInstance;
     this.io = ioInstance;
   }
@@ -48,12 +48,12 @@ class NotificationService {
     const online = await isUserOnline(notification.receiverId);
     if (online) {
       const notificationId = uuid();
-      await redisClient.hset(
+      await this.redisClient.hset(
         `user:notifications:${notification.receiverId}`,
         notificationId,
         JSON.stringify({ ...notification, _redisId: notification })
       );
-      await redisClient.expire(
+      await this.redisClient.expire(
         `user:notifications:${notification.receiverId}`,
         70
       );

@@ -3,11 +3,44 @@ import http from "http";
 import express from "express";
 import cors, { CorsOptions } from "cors";
 import cookieParser from "cookie-parser";
-import "./jobs/cron/monthly.cron.js"
-import "./jobs/cron/weekly.cron.js"
+import "./jobs/cron/monthly.cron.js";
+import "./jobs/cron/weekly.cron.js";
+
+import { SocketService } from "./services/socket.service.js";
+import { Server } from "socket.io";
+import postRouter from "./routes/post.routes.js";
+import commentRouter from "./routes/comment.routes.js";
+import userRouter from "./routes/user.routes.js";
+import voteRouter from "./routes/vote.routes.js";
+import collegeRouter from "./routes/college.routes.js";
+import feedbackRouter from "./routes/feedback.routes.js";
+import manageRouter from "./routes/manage.route.js";
+import bookmarkRouter from "./routes/bookmark.route.js";
+import reportRouter from "./routes/report.routes.js";
+import adminRouter from "./routes/admin.routes.js";
+import notificationRouter from "./routes/notification.routes.js";
+import { verifyAdminJWT } from "./middleware/auth.middleware.js";
+import { sessionMiddleware } from "./middleware/session.middleware.js";
+import {
+  apiLimiter,
+  authLimiter,
+  rateLimitMiddleware,
+} from "./middleware/ratelimit.middleware.js";
+
+const socketService = new SocketService();
 
 const app = express();
-const server = http.createServer(app)
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: allowedOrigins,
+    methods: ["GET", "POST"],
+  },
+});
+
+io.on("connection", (socket) => {
+  socketService.listenSocket(socket);
+});
 
 const corsOptions: CorsOptions = {
   origin: (origin, callback) => {
@@ -35,26 +68,6 @@ app.set("trust proxy", true);
 
 const commonPublicRoute = "/api/public/v1/";
 const commonAdminRoute = "/api/admin/v1/";
-
-import postRouter from "./routes/post.routes.js";
-import commentRouter from "./routes/comment.routes.js";
-import userRouter from "./routes/user.routes.js";
-import voteRouter from "./routes/vote.routes.js";
-import collegeRouter from "./routes/college.routes.js";
-import feedbackRouter from "./routes/feedback.routes.js";
-import manageRouter from "./routes/manage.route.js";
-import bookmarkRouter from "./routes/bookmark.route.js";
-import reportRouter from "./routes/report.routes.js";
-import adminRouter from "./routes/admin.routes.js";
-import notificationRouter from "./routes/notification.routes.js";
-import { verifyAdminJWT } from "./middleware/auth.middleware.js";
-import { sessionMiddleware } from "./middleware/session.middleware.js";
-import {
-  apiLimiter,
-  authLimiter,
-  rateLimitMiddleware,
-} from "./middleware/ratelimit.middleware.js";
-import "./services/socket.service.js"
 
 // global middlewares
 app.use(sessionMiddleware);
@@ -120,4 +133,4 @@ app.use(
   adminRouter
 );
 
-export { app, server };
+export { app, server, io };

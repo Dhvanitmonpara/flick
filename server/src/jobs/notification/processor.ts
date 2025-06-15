@@ -1,5 +1,3 @@
-import redisClient from "../../services/redis.service.js";
-import { getIOAsync } from "../../services/socket.service.js";
 import CircuitBreaker from "./circuiteBreaker.helper.js";
 import Lock from "./lock.helper.js";
 import NotificationService, {
@@ -16,6 +14,8 @@ import {
   stopCleanupTasks,
 } from "./stream.helper.js";
 import { RedisStreamEntry } from "../../utils/parseStreamEntry.js";
+import redisClient from "../../services/redis.service.js";
+import { io } from "../../app.js";
 
 const state = {
   lastActivityTimestamp: Date.now(),
@@ -25,7 +25,7 @@ const state = {
 
 const lock = new Lock(redisClient, config.LOCK_KEY, 30);
 const circuitBreaker = new CircuitBreaker();
-const notificationService = new NotificationService(redisClient, await getIOAsync());
+const notificationService = new NotificationService(io);
 
 process.on("SIGINT", closeNotificationProcess);
 process.on("SIGTERM", closeNotificationProcess);

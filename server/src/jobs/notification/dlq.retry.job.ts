@@ -5,7 +5,7 @@ import { moveToDLQ } from "../notification/dlq.helper.js";
 import config from "./config.js";
 import { parseNotification } from "./stream.helper.js";
 
-const notificationService = new NotificationService(redisClient, io);
+const notificationService = new NotificationService(io);
 
 export const retryDlqNotifications = async () => {
   const entries = await redisClient.xrange(

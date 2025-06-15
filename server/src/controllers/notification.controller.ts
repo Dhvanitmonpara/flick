@@ -1,14 +1,10 @@
 import { Request, Response } from "express";
-import { getIOAsync } from "../services/socket.service.js";
 import NotificationService from "../services/notification.service.js";
-import redisClient from "../services/redis.service.js";
 import { ApiError } from "../utils/ApiError.js";
 import handleError from "../utils/HandleError.js";
+import { io } from "../app.js";
 
-const notificationService = new NotificationService(
-  redisClient,
-  await getIOAsync()
-);
+const notificationService = new NotificationService(io);
 
 const listNotifications = async (req: Request, res: Response) => {
   try {
