@@ -1,15 +1,16 @@
-import { io } from "../app.js";
+import { IOServer } from "../services/socket.service.js";
 import isUserOnline from "../utils/isUserOnline.js";
 import redisClient from "./redis.service.js";
 import { NotificationModel } from "../models/notification.model.js";
 import { PostModel } from "../models/post.model.js";
+import { v4 as uuid } from "uuid";
 
 type TNotificationType =
   | "general"
   | "upvoted_post"
   | "upvoted_comment"
   | "replied"
-  | "posted"
+  | "posted";
 
 type TBaseNotification = {
   postId: string;
@@ -32,7 +33,7 @@ class NotificationService {
   private redisClient;
   private io;
 
-  constructor(redisClientInstance: typeof redisClient, ioInstance: typeof io) {
+  constructor(redisClientInstance: typeof redisClient, ioInstance: IOServer) {
     this.redisClient = redisClientInstance;
     this.io = ioInstance;
   }
@@ -46,7 +47,19 @@ class NotificationService {
   ): Promise<boolean> {
     const online = await isUserOnline(notification.receiverId);
     if (online) {
-      this.io.to(notification.receiverId).emit("notification", notification);
+      const notificationId = uuid();
+      await redisClient.hset(
+        `user:notifications:${notification.receiverId}`,
+        notificationId,
+        JSON.stringify({ ...notification, _redisId: notification })
+      );
+      await redisClient.expire(
+        `user:notifications:${notification.receiverId}`,
+        70
+      );
+      this.io
+        .to(notification.receiverId)
+        .emit("notification", { ...notification, id: notificationId });
       return true;
     }
     return false;
@@ -108,35 +121,36 @@ class NotificationService {
     await this.pushToStream(notification);
   }
 
-  public async getRedisNotificationsByUserId(userId: string, lastSeenId = "0") {
-    const streams =
-      (await this.redisClient.xread("STREAMS", this.STREAM_KEY, lastSeenId)) ??
-      [];
+  public async getRedisNotificationsByUserId(userId: string) {
+    const redisKey = `user:notifications:${userId}`;
 
-    const result: Array<Record<string, string>> = [];
+    // Fetch all notifications for this user from Redis hash
+    const rawNotifications = await this.redisClient.hgetall(redisKey);
 
-    for (const [_, entries] of streams) {
-      for (const [id, fields] of entries) {
-        if (!Array.isArray(fields) || fields.length % 2 !== 0) {
-          console.warn(
-            `Skipping malformed entry ${id}: ${JSON.stringify(fields)}`
-          );
-          continue;
-        }
-
-        const entry = Object.fromEntries(this.chunkToEntries(fields));
-
-        if (entry.receiverId !== userId) continue;
-
-        entry._redisId = id;
-        result.push(entry);
-      }
+    if (!rawNotifications || Object.keys(rawNotifications).length === 0) {
+      return [];
     }
 
-    if (result.length === 0) return [];
+    // Parse all JSON strings
+    const parsedNotifications = Object.entries(rawNotifications)
+      .map(([id, value]) => {
+        try {
+          const notif = JSON.parse(value);
+          notif._redisId = id;
+          return notif;
+        } catch (e) {
+          console.warn(`Skipping invalid JSON in redis for ${id}: ${value}`);
+          return null;
+        }
+      })
+      .filter((n): n is Record<string, any> => n !== null);
 
-    const grouped = this.bundleNotificationsByActor(result);
+    if (parsedNotifications.length === 0) return [];
 
+    // Group by actor (your existing logic)
+    const grouped = this.bundleNotificationsByActor(parsedNotifications);
+
+    // Fetch all referenced posts
     const postIds = [...new Set(grouped.map((n) => n.postId))];
 
     const posts = await PostModel.find({ _id: { $in: postIds } }).select(
@@ -145,6 +159,7 @@ class NotificationService {
 
     const postMap = new Map(posts.map((p) => [p._id.toString(), p]));
 
+    // Attach posts
     for (const notification of grouped) {
       notification.post = postMap.get(notification.postId) ?? null;
     }

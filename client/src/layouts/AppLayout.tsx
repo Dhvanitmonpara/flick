@@ -12,6 +12,7 @@ import AuthCard from "@/components/general/AuthCard";
 import { PostTopic } from "@/types/postTopics";
 import { IoMdArrowDropdown, IoMdArrowDropup } from "react-icons/io";
 import { PostBranches } from "@/types/PostBranchs";
+import { SocketProvider } from "@/socket/SocketContext";
 
 function AppLayout() {
 
@@ -20,9 +21,11 @@ function AppLayout() {
 
   return (
     <div className="flex max-w-[88rem] mx-auto w-full min-h-screen pr-8">
-      <Sidebar />
-      <Outlet />
-      {(reset === "true") && <TerminateSessions />}
+      <SocketProvider>
+        <Sidebar />
+        <Outlet />
+        {(reset === "true") && <TerminateSessions />}
+      </SocketProvider>
     </div>
   )
 }

@@ -1,11 +1,14 @@
 import { Request, Response } from "express";
-import { io } from "../services/socket.service.js";
+import { getIOAsync } from "../services/socket.service.js";
 import NotificationService from "../services/notification.service.js";
 import redisClient from "../services/redis.service.js";
 import { ApiError } from "../utils/ApiError.js";
 import handleError from "../utils/HandleError.js";
 
-const notificationService = new NotificationService(redisClient, io);
+const notificationService = new NotificationService(
+  redisClient,
+  await getIOAsync()
+);
 
 const listNotifications = async (req: Request, res: Response) => {
   try {
@@ -18,7 +21,7 @@ const listNotifications = async (req: Request, res: Response) => {
       await notificationService.getMongoNotificationsByUserId(
         req.user._id.toString(),
         true
-      )
+      );
     res.status(200).json({ redisNotifications, mongoNotifications });
   } catch (error) {
     handleError(
@@ -26,7 +29,7 @@ const listNotifications = async (req: Request, res: Response) => {
       res,
       "Error fetching notifications",
       "LIST_NOTIFICATIONS_ERROR"
-    )
+    );
   }
 };
 

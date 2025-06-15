@@ -1,5 +1,5 @@
 import redisClient from "../../services/redis.service.js";
-import { io } from "../../services/socket.service.js";
+import { getIOAsync } from "../../services/socket.service.js";
 import CircuitBreaker from "./circuiteBreaker.helper.js";
 import Lock from "./lock.helper.js";
 import NotificationService, {
@@ -15,7 +15,7 @@ import {
   startCleanupTasks,
   stopCleanupTasks,
 } from "./stream.helper.js";
-import { RedisStreamEntry } from "../../utils/parseStreamEntry.js"
+import { RedisStreamEntry } from "../../utils/parseStreamEntry.js";
 
 const state = {
   lastActivityTimestamp: Date.now(),
@@ -25,13 +25,15 @@ const state = {
 
 const lock = new Lock(redisClient, config.LOCK_KEY, 30);
 const circuitBreaker = new CircuitBreaker();
-const notificationService = new NotificationService(redisClient, io);
+const notificationService = new NotificationService(redisClient, await getIOAsync());
 
 process.on("SIGINT", closeNotificationProcess);
 process.on("SIGTERM", closeNotificationProcess);
 
 const shouldStartConsumer = () => {
-  return state.lastActivityTimestamp > Date.now() - config.MAX_CONSUMER_IDLE_TIME;
+  return (
+    state.lastActivityTimestamp > Date.now() - config.MAX_CONSUMER_IDLE_TIME
+  );
 };
 
 const startNotificationWorker = async () => {
@@ -73,7 +75,7 @@ const startNotificationWorker = async () => {
       let notifications: TRawNotificationWithMetadata[] = [];
 
       // First try to recover pending messages
-      const pending = await fetchPendingMessages(config.CONSUMER_NAME);
+      const pending = await fetchPendingMessages();
       if (pending.length > 0) {
         console.log("pending", pending.length, "messages found");
         if (pending.length > 0) console.log(pending[0]);
@@ -90,6 +92,7 @@ const startNotificationWorker = async () => {
           config.STREAM_KEY,
           ">"
         )) as [string, RedisStreamEntry[]][] | null;
+        console.log(response)
 
         if (response && response.length > 0) {
           const [, messages] = response[0];
@@ -106,6 +109,7 @@ const startNotificationWorker = async () => {
         }
       }
 
+
       if (notifications.length > 0) {
         // Update activity timestamp — new notifications are being processed
         state.lastActivityTimestamp = Date.now();
@@ -115,14 +119,16 @@ const startNotificationWorker = async () => {
           notificationService,
           circuitBreaker
         );
+        console.log(successIds);
         console.log(successIds.length, "notifications processed");
 
         if (successIds.length > 0) {
-          await redisClient.xack(
+          const result = await redisClient.xack(
             config.STREAM_KEY,
             config.GROUP_NAME,
             ...successIds
           );
+          console.log("ack", result);
         }
 
         sleepDuration = 1000; // traffic active → poll faster

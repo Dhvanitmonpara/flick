@@ -97,14 +97,12 @@ async function insertWithRetry(
   return allSuccessIds;
 }
 
-async function fetchPendingMessages(
-  CONSUMER_NAME: string
-): Promise<RedisStreamEntry[]> {
+async function fetchPendingMessages(): Promise<RedisStreamEntry[]> {
   try {
     const [, entries] = await redisClient.xautoclaim(
       config.STREAM_KEY,
       config.GROUP_NAME,
-      CONSUMER_NAME,
+      config.CONSUMER_NAME,
       config.PENDING_IDLE_TIME_MS,
       "0-0",
       "COUNT",

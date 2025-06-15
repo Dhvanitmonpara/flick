@@ -1,13 +1,10 @@
+import allowedOrigins from "./conf/allowedOrigins.js";
 import http from "http";
-import { env } from "./conf/env.js";
 import express from "express";
 import cors, { CorsOptions } from "cors";
 import cookieParser from "cookie-parser";
-import "./services/socket.service.js"
 import "./jobs/cron/monthly.cron.js"
 import "./jobs/cron/weekly.cron.js"
-
-const allowedOrigins = [env.accessControlOrigin, env.adminAccessControlOrigin];
 
 const app = express();
 const server = http.createServer(app)
@@ -57,6 +54,7 @@ import {
   authLimiter,
   rateLimitMiddleware,
 } from "./middleware/ratelimit.middleware.js";
+import "./services/socket.service.js"
 
 // global middlewares
 app.use(sessionMiddleware);
@@ -122,4 +120,4 @@ app.use(
   adminRouter
 );
 
-export { app, server, allowedOrigins };
+export { app, server };

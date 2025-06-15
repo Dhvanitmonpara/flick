@@ -1,19 +1,42 @@
+import { createContext, useEffect, useState, ReactNode } from "react";
 import io, { Socket } from "socket.io-client";
-import { createContext, useMemo, ReactNode } from "react";
+import { env } from "@/conf/env";
+import useProfileStore from "@/store/profileStore";
 
 // Define a type for your socket context
 type SocketContextType = Socket | null;
+const SocketContext = createContext<SocketContextType>(null);
 
-const SocketContext = createContext<SocketContextType>(null); 
 interface SocketProviderProps {
-  children: ReactNode; 
+  children: ReactNode;
 }
 
 const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
-  // const socket = useMemo(() => io(import.meta.env.VITE_SERVER_URI), []);
-  const socket = useMemo(() => io(import.meta.env.VITE_SERVER_URI, {
-    transports: ['websocket']
-  }), []);
+  const profile = useProfileStore((state) => state.profile);
+  const [socket, setSocket] = useState<Socket | null>(null);
+
+  useEffect(() => {
+    if (!profile._id) return;
+
+    const newSocket = io(env.serverUri, {
+      transports: ["websocket"],
+      auth: {
+        userId: profile._id,
+      },
+    });
+
+    setSocket(newSocket);
+
+    // Cleanup on unmount or profile change
+    return () => {
+      newSocket.disconnect();
+      setSocket(null);
+    };
+  }, [profile._id]);
+
+  if (!socket) return <div>
+    {children}
+  </div>; // or fallback/loader
 
   return (
     <SocketContext.Provider value={socket}>
