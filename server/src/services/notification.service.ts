@@ -1,9 +1,11 @@
-import redisClientInstance from "../services/redis.service.js";
+import { subHours } from "date-fns";
 import { NotificationModel } from "../models/notification.model.js";
-import { PostModel } from "../models/post.model.js";
 import { v4 as uuid } from "uuid";
 import { io } from "../app.js";
 import { userIdToSocketMap } from "./socket.service.js";
+import notificationQueue from "../queues/notification.queue.js";
+import { toObjectId } from "../utils/toObject.js";
+import { Types } from "mongoose";
 
 type TNotificationType =
   | "general"
@@ -18,28 +20,10 @@ type TBaseNotification = {
   type: TNotificationType;
   content?: string;
 };
-type TMetadata = {
-  _redisId: string;
-  _retries: string;
-};
-export type TNotification = TBaseNotification & { actorUsernames: string[] };
+export type TNotification = TBaseNotification & { actorUsernames: string[], _id: string | Types.ObjectId };
 export type TRawNotification = TBaseNotification & { actorUsername: string };
-export type TRawNotificationWithMetadata = TRawNotification & TMetadata;
-export type TNotificationWithMetadata = TNotification & TMetadata;
 
 class NotificationService {
-  private readonly STREAM_KEY = "notifications";
-  private readonly MAX_STREAM_LENGTH = 10000;
-  private redisClient;
-
-  constructor() {
-    this.redisClient = redisClientInstance;
-  }
-
-  private toRedisEntries(notification: TRawNotification): string[] {
-    return Object.entries(notification).flatMap(([k, v]) => [k, String(v)]);
-  }
-
   private async emitNotificationIfOnline(
     notification: TRawNotification
   ): Promise<boolean> {
@@ -54,60 +38,68 @@ class NotificationService {
     return false;
   }
 
-  private bundleNotifications = (
-    rawNotifications: TRawNotificationWithMetadata[]
-  ): TNotificationWithMetadata[] => {
+  public bundleNotifications = (
+    rawNotifications: TNotification[]
+  ): {
+    bundled: TNotification[];
+    deleteIds: string[];
+  } => {
     const bundleMap = new Map<
       string,
-      { notification: TNotificationWithMetadata; actorSet: Set<string> }
+      {
+        notification: TNotification;
+        actorSet: Set<string>;
+        originalIds: string[];
+      }
     >();
 
     for (const raw of rawNotifications) {
       const key = `${raw.receiverId}:${raw.postId}:${raw.type}`;
+      const bundle = bundleMap.get(key);
 
-      if (!bundleMap.has(key)) {
+      if (!bundle) {
         bundleMap.set(key, {
           notification: {
+            _id: "", // new insert will generate one
             postId: raw.postId,
             receiverId: raw.receiverId,
             type: raw.type,
             actorUsernames: [],
             content: raw.content,
-            _redisId: raw._redisId,
-            _retries: raw._retries,
           },
-          actorSet: new Set([raw.actorUsername]),
+          actorSet: new Set(raw.actorUsernames),
+          originalIds: [raw._id.toString()],
         });
       } else {
-        const bundle = bundleMap.get(key)!;
-        bundle.actorSet.add(raw.actorUsername);
+        raw.actorUsernames.forEach((username) => bundle.actorSet.add(username));
+        bundle.originalIds.push(raw._id.toString());
       }
     }
 
-    return Array.from(bundleMap.values()).map(({ notification, actorSet }) => ({
-      ...notification,
-      actorUsernames: Array.from(actorSet),
-    }));
+    const bundled: TNotification[] = [];
+    const deleteIds: string[] = [];
+
+    for (const { notification, actorSet, originalIds } of bundleMap.values()) {
+      notification.actorUsernames = Array.from(actorSet);
+      bundled.push(notification);
+      // Keep first (for simplicity), delete rest
+      deleteIds.push(...originalIds.slice(1));
+    }
+
+    return { bundled, deleteIds };
   };
 
   // Push notification to redis stream
-  private async pushToStream(notification: TRawNotification): Promise<void> {
-    const entries = this.toRedisEntries(notification);
-    await this.redisClient.xadd(
-      this.STREAM_KEY,
-      "MAXLEN",
-      "=",
-      this.MAX_STREAM_LENGTH,
-      "*",
-      ...entries
-    );
+  private async pushToQueue(notification: TRawNotification): Promise<void> {
+    notificationQueue.add("notification", notification);
   }
 
   public async handleNotification(
     notification: TRawNotification
   ): Promise<void> {
     await this.emitNotificationIfOnline(notification);
-    await this.pushToStream(notification);
+    await this.pushToQueue(notification);
+    await this.insertNotificationToDB(notification);
   }
 
   bundleNotificationsByActor(
@@ -134,6 +126,23 @@ class NotificationService {
 
     return Object.values(grouped);
   }
+
+  public getLast24HourNotifications = async (userId: string, limit = 1000) => {
+    try {
+      const twentyFourHoursAgo = subHours(new Date(), 24);
+      const notifications = await NotificationModel.find({
+        receiverId: toObjectId(userId),
+        createdAt: { $gte: twentyFourHoursAgo },
+      })
+        .sort({ createdAt: -1 })
+        .limit(limit);
+
+      return notifications;
+    } catch (error) {
+      console.error(`Error fetching notifications for user ${userId}:`, error);
+      throw new Error("Unable to retrieve notifications.");
+    }
+  };
 
   chunkToEntries(fields: string[]): [string, string][] {
     const entries: [string, string][] = [];
@@ -168,36 +177,28 @@ class NotificationService {
     return notifications;
   }
 
-  // Insert batch notifications to MongoDB with basic error handling
-  public async insertNotificationsToMongo(
-    notifications: TRawNotificationWithMetadata[]
-  ): Promise<{ successIds: string[]; failed: TRawNotificationWithMetadata[] }> {
+  public async insertNotificationToDB(
+    notification: TRawNotification
+  ): Promise<boolean> {
     try {
-      const processedNotifications = this.bundleNotifications(notifications);
-      const result = await NotificationModel.insertMany(
-        processedNotifications,
-        {
-          ordered: false,
-        }
-      );
+      const data = {
+        postId: toObjectId(notification.postId),
+        receiverId: toObjectId(notification.receiverId),
+        type: notification.type,
+        content: notification.content ?? undefined,
+        actorUsernames: [notification.actorUsername],
+      };
+      const result = await NotificationModel.insertOne(data);
 
-      const successIds = result.map((doc: any) => doc._redisId);
-      const failed = notifications.filter(
-        (n) => !successIds.includes(n._redisId)
-      ) as TRawNotificationWithMetadata[];
+      if (!result) {
+        console.log("Error inserting to Mongo");
+        return false;
+      }
 
-      return { successIds, failed };
+      return true;
     } catch (err: any) {
       console.log("Error inserting to Mongo", err);
-      // Mongo will throw if even 1 doc fails, but insertMany may have partial success
-      const successIds =
-        err?.result?.insertedDocs?.map((doc: any) => doc._redisId) || [];
-
-      const failed = notifications.filter(
-        (n) => !successIds.includes(n._redisId)
-      );
-
-      return { successIds, failed };
+      return false;
     }
   }
 }

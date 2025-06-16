@@ -7,7 +7,9 @@ import { PostModel } from "../models/post.model.js";
 import { CommentModel } from "../models/comment.model.js";
 import { logEvent } from "../services/log.service.js";
 import { TLogAction } from "../types/Log.js";
-import { notifyUserActivity } from "../jobs/notification/processor.js";
+import NotificationService from "../services/notification.service.js";
+
+const notificationService = new NotificationService();
 
 export const createVote = async (req: Request, res: Response) => {
   try {
@@ -64,7 +66,7 @@ export const createVote = async (req: Request, res: Response) => {
     });
 
     if (voteType === "upvote") {
-      notifyUserActivity({
+      notificationService.handleNotification({
         type: targetType === "post" ? "upvoted_post" : "upvoted_comment",
         actorUsername: req.user.username,
         postId: targetId,

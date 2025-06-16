@@ -8,7 +8,7 @@ const notificationSchema = new mongoose.Schema(
     },
     postId: {
       type: Schema.Types.ObjectId,
-      ref: "Post"
+      ref: "Post",
     },
     receiverId: {
       type: String,
@@ -25,25 +25,14 @@ const notificationSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: [
-        "general",
-        "upvoted_post",
-        "upvoted_comment",
-        "replied",
-        "posted",
-      ],
+      enum: ["general", "upvoted_post", "upvoted_comment", "replied", "posted"],
       default: "general",
     },
-    _redisId: {
-      type: String,
-    },
-    _retries: {
-      type: Number,
-      default: 0,
-    }
   },
   { timestamps: true }
 );
+
+notificationSchema.index({ createdAt: -1, receiverId: 1 });
 
 export const NotificationModel = mongoose.model(
   "Notification",

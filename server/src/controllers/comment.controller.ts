@@ -6,7 +6,9 @@ import handleError from "../utils/HandleError.js";
 import VoteModel from "../models/vote.model.js";
 import { toObjectId } from "../utils/toObject.js";
 import { logEvent } from "../services/log.service.js";
-import { notifyUserActivity } from "../jobs/notification/processor.js";
+import NotificationService from "../services/notification.service.js";
+
+const notificationService = new NotificationService();
 
 export const getCommentsByPostId = async (req: Request, res: Response) => {
   try {
@@ -190,7 +192,7 @@ export const createComment = async (req: Request, res: Response) => {
       parentCommentId: parentCommentId ? toObjectId(parentCommentId) : null,
     });
 
-    notifyUserActivity({
+    notificationService.handleNotification({
       type: "replied",
       actorUsername: req.user.username,
       postId: postId,
