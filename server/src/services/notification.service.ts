@@ -45,19 +45,9 @@ class NotificationService {
   ): Promise<boolean> {
     const socketId = userIdToSocketMap.get(notification.receiverId.toString());
     if (socketId) {
-      const notificationId = uuid();
-      await this.redisClient.hset(
-        `user:notifications:${notification.receiverId}`,
-        notificationId,
-        JSON.stringify({ ...notification, _redisId: notification })
-      );
-      await this.redisClient.expire(
-        `user:notifications:${notification.receiverId}`,
-        70
-      );
       io.to(socketId).emit("notification", {
         ...notification,
-        id: notificationId,
+        id: uuid(),
       });
       return true;
     }
@@ -118,52 +108,6 @@ class NotificationService {
   ): Promise<void> {
     await this.emitNotificationIfOnline(notification);
     await this.pushToStream(notification);
-  }
-
-  public async getRedisNotificationsByUserId(userId: string) {
-    const redisKey = `user:notifications:${userId}`;
-
-    // Fetch all notifications for this user from Redis hash
-    const rawNotifications = await this.redisClient.hgetall(redisKey);
-
-    if (!rawNotifications || Object.keys(rawNotifications).length === 0) {
-      return [];
-    }
-
-    // Parse all JSON strings
-    const parsedNotifications = Object.entries(rawNotifications)
-      .map(([id, value]) => {
-        try {
-          const notif = JSON.parse(value);
-          notif._redisId = id;
-          return notif;
-        } catch (e) {
-          console.warn(`Skipping invalid JSON in redis for ${id}: ${value}`);
-          return null;
-        }
-      })
-      .filter((n): n is Record<string, any> => n !== null);
-
-    if (parsedNotifications.length === 0) return [];
-
-    // Group by actor (your existing logic)
-    const grouped = this.bundleNotificationsByActor(parsedNotifications);
-
-    // Fetch all referenced posts
-    const postIds = [...new Set(grouped.map((n) => n.postId))];
-
-    const posts = await PostModel.find({ _id: { $in: postIds } }).select(
-      "title content _id"
-    );
-
-    const postMap = new Map(posts.map((p) => [p._id.toString(), p]));
-
-    // Attach posts
-    for (const notification of grouped) {
-      notification.post = postMap.get(notification.postId) ?? null;
-    }
-
-    return grouped;
   }
 
   bundleNotificationsByActor(

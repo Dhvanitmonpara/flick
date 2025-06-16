@@ -9,16 +9,12 @@ const notificationService = new NotificationService();
 const listNotifications = async (req: Request, res: Response) => {
   try {
     if (!req.user) throw new ApiError(401, "Unauthorized");
-    const redisNotifications =
-      await notificationService.getRedisNotificationsByUserId(
-        req.user._id.toString()
-      );
-    const mongoNotifications =
+    const notifications =
       await notificationService.getMongoNotificationsByUserId(
         req.user._id.toString(),
         true
       );
-    res.status(200).json({ redisNotifications, mongoNotifications });
+    res.status(200).json({ notifications });
   } catch (error) {
     handleError(
       error as ApiError,
@@ -33,10 +29,10 @@ const markAsSeen = async (req: Request, res: Response) => {
   try {
     if (!req.user) throw new ApiError(401, "Unauthorized");
     const { ids } = req.body;
-    if(!ids) throw new ApiError(400, "Ids are required");
+    if (!ids) throw new ApiError(400, "Ids are required");
     if (!Array.isArray(ids)) throw new ApiError(400, "Ids must be an array");
 
-    const notifications =  await NotificationModel.updateMany(
+    const notifications = await NotificationModel.updateMany(
       { _id: { $in: ids }, receiverId: req.user._id.toString() },
       { seen: true }
     );

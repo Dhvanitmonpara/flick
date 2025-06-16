@@ -27,15 +27,13 @@ function NotificationsPage() {
           return
         }
 
-        const allNotifications = [...res.data.redisNotifications, ...res.data.mongoNotifications]
-        setNotifications(allNotifications)
-
+        setNotifications(res.data.notifications)
         setLoading(false)
 
         // Optional delay
         await new Promise((res) => setTimeout(res, 3000))
 
-        const unseen = allNotifications.filter((n) => !n.seen)
+        const unseen: INotification[] = res.data.notifications.filter((n: INotification) => !n.seen)
         if (unseen.length) {
           await axios.patch(
             `${env.serverApiEndpoint}/notifications/mark-seen`,
