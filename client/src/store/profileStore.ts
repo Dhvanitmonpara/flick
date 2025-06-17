@@ -3,6 +3,7 @@ import { IUser } from "@/types/User";
 import { create } from "zustand";
 
 interface ProfileState {
+  theme: themeType
   profile: IUser;
   setProfile: (profile: IUser) => void;
   updateProfile: (updatedProfile: Partial<IUser>) => void;
@@ -11,9 +12,9 @@ interface ProfileState {
 }
 
 const useProfileStore = create<ProfileState>((set) => ({
+  theme: "light",
   profile: {
     _id: "",
-    bookmarks: [],
     branch: "",
     isBlocked: false,
     suspension: {
@@ -21,7 +22,6 @@ const useProfileStore = create<ProfileState>((set) => ({
       howManyTimes: 0,
       reason: "",
     },
-    theme: "light",
     username: "",
     college: "",
   },
@@ -35,7 +35,6 @@ const useProfileStore = create<ProfileState>((set) => ({
       profile: {
         _id: "",
         branch: "",
-        theme: "light",
         isBlocked: false,
         suspension: {
           ends: new Date(),
@@ -46,16 +45,12 @@ const useProfileStore = create<ProfileState>((set) => ({
         college: "",
       },
     }),
-  setTheme: (theme) =>
-    set((state) => {
-    if (state.profile.theme === theme) return { profile: { ...state.profile } };
-      return {
-        profile: {
-          ...state.profile,
-          theme,
-        },
-      };
-    }),
+  // inside profileStore.js
+  setTheme: (theme) => {
+    set(() => ({ theme}))
+    localStorage.setItem("theme", theme);
+    document.documentElement.setAttribute("data-theme", theme);
+  },
 }));
 
 export default useProfileStore;

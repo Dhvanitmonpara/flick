@@ -23,10 +23,6 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    theme: {
-      type: ["light", "dark"],
-      default: "dark",
-    },
     lookupEmail: {
       type: String,
       required: true,

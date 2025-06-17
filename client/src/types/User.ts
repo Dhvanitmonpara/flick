@@ -6,7 +6,6 @@ export interface IUser {
   branch: string
   college: string | ICollege
   isBlocked: boolean
-  theme: "light" | "dark"
   suspension: {
     ends: Date
     reason: string

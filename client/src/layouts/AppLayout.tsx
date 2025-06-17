@@ -35,14 +35,14 @@ function Sidebar() {
   const [showAllBranches, setShowAllBranches] = useState(false);
   const [showAllTopics, setShowAllTopics] = useState(false);
 
-  const profile = useProfileStore(state => state.profile)
+  const theme = useProfileStore(state => state.theme)
 
   return (
     <div className="hidden md:block min-w-[270px] w-[270px] h-screen overflow-y-auto no-scrollbar space-y-1 px-4">
       <div className="py-6">
         <div className="flex justify-center items-center">
           <Link to="/">
-            <img className="h-14 w-14 p-2" src={profile.theme === "dark" ? "/logo-b.png" : "/logo-w.png"} alt="logo" />
+            <img className="h-14 w-14 p-2" src={theme === "dark" ? "/logo-b.png" : "/logo-w.png"} alt="logo" />
           </Link>
         </div>
         <section className="space-y-2">

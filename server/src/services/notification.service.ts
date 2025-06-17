@@ -20,10 +20,13 @@ type TBaseNotification = {
   type: TNotificationType;
   content?: string;
 };
-export type TNotification = TBaseNotification & { actorUsernames: string[], _id: string | Types.ObjectId };
+export type TNotification = TBaseNotification & {
+  actorUsernames: string[];
+  _id?: string | Types.ObjectId;
+};
 export type TRawNotification = TBaseNotification & { actorUsername: string };
 
-class NotificationService {
+export default class NotificationService {
   private async emitNotificationIfOnline(
     notification: TRawNotification
   ): Promise<boolean> {
@@ -47,43 +50,58 @@ class NotificationService {
     const bundleMap = new Map<
       string,
       {
-        notification: TNotification;
+        postId: string;
+        receiverId: string;
+        type: TNotification["type"];
+        content?: string;
         actorSet: Set<string>;
         originalIds: string[];
       }
     >();
 
     for (const raw of rawNotifications) {
-      const key = `${raw.receiverId}:${raw.postId}:${raw.type}`;
-      const bundle = bundleMap.get(key);
+      if (!raw._id) continue;
+      const key = `${raw.receiverId}:${raw.postId}:${raw.type}:${raw.content || ""}`;
+      const existing = bundleMap.get(key);
 
-      if (!bundle) {
+      const currentActors = raw.actorUsernames || [];
+
+      if (!existing) {
         bundleMap.set(key, {
-          notification: {
-            _id: "", // new insert will generate one
-            postId: raw.postId,
-            receiverId: raw.receiverId,
-            type: raw.type,
-            actorUsernames: [],
-            content: raw.content,
-          },
-          actorSet: new Set(raw.actorUsernames),
+          postId: raw.postId,
+          receiverId: raw.receiverId,
+          type: raw.type,
+          content: raw.content,
+          actorSet: new Set(currentActors),
           originalIds: [raw._id.toString()],
         });
       } else {
-        raw.actorUsernames.forEach((username) => bundle.actorSet.add(username));
-        bundle.originalIds.push(raw._id.toString());
+        currentActors.forEach((username) => existing.actorSet.add(username));
+        existing.originalIds.push(raw._id.toString());
       }
     }
 
     const bundled: TNotification[] = [];
     const deleteIds: string[] = [];
 
-    for (const { notification, actorSet, originalIds } of bundleMap.values()) {
-      notification.actorUsernames = Array.from(actorSet);
+    for (const {
+      postId,
+      receiverId,
+      type,
+      content,
+      actorSet,
+      originalIds,
+    } of bundleMap.values()) {
+      const notification: TNotification = {
+        postId,
+        receiverId,
+        type,
+        content,
+        actorUsernames: Array.from(actorSet).sort(), // sorted for deterministic UI
+      };
+
       bundled.push(notification);
-      // Keep first (for simplicity), delete rest
-      deleteIds.push(...originalIds.slice(1));
+      deleteIds.push(...originalIds.slice(1)); // keep first, delete rest
     }
 
     return { bundled, deleteIds };
@@ -100,31 +118,6 @@ class NotificationService {
     await this.emitNotificationIfOnline(notification);
     await this.pushToQueue(notification);
     await this.insertNotificationToDB(notification);
-  }
-
-  bundleNotificationsByActor(
-    notifications: Array<Record<string, string>>
-  ): Array<Record<string, any>> {
-    const grouped: Record<string, Record<string, any>> = {};
-
-    for (const notif of notifications) {
-      const { actorUsername, _redisId, ...rest } = notif;
-
-      const groupKey = JSON.stringify(rest);
-
-      if (!grouped[groupKey]) {
-        grouped[groupKey] = {
-          ...rest,
-          _redisId,
-          seen: false,
-          actorUsernames: [actorUsername],
-        };
-      } else {
-        grouped[groupKey].actorUsernames.push(actorUsername);
-      }
-    }
-
-    return Object.values(grouped);
   }
 
   public getLast24HourNotifications = async (userId: string, limit = 1000) => {
@@ -202,5 +195,3 @@ class NotificationService {
     }
   }
 }
-
-export default NotificationService;
