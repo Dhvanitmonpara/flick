@@ -2,16 +2,25 @@ import crypto from "crypto";
 import nodemailer from "nodemailer";
 import { env } from "../conf/env.js";
 
+// const transporter = nodemailer.createTransport({
+//   service: "gmail",
+//   port: 465,
+//   secure: true,
+//   auth: {
+//     user: env.gmailUser,
+//     pass: env.gmailAppPassword,
+//   },
+//   tls: {
+//     rejectUnauthorized: false,
+//   },
+// });
+
 const transporter = nodemailer.createTransport({
-  service: "gmail",
-  port: 465,
-  secure: true,
+  host: env.mailtrapHost,
+  port: env.mailtrapPort,
   auth: {
-    user: env.gmailUser,
-    pass: env.gmailAppPassword,
-  },
-  tls: {
-    rejectUnauthorized: false,
+    user: env.mailtrapUser,
+    pass: env.mailtrapPass,
   },
 });
 
@@ -144,7 +153,7 @@ const sendMail = async (
     }
 
     const info = await transporter.sendMail({
-      from: `"Flick" <${env.gmailUser}>`,
+      from: `"Flick" <no-reply@flick.dev>"`,
       to: user,
       subject,
       text,

@@ -24,6 +24,10 @@ export const env = {
     process.env.ACCESS_CONTROL_ORIGIN || "http://localhost:5173",
   redisHost: process.env.REDIS_HOST || "localhost",
   redisPort: process.env.REDIS_PORT || "6379",
+    mailtrapUser: process.env.MAILTRAP_USER,
+  mailtrapPass: process.env.MAILTRAP_PASS,
+  mailtrapHost: process.env.MAILTRAP_HOST,
+  mailtrapPort: parseInt(process.env.MAILTRAP_PORT || "587", 10),
 };
 
 if (!env.mongoUrl) {

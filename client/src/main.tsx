@@ -97,7 +97,7 @@ const router = createBrowserRouter([
           },
           {
             path: "otp/:email",
-            element: <OtpVerificationPage onFailedRedirect='/auth/signin' onVerifiedRedirect='/auth/signup' />,
+            element: <OtpVerificationPage onFailedRedirect='/auth/signin' onVerifiedRedirect='/auth/setup' />,
           },
           {
             path: "setup/:email",
