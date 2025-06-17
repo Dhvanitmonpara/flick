@@ -3,7 +3,6 @@ import { NotificationModel } from "../models/notification.model.js";
 import { v4 as uuid } from "uuid";
 import { io } from "../app.js";
 import { userIdToSocketMap } from "./socket.service.js";
-import notificationQueue from "../queues/notification.queue.js";
 import { toObjectId } from "../utils/toObject.js";
 import { Types } from "mongoose";
 
@@ -107,16 +106,10 @@ export default class NotificationService {
     return { bundled, deleteIds };
   };
 
-  // Push notification to redis stream
-  private async pushToQueue(notification: TRawNotification): Promise<void> {
-    notificationQueue.add("notification", notification);
-  }
-
   public async handleNotification(
     notification: TRawNotification
   ): Promise<void> {
     await this.emitNotificationIfOnline(notification);
-    await this.pushToQueue(notification);
     await this.insertNotificationToDB(notification);
   }
 
