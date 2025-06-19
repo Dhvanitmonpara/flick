@@ -34,10 +34,6 @@ const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     };
   }, [profile._id]);
 
-  if (!socket) return <div>
-    {children}
-  </div>; // or fallback/loader
-
   return (
     <SocketContext.Provider value={socket}>
       {children}

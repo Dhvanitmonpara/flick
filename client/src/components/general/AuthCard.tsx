@@ -28,7 +28,7 @@ function AuthCard({ className }: { className?: string }) {
 
         setProfile(user.data.data)
       } catch (error) {
-        handleError(error as AxiosError | Error, "Something went wrong while fetching user", undefined, () => fetchUser(), "Failed to fetch user")
+        handleError(error as AxiosError | Error, "Something went wrong while fetching user", undefined, fetchUser, "Failed to fetch user")
       } finally {
         setFetching(false)
       }

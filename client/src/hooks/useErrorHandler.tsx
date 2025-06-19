@@ -6,28 +6,22 @@ import axios, { AxiosError } from "axios";
 import { useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
 
-let globalRefreshPromise: Promise<IUser> | null = null;
-
 export const useErrorHandler = () => {
+  const setProfile = useProfileStore(state => state.setProfile);
+  const removeProfile = useProfileStore(state => state.removeProfile);
 
-  const setProfile = useProfileStore(state=>state.setProfile)
-  const removeProfile = useProfileStore(state=>state.removeProfile)
-
-  const isComponentMounted = useRef(true);
+  const refreshPromiseRef = useRef<Promise<IUser> | null>(null);
   const abortController = useRef<AbortController | null>(null);
 
   useEffect(() => {
     return () => {
-      isComponentMounted.current = false;
       abortController.current?.abort();
     };
   }, []);
 
-  // 1) Refresh endpoint
   const refreshAccessToken = useCallback(async (signal?: AbortSignal) => {
     if (!env.serverApiEndpoint) {
-      console.error("Missing VITE_SERVER_API_ENDPOINT env variable");
-      throw new Error("Server API URL is not defined");
+      throw new Error("Missing VITE_SERVER_API_ENDPOINT env variable");
     }
 
     try {
@@ -36,36 +30,32 @@ export const useErrorHandler = () => {
         {},
         {
           withCredentials: true,
-          signal, // <--- pass AbortSignal to Axios
+          signal,
         }
       );
       setProfile(data);
       return data;
-    } catch (error) {
-      removeProfile();
-      throw error;
+    } catch (error: any) {
+      if (axios.isAxiosError(error) && error.response?.status === 401) {
+        throw new Error("Session invalid"); // Explicit signal for invalid refresh
+      }
+      throw error; // Retryable / network error, let it bubble
     }
-  }, [removeProfile, setProfile]);
+  }, [setProfile]);
 
-  // 2) Pull a human‑friendly message out of any Error/AxiosError
   const extractErrorMessage = (
     error: AxiosError | Error,
     fallback: string
   ): string => {
     if (axios.isAxiosError(error)) {
-      const safeData = error.response?.data as Record<string, any> | undefined;
-      return (
-        safeData?.message ||
-        safeData?.error ||
-        error.message ||
-        fallback
-      );
+      const data = error.response?.data as Record<string, any> | undefined;
+      return data?.message || data?.error || error.message || fallback;
     }
     return error.message || fallback;
   };
 
-  const reportError = (message: string, setError?: (msg: string) => void) => {
-    if (setError) setError(message); else toast.error(message);
+  const reportError = (msg: string, setError?: (msg: string) => void) => {
+    if (setError) setError(msg); else toast.error(msg);
   };
 
   const handleError = useCallback(async (
@@ -78,59 +68,40 @@ export const useErrorHandler = () => {
     hasRetried = false,
   ): Promise<any> => {
     if (axios.isAxiosError(error) && error.response?.status === 401) {
-      if (error.response.data.code === "INVALID_SESSION") {
+      const code = error.response.data?.code;
+      const shouldRefresh = error.response.data?.error === "Unauthorized" && !hasRetried;
+
+      if (code === "INVALID_SESSION") {
+        removeProfile();
+        reportError("Session invalid. Please log in again.", setError);
         onError?.();
-        removeProfile()
         return;
       }
 
-      const shouldRefresh = error.response.data?.error === "Unauthorized" && !hasRetried;
-
-      if (shouldRefresh) {
+      if (shouldRefresh && originalReq) {
         abortController.current = new AbortController();
         const { signal } = abortController.current;
 
         try {
-          if (!globalRefreshPromise) {
-            globalRefreshPromise = refreshAccessToken(signal).finally(() => {
-              globalRefreshPromise = null;
+          if (!refreshPromiseRef.current) {
+            refreshPromiseRef.current = refreshAccessToken(signal).finally(() => {
+              refreshPromiseRef.current = null;
             });
           }
 
-          await globalRefreshPromise;
+          await refreshPromiseRef.current;
 
-          if (!isComponentMounted.current) return;
-
-          if (originalReq) {
-            try {
-              return await originalReq();
-            } catch (retryError) {
-              return handleError(
-                retryError as AxiosError | Error,
-                fallbackMessage,
-                setError,
-                undefined,
-                refreshFailMessage,
-                onError,
-                true,
-              );
-            }
-          }
-          return;
+          return await originalReq();
         } catch (refreshError) {
-          if (!isComponentMounted.current) return;
-
-          const msg = extractErrorMessage(
-            refreshError as AxiosError | Error,
-            refreshFailMessage
-          );
+          const msg = extractErrorMessage(refreshError as AxiosError, refreshFailMessage);
+          removeProfile();
           reportError(msg, setError);
           onError?.();
           return;
         }
       } else {
         removeProfile();
-        reportError("Session expired, please log in again.", setError);
+        reportError(refreshFailMessage, setError);
         onError?.();
         return;
       }
@@ -139,7 +110,7 @@ export const useErrorHandler = () => {
     const message = extractErrorMessage(error, fallbackMessage);
     reportError(message, setError);
     onError?.();
-  }, [removeProfile, refreshAccessToken]);
+  }, [refreshAccessToken, removeProfile]);
 
   return { handleError };
 };

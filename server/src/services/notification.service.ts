@@ -60,7 +60,9 @@ export default class NotificationService {
 
     for (const raw of rawNotifications) {
       if (!raw._id) continue;
-      const key = `${raw.receiverId}:${raw.postId}:${raw.type}:${raw.content || ""}`;
+      const key = `${raw.receiverId}:${raw.postId}:${raw.type}:${
+        raw.content || ""
+      }`;
       const existing = bundleMap.get(key);
 
       const currentActors = raw.actorUsernames || [];
