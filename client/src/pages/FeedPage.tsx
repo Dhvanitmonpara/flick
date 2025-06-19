@@ -65,7 +65,7 @@ function FeedPage() {
 
   return (
     <div className="flex gap-4 py-6 w-full">
-      <section className="w-full max-h-screen overflow-y-auto no-scrollbar">
+      <section className="w-full max-h-screen overflow-y-auto no-scrollbar divide-y divide-zinc-300/60 dark:divide-zinc-700/50">
         {posts && posts.length > 0 ? (
           posts.map((post) => {
             const postedBy = post.postedBy;

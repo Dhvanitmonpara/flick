@@ -37,7 +37,7 @@ interface PostProps {
 function Post({ avatar, userVote, avatarFallback, _id, createdAt, college, title, content, upvoteCount, downvoteCount, commentsCount, viewsCount, username, branch, topic, bookmarked, removedPostOnAction }: PostProps) {
   const navigate = useNavigate()
   return (
-    <Card onClick={() => navigate(`/p/${_id}`)} className="dark:bg-transparent bg-transparent border-x-0 border-t-0 border-b-zinc-300/60 dark:border-b-zinc-700/50 shadow-none rounded-none">
+    <Card onClick={() => navigate(`/p/${_id}`)} className="dark:bg-transparent bg-transparent border-none shadow-none rounded-none">
       <CardHeader className="flex-row justify-between space-x-2 p-4">
         <div className="flex space-x-4">
           <VisuallyHidden>

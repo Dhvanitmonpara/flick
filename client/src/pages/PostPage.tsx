@@ -108,7 +108,7 @@ function PostPage() {
   }
 
   return (
-    <div>
+    <div className="divide-y divide-zinc-300/60 dark:divide-zinc-700/50">
       {currentPost?._id &&
         <Post
           key={currentPost._id}
@@ -136,7 +136,7 @@ function PostPage() {
         ? <Loader2 className="animate-spin" />
         : (comments
           ? comments.map((comment) => (
-            <Comment comment={comment} />
+            <Comment key={comment._id} comment={comment} />
           ))
           : <p>Comments not found</p>
         )}

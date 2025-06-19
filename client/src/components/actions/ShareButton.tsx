@@ -18,8 +18,8 @@ function ShareButton({ id }: { id: string }) {
   }
 
   return (
-    <button disabled={shared} onClick={handleShare}>
-      {shared ? <FaCheck className="text-green-500 text-xl m-0.5" /> : <PiShareFatFill className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 text-xl m-0.5" />}
+    <button className="group bg-zinc-200 dark:bg-zinc-800 py-1 px-2 rounded-full" disabled={shared} onClick={handleShare}>
+      {shared ? <FaCheck className="text-green-500 text-xl m-0.5" /> : <PiShareFatFill className="text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-200 hover:scale-105 transition-all duration-300 text-xl m-0.5" />}
     </button>
   )
 }
