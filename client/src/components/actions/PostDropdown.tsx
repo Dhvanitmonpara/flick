@@ -56,7 +56,7 @@ const reportSchema = z.object({
 
 type ReportFormValues = z.infer<typeof reportSchema>;
 
-function PostDropdown({ type, id, editableData, removePostOnAction, showBookmark = true, bookmarked = false }: { type: ("post" | "comment"), id: string, editableData?: { title: string, content: string }, removePostOnAction?: (id: string) => void, showBookmark?: boolean, bookmarked?: boolean }) {
+function PostDropdown({ type, id, editableData, removePostOnAction, showBookmark = true, bookmarked = false }: { type: ("post" | "comment"), id: string, editableData?: { title: string, content: string } | null, removePostOnAction?: (id: string) => void, showBookmark?: boolean, bookmarked?: boolean }) {
   const [dialogType, setDialogType] = useState<DialogType>(null);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -166,18 +166,22 @@ function PostDropdown({ type, id, editableData, removePostOnAction, showBookmark
       <DropdownMenu>
         <DropdownMenuTrigger className="rounded-full p-2 text-lg transition-colors hover:bg-zinc-300/60 dark:hover:bg-zinc-700/60"><HiDotsHorizontal /></DropdownMenuTrigger>
         <DropdownMenuContent>
-          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openDialog("REPORT") }}>
+          {!location.pathname.includes("profile") && <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openDialog("REPORT") }}>
             <TbMessageReport />
             <span>Report</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openDialog("EDIT") }}>
+          </DropdownMenuItem>}
+          {editableData && <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openDialog("EDIT") }}>
             <RiEdit2Fill />
             <span>Edit</span>
-          </DropdownMenuItem>
-          {showBookmark && <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleBookmark(bookmarked) }}>
-            {bookmarked ? <FaBookmark /> : <FaRegBookmark />}
-            <span>{bookmarked ? "Unsave" : "Save"}</span>
           </DropdownMenuItem>}
+          {!location.pathname.includes("profile")
+            && <>
+              {showBookmark && <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleBookmark(bookmarked) }}>
+                {bookmarked ? <FaBookmark /> : <FaRegBookmark />}
+                <span>{bookmarked ? "Unsave" : "Save"}</span>
+              </DropdownMenuItem>}
+            </>
+          }
           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openDialog("DELETE") }} className="hover:!bg-red-400/50 dark:hover:!bg-red-600/40">
             <RiDeleteBin6Fill />
             <span>Delete</span>

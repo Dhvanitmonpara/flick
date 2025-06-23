@@ -22,6 +22,7 @@ import SettingsPage from './pages/SettingsPage'
 import BookmarksPage from './pages/BookmarksPage'
 import FeedbackPage from './pages/FeedbackPage'
 import NotificationsPage from './pages/NotificationsPage'
+import CollegePage from './pages/CollegePage'
 
 // router
 const router = createBrowserRouter([
@@ -56,7 +57,7 @@ const router = createBrowserRouter([
           },
           {
             path: "college",
-            element: <h1>My College</h1>,
+            element: <CollegePage />,
           },
           {
             path: "polls",

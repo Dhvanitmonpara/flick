@@ -37,11 +37,13 @@ export const useErrorHandler = () => {
       return data;
     } catch (error: any) {
       if (axios.isAxiosError(error) && error.response?.status === 401) {
+        removeProfile();
+        localStorage.setItem("loggedIn", "false");
         throw new Error("Session invalid"); // Explicit signal for invalid refresh
       }
       throw error; // Retryable / network error, let it bubble
     }
-  }, [setProfile]);
+  }, [removeProfile, setProfile]);
 
   const extractErrorMessage = (
     error: AxiosError | Error,
@@ -95,7 +97,7 @@ export const useErrorHandler = () => {
         } catch (refreshError) {
           const msg = extractErrorMessage(refreshError as AxiosError, refreshFailMessage);
           removeProfile();
-          reportError(msg, setError);
+          if (msg !== "Session invalid") reportError(msg, setError);
           onError?.();
           return;
         }

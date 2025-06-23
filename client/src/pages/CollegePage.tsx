@@ -2,22 +2,25 @@ import Post from "@/components/general/Post"
 import { env } from "@/conf/env"
 import { useErrorHandler } from "@/hooks/useErrorHandler"
 import usePostStore from "@/store/postStore"
+import useProfileStore from "@/store/profileStore"
 import { formatDate, getAvatarUrl, getCollegeName, isUser } from "@/utils/helpers"
 import axios, { AxiosError } from "axios"
 import { useCallback, useEffect, useState } from "react"
 
-function FeedPage() {
+function CollegePage() {
 
   const [loading, setLoading] = useState(false)
   const { handleError } = useErrorHandler()
+  const profile = useProfileStore(state => state.profile)
   const posts = usePostStore(state => state.posts)
   const setPosts = usePostStore(state => state.setPosts)
 
   const fetchPosts = useCallback(async () => {
     try {
       setLoading(true)
+      if(!profile.college) return
 
-      const res = await axios.get(`${env.serverApiEndpoint}/posts/feed`, { withCredentials: true })
+      const res = await axios.get(`${env.serverApiEndpoint}/posts/college/${profile.college}`, { withCredentials: true })
 
       if (res.status !== 200) {
         throw new Error("Failed to fetch posts")
@@ -28,7 +31,7 @@ function FeedPage() {
     } finally {
       setLoading(false)
     }
-  }, [handleError, setPosts])
+  }, [handleError, profile.college, setPosts])
 
   useEffect(() => {
     document.title = "Feed | Flick"
@@ -132,4 +135,4 @@ function FeedPage() {
   )
 }
 
-export default FeedPage
+export default CollegePage

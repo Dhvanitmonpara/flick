@@ -13,6 +13,7 @@ import {
   initializeForgotPassword,
   forgotPassword,
   terminateAllSessions,
+  getUserProfile,
 } from "../controllers/user.controller.js";
 import { verifyUserJWT } from "../middleware/auth.middleware.js";
 
@@ -21,6 +22,7 @@ const router = Router();
 router.route("/register").post(registerUser);
 router.route("/initialize").post(initializeUser);
 router.route("/me").get(verifyUserJWT, getUserData);
+router.route("/profile").get(verifyUserJWT, getUserProfile);
 router.route("/reset-password/init").post(initializeForgotPassword);
 router.route("/reset-password").post(forgotPassword);
 router.route("/devices/terminate").post(verifyUserJWT, terminateAllSessions);

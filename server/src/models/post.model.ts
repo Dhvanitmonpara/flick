@@ -35,10 +35,12 @@ const postSchema = new mongoose.Schema(
     isBanned: {
       type: Boolean,
       default: false,
+      index: true,
     },
     isShadowBanned: {
       type: Boolean,
       default: false,
+      index: true,
     },
     views: {
       type: Number,

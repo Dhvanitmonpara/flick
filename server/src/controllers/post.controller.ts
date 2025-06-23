@@ -232,6 +232,29 @@ const getPostsForFeed = async (req: Request, res: Response) => {
   }
 };
 
+const getPostsByCollege = async (req: Request, res: Response) => {
+  try {
+    const college = req.params.collegeId;
+    if (!college) throw new ApiError(400, "College ID is required");
+
+    const posts = await postService.getPostsByCollege(college);
+
+    if (!posts || posts.length === 0) {
+      throw new ApiError(404, "No posts found for this college");
+    }
+
+    res.status(200).json({ posts });
+
+  } catch (error) {
+    handleError(
+      error as ApiError,
+      res,
+      "Error getting posts",
+      "GET_POSTS_ERROR"
+    );
+  }
+};
+
 const getPostById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -243,7 +266,7 @@ const getPostById = async (req: Request, res: Response) => {
     const posts = await postService.getPostByIdAndPopulate({
       postId: id,
       userId: req.user?._id || null,
-    })
+    });
 
     if (!posts || posts.length === 0) {
       throw new ApiError(404, "Post not found");
@@ -283,6 +306,7 @@ export {
   updatePost,
   deletePost,
   getPostById,
+  getPostsByCollege,
   getPostsForFeed,
   IncrementView,
 };

@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import userModel from "../models/user.model.js";
+import UserModel from "../models/user.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import mongoose from "mongoose";
 import {
@@ -18,8 +18,10 @@ import { logEvent } from "../services/log.service.js";
 import redisClient from "../services/redis.service.js";
 import generateDeviceFingerprint from "../utils/generateDeviceFingerprint.js";
 import UserService, { UserDocument } from "../services/user.service.js";
+import PostService from "../services/post.service.js";
 
 const userService = new UserService();
+const postService = new PostService()
 
 export const heartbeat = async (req: Request, res: Response) => {
   const token = req.cookies?.__accessToken;
@@ -59,7 +61,7 @@ export const initializeUser = async (req: Request, res: Response) => {
 
     const hashedEmail = await hashEmailForLookup(email.toLowerCase());
 
-    if (await userModel.findOne({ email: hashedEmail }))
+    if (await UserModel.findOne({ email: hashedEmail }))
       throw new ApiError(400, "User with this email already exists");
 
     const user = {
@@ -141,7 +143,7 @@ export const registerUser = async (req: Request, res: Response) => {
 
     const username = await userService.generateUsername();
 
-    const createdUser = await userModel.create({
+    const createdUser = await UserModel.create({
       username,
       branch,
       email: encryptedData,
@@ -219,9 +221,9 @@ export const loginUser = async (req: Request, res: Response) => {
 
     if (email) {
       const encryptedEmail = await hashEmailForLookup(email.toLowerCase());
-      existingUser = await userModel.findOne({ lookupEmail: encryptedEmail });
+      existingUser = await UserModel.findOne({ lookupEmail: encryptedEmail });
     } else if (username) {
-      existingUser = await userModel.findOne({ username });
+      existingUser = await UserModel.findOne({ username });
     } else {
       throw new ApiError(400, "Email or username is required");
     }
@@ -294,7 +296,7 @@ export const terminateAllSessions = async (req: Request, res: Response) => {
       throw new ApiError(400, "User not found");
     }
 
-    const user = await userModel.findById(req.user._id);
+    const user = await UserModel.findById(req.user._id);
     if (!user) throw new ApiError(400, "User not found");
 
     const currentIp =
@@ -351,13 +353,49 @@ export const getUserData = async (req: Request, res: Response) => {
   }
 };
 
+export const getUserProfile = async (req: Request, res: Response) => {
+  try {
+
+    if (!req.user?._id) throw new ApiError(401, "Unauthorized request");
+
+    const college = await CollegeModel.findById(req.user.college);
+
+    const posts = await postService.findPostsAndPopulate({
+      userId: req.user._id,
+      limit: 10,
+      page: 1,
+      sortBy: { createdAt: -1 },
+    })
+
+    const karma = await postService.getKarma(req.user._id) ?? 0;
+
+    res.status(200).json({
+      message: "User profile fetched successfully!",
+      data: {
+        ...req.user,
+        college,
+        posts,
+        karma
+      },
+    });
+
+  } catch (error) {
+    handleError(
+      error as ApiError,
+      res,
+      "Failed to get user profile",
+      "GET_USER_PROFILE_ERROR"
+    );
+  }
+};
+
 export const logoutUser = async (req: Request, res: Response) => {
   try {
     if (!req.user || !req.user._id) {
       throw new ApiError(400, "User not found");
     }
 
-    const user = await userModel.findById(req.user._id);
+    const user = await UserModel.findById(req.user._id);
     if (!user) {
       throw new ApiError(400, "User not found");
     }
@@ -399,7 +437,7 @@ export const initializeForgotPassword = async (req: Request, res: Response) => {
 
     const hashedEmail = await hashEmailForLookup(email.toLowerCase());
 
-    const user = await userModel.findOne({ lookupEmail: hashedEmail });
+    const user = await UserModel.findOne({ lookupEmail: hashedEmail });
     if (!user) throw new ApiError(400, "User not found");
 
     const mailResponse = await sendMail(email, "OTP");
@@ -464,7 +502,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
     const storedPassword = await redisClient.get(`password:${hashedEmail}`);
     if (!storedPassword) throw new ApiError(400, "Password not found");
 
-    const user = await userModel.findOne({ lookupEmail: hashedEmail });
+    const user = await UserModel.findOne({ lookupEmail: hashedEmail });
     if (!user) throw new ApiError(400, "User not found");
 
     const decryptedPassword = await decrypt(storedPassword);
@@ -540,7 +578,7 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
       throw new ApiError(401, "Invalid Access Token");
     }
 
-    const user = (await userModel.findById(decodedToken?._id)) as UserDocument;
+    const user = (await UserModel.findById(decodedToken?._id)) as UserDocument;
 
     if (!user) {
       throw new ApiError(401, "Invalid Refresh Token");
@@ -665,7 +703,7 @@ export const acceptTerms = async (req: Request, res: Response) => {
     const userId = req.user?._id ?? null;
     if (!userId) throw new ApiError(401, "Unauthorized request");
 
-    await userModel.findByIdAndUpdate(userId, {
+    await UserModel.findByIdAndUpdate(userId, {
       $set: {
         termsAccepted: true,
       },

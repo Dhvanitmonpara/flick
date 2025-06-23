@@ -43,6 +43,7 @@ function SignInPage() {
         return
       }
 
+      localStorage.setItem("loggedIn", "true");
       navigate('/')
 
     } catch (err) {

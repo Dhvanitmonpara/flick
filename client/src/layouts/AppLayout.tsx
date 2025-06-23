@@ -20,7 +20,7 @@ function AppLayout() {
   const reset = searchParams.get('reset');
 
   return (
-    <div className="flex max-w-[88rem] mx-auto w-full min-h-screen pr-8">
+    <div className="flex max-w-[80rem] mx-auto w-full min-h-screen pr-8">
       <SocketProvider>
         <Sidebar />
         <Outlet />

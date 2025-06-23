@@ -18,3 +18,6 @@ export function isCollege(obj: unknown): obj is ICollege {
 export function isPost(obj: unknown): obj is IPost {
   return typeof obj === "object" && obj !== null && "title" in obj && "content" in obj;
 }
+
+export const getAvatarUrl = (user: IUser | string) => isUser(user) && isCollege(user.college) ? user.college.profile : "";
+export const getCollegeName = (user: IUser | string) => isUser(user) && isCollege(user.college) ? user.college.name : "Unknown College";

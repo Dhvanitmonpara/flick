@@ -4,6 +4,7 @@ import { validateContent } from "../utils/moderator.js";
 import redisClient from "./redis.service.js";
 import { Request } from "express";
 import { toObjectId } from "../utils/toObject.js";
+import VoteModel from "../models/vote.model.js";
 
 type FindPostsOptions = {
   page?: number;
@@ -11,6 +12,16 @@ type FindPostsOptions = {
   sortBy?: Record<string, 1 | -1>;
   filters?: Record<string, any>;
   userId?: Types.ObjectId | string | null;
+};
+
+type PostPipelineOptions = {
+  userId?: Types.ObjectId | null;
+  filters?: Record<string, any>;
+  sortBy?: Record<string, 1 | -1>;
+  skip?: number;
+  limit?: number;
+  includePagination?: boolean;
+  singlePostId?: Types.ObjectId | null;
 };
 
 class PostService {
@@ -81,204 +92,34 @@ class PostService {
     }
   }
 
-  async getPostByIdAndPopulate({
-    postId,
+  buildPostPipeline({
     userId = null,
-  }: {
-    postId: string | Types.ObjectId;
-    userId?: string | Types.ObjectId | null;
-  }) {
-    const objectPostId = toObjectId(postId);
-    const objectUserId = userId ? toObjectId(userId) : null;
-
-    const pipeline: any[] = [
-      {
-        $match: {
-          _id: objectPostId,
-          isBanned: false,
-          isShadowBanned: false,
-        },
-      },
-      {
-        $lookup: {
-          from: "users",
-          localField: "postedBy",
-          foreignField: "_id",
-          as: "postedBy",
-        },
-      },
-      { $unwind: { path: "$postedBy", preserveNullAndEmptyArrays: true } },
-      {
-        $lookup: {
-          from: "colleges",
-          localField: "postedBy.college",
-          foreignField: "_id",
-          as: "postedBy.college",
-        },
-      },
-      {
-        $unwind: {
-          path: "$postedBy.college",
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $lookup: {
-          from: "votes",
-          localField: "_id",
-          foreignField: "postId",
-          as: "votes",
-        },
-      },
-      {
-        $addFields: {
-          upvoteCount: {
-            $size: {
-              $filter: {
-                input: "$votes",
-                as: "vote",
-                cond: { $eq: ["$$vote.voteType", "upvote"] },
-              },
-            },
-          },
-          downvoteCount: {
-            $size: {
-              $filter: {
-                input: "$votes",
-                as: "vote",
-                cond: { $eq: ["$$vote.voteType", "downvote"] },
-              },
-            },
-          },
-        },
-      },
-    ];
-
-    // Only include if user is logged in
-    if (objectUserId) {
-      pipeline.push(
-        {
-          $lookup: {
-            from: "votes",
-            let: {
-              postId: "$_id",
-              userId: objectUserId,
-            },
-            pipeline: [
-              {
-                $match: {
-                  $expr: {
-                    $and: [
-                      { $eq: ["$postId", "$$postId"] },
-                      { $eq: ["$userId", "$$userId"] },
-                    ],
-                  },
-                },
-              },
-              {
-                $project: {
-                  _id: 0,
-                  voteType: 1,
-                },
-              },
-            ],
-            as: "userVote",
-          },
-        },
-        {
-          $addFields: {
-            userVote: { $arrayElemAt: ["$userVote.voteType", 0] },
-          },
-        },
-        {
-          $lookup: {
-            from: "bookmarks",
-            let: {
-              postId: "$_id",
-              userId: objectUserId,
-            },
-            pipeline: [
-              {
-                $match: {
-                  $expr: {
-                    $and: [
-                      { $eq: ["$postId", "$$postId"] },
-                      { $eq: ["$userId", "$$userId"] },
-                    ],
-                  },
-                },
-              },
-              { $project: { _id: 1 } },
-            ],
-            as: "bookmarkEntry",
-          },
-        },
-        {
-          $addFields: {
-            bookmarked: { $gt: [{ $size: "$bookmarkEntry" }, 0] },
-          },
-        }
-      );
-    }
-
-    // Final shape
-    pipeline.push({
-      $project: {
-        title: 1,
-        content: 1,
-        topic: 1,
-        views: 1,
-        createdAt: 1,
-        upvoteCount: 1,
-        downvoteCount: 1,
-        userVote: 1,
-        bookmarked: 1,
-        postedBy: {
-          _id: 1,
-          username: 1,
-          branch: 1,
-          college: {
-            _id: 1,
-            name: 1,
-            profile: 1,
-            email: 1,
-          },
-        },
-      },
-    });
-
-    const [post] = await PostModel.aggregate(pipeline);
-    return post || null;
-  }
-
-  async findPostsAndPopulate({
-    page = 1,
-    limit = 10,
-    sortBy = { createdAt: -1 },
     filters = {},
-    userId,
-  }: FindPostsOptions) {
-    const objectUserId = userId ? new Types.ObjectId(userId) : null;
-
+    sortBy = { createdAt: -1 },
+    skip,
+    limit,
+    includePagination = false,
+    singlePostId = null,
+  }: PostPipelineOptions): any[] {
     const pipeline: any[] = [];
 
-    // Basic filters
-    pipeline.push({
-      $match: {
-        isBanned: false,
-        isShadowBanned: false,
-        ...filters,
-      },
-    });
+    const matchStage: Record<string, any> = {
+      isBanned: false,
+      isShadowBanned: false,
+      ...filters,
+    };
 
-    // Sort, Paginate
-    pipeline.push(
-      { $sort: sortBy },
-      { $skip: (page - 1) * limit },
-      { $limit: limit }
-    );
+    if (singlePostId) {
+      matchStage._id = singlePostId;
+    }
 
-    // postedBy lookup
+    pipeline.push({ $match: matchStage });
+
+    if (sortBy) pipeline.push({ $sort: sortBy });
+    if (skip !== undefined) pipeline.push({ $skip: skip });
+    if (limit !== undefined) pipeline.push({ $limit: limit });
+
+    // postedBy + college
     pipeline.push(
       {
         $lookup: {
@@ -305,7 +146,7 @@ class PostService {
       }
     );
 
-    // Comments lookup and count
+    // comment count
     pipeline.push(
       {
         $lookup: {
@@ -322,7 +163,7 @@ class PostService {
       }
     );
 
-    // Votes aggregation
+    // votes
     pipeline.push(
       {
         $lookup: {
@@ -356,13 +197,13 @@ class PostService {
       }
     );
 
-    // If logged in, add userVote and bookmark
-    if (objectUserId) {
+    // user-specific data
+    if (userId) {
       pipeline.push(
         {
           $lookup: {
             from: "votes",
-            let: { postId: "$_id", userId: objectUserId },
+            let: { postId: "$_id", userId },
             pipeline: [
               {
                 $match: {
@@ -387,7 +228,7 @@ class PostService {
         {
           $lookup: {
             from: "bookmarks",
-            let: { postId: "$_id", userId: objectUserId },
+            let: { postId: "$_id", userId },
             pipeline: [
               {
                 $match: {
@@ -412,7 +253,7 @@ class PostService {
       );
     }
 
-    // Final shape
+    // final projection
     pipeline.push({
       $project: {
         title: 1,
@@ -420,6 +261,7 @@ class PostService {
         topic: 1,
         views: 1,
         createdAt: 1,
+        updatedAt: 1,
         commentsCount: 1,
         upvoteCount: 1,
         downvoteCount: 1,
@@ -439,7 +281,107 @@ class PostService {
       },
     });
 
+    return pipeline;
+  }
+
+  async getPostByIdAndPopulate({
+    postId,
+    userId,
+  }: {
+    postId: string;
+    userId: string | Types.ObjectId | null;
+  }) {
+    const objectPostId = toObjectId(postId);
+    const objectUserId = userId ? toObjectId(userId) : null;
+
+    const pipeline = this.buildPostPipeline({
+      userId: objectUserId,
+      singlePostId: objectPostId,
+    });
+
+    const [post] = await PostModel.aggregate(pipeline);
+    return post || null;
+  }
+
+  async findPostsAndPopulate({
+    page = 1,
+    limit = 10,
+    sortBy = { createdAt: -1 },
+    filters = {},
+    userId,
+  }: FindPostsOptions) {
+    const objectUserId = userId ? toObjectId(userId) : null;
+
+    const pipeline = this.buildPostPipeline({
+      userId: objectUserId,
+      filters,
+      sortBy,
+      skip: (page - 1) * limit,
+      limit,
+    });
+
     return await PostModel.aggregate(pipeline);
+  }
+
+  getPostsByCollege = async (collegeId: string) => {
+    const pipeline = this.buildPostPipeline({ filters: {} });
+
+    const matchIndex = pipeline.findIndex(
+      (stage) =>
+        stage?.$unwind?.path === "$postedBy.college" &&
+        stage?.$unwind?.preserveNullAndEmptyArrays === true
+    );
+
+    if (matchIndex !== -1) {
+      pipeline.splice(matchIndex + 1, 0, {
+        $match: {
+          "postedBy.college._id": toObjectId(collegeId),
+        },
+      });
+    }
+
+    return await PostModel.aggregate(pipeline);
+  };
+
+  async getKarma(userId: Types.ObjectId) {
+    const result = await VoteModel.aggregate([
+      {
+        $match: {
+          type: "post",
+        },
+      },
+      // Join votes → posts to get author
+      {
+        $lookup: {
+          from: "posts",
+          localField: "postId",
+          foreignField: "_id",
+          as: "post",
+        },
+      },
+      { $unwind: "$post" },
+      {
+        $match: {
+          "post.postedBy": userId,
+        },
+      },
+      {
+        $group: {
+          _id: "$voteType",
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    let upvotes = 0;
+    let downvotes = 0;
+
+    for (const entry of result) {
+      if (entry._id === "upvote") upvotes = entry.count;
+      if (entry._id === "downvote") downvotes = entry.count;
+    }
+
+    return upvotes - downvotes;
   }
 }
 

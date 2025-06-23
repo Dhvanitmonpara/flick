@@ -13,6 +13,7 @@ import { useNavigate } from "react-router-dom";
 import EngagementComponent from "./EngagementComponent";
 import PostDropdown from "../actions/PostDropdown";
 import { TPostTopic } from "@/types/postTopics";
+import useProfileStore from "@/store/profileStore";
 
 interface PostProps {
   avatar: string,
@@ -35,6 +36,7 @@ interface PostProps {
 }
 
 function Post({ avatar, userVote, avatarFallback, _id, createdAt, college, title, content, upvoteCount, downvoteCount, commentsCount, viewsCount, username, branch, topic, bookmarked, removedPostOnAction }: PostProps) {
+  const profile = useProfileStore(state => state.profile)
   const navigate = useNavigate()
   return (
     <Card onClick={() => navigate(`/p/${_id}`)} className="dark:bg-transparent bg-transparent border-none shadow-none rounded-none">
@@ -63,7 +65,7 @@ function Post({ avatar, userVote, avatarFallback, _id, createdAt, college, title
             </p>
           </div>
         </div>
-        <PostDropdown removePostOnAction={removedPostOnAction} bookmarked={bookmarked} id={_id} type="post" key={_id} editableData={{ title, content }} />
+        <PostDropdown removePostOnAction={removedPostOnAction} bookmarked={bookmarked} id={_id} type="post" key={_id} editableData={profile.username === username ? { title, content } : null} />
       </CardHeader>
       <CardContent>
         <h2 className="text-xl font-semibold">{title}</h2>

@@ -3,6 +3,7 @@ import {
   createPost,
   deletePost,
   getPostById,
+  getPostsByCollege,
   getPostsForFeed,
   IncrementView,
   updatePost,
@@ -23,6 +24,7 @@ router.route("/delete/:postId").delete(verifyUserJWT, deletePost);
 router.route("/view/:postId").post(IncrementView);
 router.route("/get/single/:id").get(lazyVerifyJWT, getPostById);
 router.route("/feed").get(lazyVerifyJWT, getPostsForFeed);
+router.route("/college/:collegeId").get(verifyUserJWT, getPostsByCollege);
 router
   .route("/update/:postId")
   .patch(verifyUserJWT, blockSuspensionMiddleware, updatePost);
