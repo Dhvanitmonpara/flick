@@ -5,19 +5,30 @@ import usePostStore from "@/store/postStore"
 import { formatDate, getAvatarUrl, getCollegeName, isUser } from "@/utils/helpers"
 import axios, { AxiosError } from "axios"
 import { useCallback, useEffect, useState } from "react"
+import { useParams } from "react-router-dom"
 
 function FeedPage() {
 
   const [loading, setLoading] = useState(false)
+
   const { handleError } = useErrorHandler()
   const posts = usePostStore(state => state.posts)
   const setPosts = usePostStore(state => state.setPosts)
+
+  const params = useParams()
 
   const fetchPosts = useCallback(async () => {
     try {
       setLoading(true)
 
-      const res = await axios.get(`${env.serverApiEndpoint}/posts/feed`, { withCredentials: true })
+      let url = `${env.serverApiEndpoint}/posts/feed`
+      if (params.branch) {
+        url = `${env.serverApiEndpoint}/posts/get/filter?branch=${params.branch}`
+      } else if (params.topic) {
+        url = `${env.serverApiEndpoint}/posts/get/filter?topic=${params.topic}`
+      }
+
+      const res = await axios.get(url, { withCredentials: true })
 
       if (res.status !== 200) {
         throw new Error("Failed to fetch posts")
@@ -28,7 +39,7 @@ function FeedPage() {
     } finally {
       setLoading(false)
     }
-  }, [handleError, setPosts])
+  }, [handleError, params.branch, params.topic, setPosts])
 
   useEffect(() => {
     document.title = "Feed | Flick"

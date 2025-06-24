@@ -60,12 +60,26 @@ const router = createBrowserRouter([
             element: <CollegePage />,
           },
           {
-            path: "polls",
-            element: <h1>Polls</h1>,
-          },
-          {
             path: "trending",
             element: <h1>Trending</h1>,
+          },
+          {
+            path: "branch",
+            children: [
+              {
+                path: ":branch",
+                element: <FeedPage />,
+              }
+            ]
+          },
+          {
+            path: "topic",
+            children: [
+              {
+                path: ":topic",
+                element: <FeedPage />,
+              }
+            ]
           },
           {
             path: "u",

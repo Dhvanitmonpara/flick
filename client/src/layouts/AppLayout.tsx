@@ -2,7 +2,6 @@ import { ReactNode, useState } from "react"
 import { Link, Outlet, useLocation, useSearchParams } from "react-router-dom"
 import { PiCardsThreeFill, PiCardsThreeLight } from "react-icons/pi";
 import { RiGraduationCapFill, RiGraduationCapLine } from "react-icons/ri";
-import { BiBarChartSquare, BiSolidBarChartSquare } from "react-icons/bi";
 import { PiFireFill, PiFireLight } from "react-icons/pi";
 import { Separator } from "@/components/ui/separator";
 import TerminateSessions from "@/components/actions/TerminateSessions";
@@ -38,8 +37,8 @@ function Sidebar() {
   const theme = useProfileStore(state => state.theme)
 
   return (
-    <div className="hidden md:block min-w-[270px] w-[270px] h-screen overflow-y-auto no-scrollbar space-y-1 px-4">
-      <div className="py-6">
+    <>
+      <div className="hidden md:block min-w-[270px] w-[270px] h-screen py-6 overflow-y-auto no-scrollbar space-y-1 px-4">
         <div className="flex justify-center items-center">
           <Link to="/">
             <img className="h-14 w-14 p-2" src={theme === "dark" ? "/logo-b.png" : "/logo-w.png"} alt="logo" />
@@ -48,10 +47,9 @@ function Sidebar() {
         <section className="space-y-2">
           <Tab to="/" text="Feed" activeIcon={<PiCardsThreeFill size={22} />} passiveIcon={<PiCardsThreeLight size={22} />} />
           <Tab to="/college" text="My College" activeIcon={<RiGraduationCapFill size={22} />} passiveIcon={<RiGraduationCapLine size={22} />} />
-          <Tab to="/polls" text="Polls" activeIcon={<BiSolidBarChartSquare size={22} />} passiveIcon={<BiBarChartSquare size={22} />} />
           <Tab to="/trending" text="Trending" activeIcon={<PiFireFill size={22} />} passiveIcon={<PiFireLight size={22} />} />
         </section>
-        <Separator />
+        <Separator className="my-2" />
         <Heading text="Branches" />
         {showAllBranches
           ? <>
@@ -73,12 +71,12 @@ function Sidebar() {
             </button>
           </>
         }
-        <Separator />
+        <Separator className="my-2" />
         <Heading text="Topics" />
         {showAllTopics
           ? <>
             {PostTopic.map((topic) => (
-              <Tab key={topic} to={`/topic/${topic.replace(" / ", "_").replace(" ", "+")}`} text={topic} />
+              <Tab key={topic} to={`/topic/${topic.toLocaleLowerCase().replace(" / ", "_").replace(" ", "+")}`} text={topic} />
             ))}
             <button className="flex justify-center items-center space-x-1 cursor-pointer text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 pl-4 py-2" onClick={() => setShowAllTopics(false)}>
               <span>Show less</span>
@@ -87,7 +85,7 @@ function Sidebar() {
           </>
           : <>
             {PostTopic.filter((_, index) => index < 5).map((topic) => (
-              <Tab key={topic} to={`/topic/${topic.replace(" / ", "_").replace(" ", "+")}`} text={topic} />
+              <Tab key={topic} to={`/topic/${topic.toLocaleLowerCase().replace(" / ", "_").replace(" ", "+")}`} text={topic} />
             ))}
             <button className="flex justify-center items-center space-x-1 cursor-pointer text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 pl-4 py-2" onClick={() => setShowAllTopics(true)}>
               <span>Show more</span>
@@ -95,10 +93,13 @@ function Sidebar() {
             </button>
           </>
         }
+        <div className="h-24"></div>
       </div>
-      <CreatePost className="sticky bottom-0" />
-      <AuthCard className="sticky bottom-0 bg-zinc-200 dark:bg-zinc-800 rounded-md" />
-    </div>
+      <div className="fixed w-[270px] bottom-0 p-4 space-y-2 bg-zinc-100 dark:bg-zinc-900">
+        <CreatePost className="" />
+        <AuthCard className="bg-zinc-200 dark:bg-zinc-800 rounded-md" />
+      </div>
+    </>
   )
 }
 

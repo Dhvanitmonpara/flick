@@ -244,7 +244,42 @@ const getPostsByCollege = async (req: Request, res: Response) => {
     }
 
     res.status(200).json({ posts });
+  } catch (error) {
+    handleError(
+      error as ApiError,
+      res,
+      "Error getting posts",
+      "GET_POSTS_ERROR"
+    );
+  }
+};
 
+const getPostsByFilter = async (req: Request, res: Response) => {
+  try {
+    const branch = req.query.branch as string;
+    const topic = req.query.topic as string;
+    if (!branch && !topic)
+      throw new ApiError(400, "Branch or Topic is required");
+
+    let posts = null;
+
+    if (topic) {
+      const processedTopic = topic.toUpperCase().replace("_", " / ").replace("+", " ");
+      posts = await postService.findPostsAndPopulate({
+        limit: 10,
+        page: 1,
+        filters: { topic: processedTopic },
+      });
+    } else {
+      const processedBranch = branch.replace("+", " ").toUpperCase();
+      posts = await postService.getPostsByBranch(processedBranch);
+    }
+
+    if (!posts || posts.length === 0) {
+      throw new ApiError(404, "No posts found for this filter");
+    }
+
+    res.status(200).json({ posts });
   } catch (error) {
     handleError(
       error as ApiError,
@@ -307,6 +342,7 @@ export {
   deletePost,
   getPostById,
   getPostsByCollege,
+  getPostsByFilter,
   getPostsForFeed,
   IncrementView,
 };

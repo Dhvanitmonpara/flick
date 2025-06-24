@@ -343,6 +343,26 @@ class PostService {
     return await PostModel.aggregate(pipeline);
   };
 
+  getPostsByBranch = async (branch: string) => {
+    const pipeline = this.buildPostPipeline({ filters: {} });
+
+    const matchIndex = pipeline.findIndex(
+      (stage) =>
+        stage?.$unwind?.path === "$postedBy.college" &&
+        stage?.$unwind?.preserveNullAndEmptyArrays === true
+    );
+
+    if (matchIndex !== -1) {
+      pipeline.splice(matchIndex + 1, 0, {
+        $match: {
+          "postedBy.branch": branch,
+        },
+      });
+    }
+
+    return await PostModel.aggregate(pipeline);
+  }
+
   async getKarma(userId: Types.ObjectId) {
     const result = await VoteModel.aggregate([
       {

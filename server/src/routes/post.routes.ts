@@ -7,6 +7,7 @@ import {
   getPostsForFeed,
   IncrementView,
   updatePost,
+  getPostsByFilter,
 } from "../controllers/post.controller.js";
 import { blockSuspensionMiddleware, lazyVerifyJWT, termsAcceptedMiddleware, verifyUserJWT } from "../middleware/auth.middleware.js";
 
@@ -23,6 +24,7 @@ router
 router.route("/delete/:postId").delete(verifyUserJWT, deletePost);
 router.route("/view/:postId").post(IncrementView);
 router.route("/get/single/:id").get(lazyVerifyJWT, getPostById);
+router.route("/get/filter").get(lazyVerifyJWT, getPostsByFilter);
 router.route("/feed").get(lazyVerifyJWT, getPostsForFeed);
 router.route("/college/:collegeId").get(verifyUserJWT, getPostsByCollege);
 router
