@@ -3,6 +3,7 @@ import { env } from "@/conf/env"
 import { useErrorHandler } from "@/hooks/useErrorHandler"
 import usePostStore from "@/store/postStore"
 import useProfileStore from "@/store/profileStore"
+import { IPost } from "@/types/Post"
 import { formatDate, getAvatarUrl, getCollegeName, isUser } from "@/utils/helpers"
 import axios, { AxiosError } from "axios"
 import { useCallback, useEffect, useState } from "react"
@@ -18,7 +19,7 @@ function CollegePage() {
   const fetchPosts = useCallback(async () => {
     try {
       setLoading(true)
-      if(!profile.college) return
+      if (!profile.college) return
 
       const res = await axios.get(`${env.serverApiEndpoint}/posts/college/${profile.college}`, { withCredentials: true })
 
@@ -38,8 +39,9 @@ function CollegePage() {
     fetchPosts()
   }, [fetchPosts])
 
-  const removedPostOnAction = () => {
-    // TODO: Make this
+  const removedPostOnAction = (id: string) => {
+    const updatedPost = posts?.filter(post=>post._id !== id) as IPost[]
+    setPosts(updatedPost)
   }
 
   if (loading) {

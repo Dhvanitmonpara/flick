@@ -2,6 +2,7 @@ import Post from "@/components/general/Post"
 import { env } from "@/conf/env"
 import { useErrorHandler } from "@/hooks/useErrorHandler"
 import usePostStore from "@/store/postStore"
+import { IPost } from "@/types/Post"
 import { formatDate, getAvatarUrl, getCollegeName, isUser } from "@/utils/helpers"
 import axios, { AxiosError } from "axios"
 import { useCallback, useEffect, useState } from "react"
@@ -46,8 +47,9 @@ function FeedPage() {
     fetchPosts()
   }, [fetchPosts])
 
-  const removedPostOnAction = () => {
-    // TODO: Make this
+  const removedPostOnAction = (id: string) => {
+    const updatedPost = posts?.filter(post => post._id !== id) as IPost[]
+    setPosts(updatedPost)
   }
 
   if (loading) {

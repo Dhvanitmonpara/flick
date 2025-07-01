@@ -29,8 +29,8 @@ function BookmarksPage() {
     getBookmarks()
   }, [getBookmarks])
 
-  const removedPostOnAction = () => {
-    // TODO: Make this
+  const removedPostOnAction = (id: string) => {
+    setPosts((prev) => prev.filter((post) => post._id !== id))
   }
 
   if (loading) return <div>Loading...</div>
@@ -47,6 +47,7 @@ function BookmarksPage() {
             viewsCount={0}
             key={post._id}
             _id={post._id}
+            topic={post.topic}
             removedPostOnAction={removedPostOnAction}
             bookmarked={true}
             avatar={isUser(post.postedBy) && isCollege(post.postedBy.college) ? post.postedBy.college.profile : ""}
