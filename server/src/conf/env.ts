@@ -18,6 +18,8 @@ export const env = {
   perspectiveApiKey: process.env.PERSPECTIVE_API_KEY,
   gmailUser: process.env.GMAIL_USER,
   gmailAppPassword: process.env.GMAIL_APP_PASSWORD,
+  googleOAuthClientId: process.env.GOOGLE_OAUTH_CLIENT_ID,
+  googleOAuthClientSecret: process.env.GOOGLE_OAUTH_CLIENT_SECRET,
   adminAccessControlOrigin:
     process.env.ADMIN_ACCESS_CONTROL_ORIGIN || "http://localhost:5174",
   accessControlOrigin:
@@ -76,6 +78,14 @@ if (!env.redisHost) {
 
 if (!env.redisPort) {
   throw new Error("REDIS_PORT environment variable is not set");
+}
+
+if(!env.googleOAuthClientId){
+  throw new Error("GOOGLE_OAUTH_CLIENT_ID variable is not set")
+}
+
+if(!env.googleOAuthClientSecret){
+  throw new Error("GOOGLE_OAUTH_CLIENT_SECRET variable is not set")
 }
 
 if (!env.environment) {

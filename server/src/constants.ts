@@ -1,5 +1,5 @@
-const DB_NAME = "blind"
+const DB_NAME = "flick"
 
-const appName = 'blind'
+const appName = 'flick'
 
 export { DB_NAME, appName }

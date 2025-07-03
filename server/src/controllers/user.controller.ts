@@ -19,9 +19,10 @@ import redisClient from "../services/redis.service.js";
 import generateDeviceFingerprint from "../utils/generateDeviceFingerprint.js";
 import UserService, { UserDocument } from "../services/user.service.js";
 import PostService from "../services/post.service.js";
+import axios from "axios";
 
 const userService = new UserService();
-const postService = new PostService()
+const postService = new PostService();
 
 export const heartbeat = async (req: Request, res: Response) => {
   const token = req.cookies?.__accessToken;
@@ -39,6 +40,147 @@ export const heartbeat = async (req: Request, res: Response) => {
     res.status(200).json({ success: true });
   } catch {
     res.status(401).json({ success: false });
+  }
+};
+
+export const googleCallback = async (req: Request, res: Response) => {
+  const code = req.query.code;
+
+  try {
+    // 🔄 Exchange code for tokens
+    const { data } = await axios.post(
+      "https://oauth2.googleapis.com/token",
+      null,
+      {
+        params: {
+          code,
+          client_id: env.googleOAuthClientId,
+          client_secret: env.googleOAuthClientSecret,
+          redirect_uri:
+            "http://localhost:8000/api/public/v1/users/google/callback",
+          grant_type: "authorization_code",
+        },
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      }
+    );
+
+    const { access_token } = data;
+
+    // 🙋 Get user info
+    const userInfoRes = await axios.get(
+      "https://www.googleapis.com/oauth2/v2/userinfo",
+      {
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+        },
+      }
+    );
+
+    const user = userInfoRes.data;
+
+    // 🛡️ Here: create/find user in DB, issue session/JWT/etc
+    console.log("User info:", user);
+
+    const hashedEmail = await hashEmailForLookup(user.email.toLowerCase());
+    const existingUser = await UserModel.findOne({
+      lookupEmail: hashedEmail,
+    });
+    if (existingUser) {
+      return res.redirect(`http://localhost:5173`);
+    }
+
+    // Optional: Redirect to frontend with JWT or session ID
+    res.redirect(
+      `http://localhost:5173/auth/oauth/callback?email=${user.email}`
+    ); // Or send data
+  } catch (err) {
+    handleError(
+      err as ApiError,
+      res,
+      "Failed to login with Google",
+      "GOOGLE_LOGIN_ERROR"
+    );
+  }
+};
+
+export const registerUserOAuth = async (req: Request, res: Response) => {
+  try {
+    const { email, branch } = req.body;
+    if (!email) throw new ApiError(400, "Email is required");
+
+    const hashedEmail = await hashEmailForLookup(email.toLowerCase());
+    const encryptedData = await encrypt(email.toLowerCase());
+    const username = await userService.generateUsername();
+
+    const college = await CollegeModel.findOne({
+      emailDomain: email.split("@")[1],
+    });
+    if (!college) throw new ApiError(404, "College not found");
+
+    const createdUser = await UserModel.create({
+      username,
+      branch,
+      email: encryptedData,
+      lookupEmail: hashedEmail,
+      bookmarks: [],
+      college,
+    });
+
+    if (!createdUser) throw new ApiError(500, "Failed to create user");
+
+    const { accessToken, refreshToken, userAgent, ip } =
+      await userService.generateAccessAndRefreshToken(createdUser._id, req);
+
+    if (!accessToken || !refreshToken) {
+      res
+        .status(500)
+        .json({ error: "Failed to generate access and refresh token" });
+      return;
+    }
+
+    await redisClient.del(`pending:${hashedEmail}`);
+    await redisClient.del(`otp:${hashedEmail}`);
+
+    logEvent({
+      req,
+      action: "user_created_account",
+      platform: "web",
+      userId: createdUser._id.toString(),
+      metadata: {
+        targetEmail: hashedEmail,
+        userAgent,
+        ip,
+      },
+    });
+
+    res
+      .status(201)
+      .cookie("__accessToken", accessToken, {
+        ...userService.options,
+        maxAge: userService.accessTokenExpiry,
+      })
+      .cookie("__refreshToken", refreshToken, {
+        ...userService.options,
+        maxAge: userService.refreshTokenExpiry,
+      })
+      .json({
+        message: "Form submitted successfully!",
+        data: {
+          ...createdUser,
+          refreshToken: null,
+          password: null,
+          email: null,
+        },
+      });
+  } catch (error) {
+    handleError(
+      error as ApiError,
+      res,
+      "Failed to register user",
+      "REGISTER_USER_ERROR"
+    );
   }
 };
 
@@ -228,10 +370,9 @@ export const loginUser = async (req: Request, res: Response) => {
       throw new ApiError(400, "Email or username is required");
     }
 
-    if (!existingUser || !existingUser.password)
-      throw new ApiError(400, "User not found");
-
+    if (!existingUser) throw new ApiError(400, "User not found");
     if (existingUser.isBlocked) throw new ApiError(400, "User is blocked");
+    if (!existingUser.password) throw new ApiError(400, "User has no password", "NO_PASSWORD_FOUND_ERROR");
 
     if (new Date(existingUser.suspension.ends) > new Date())
       throw new ApiError(
@@ -355,7 +496,6 @@ export const getUserData = async (req: Request, res: Response) => {
 
 export const getUserProfile = async (req: Request, res: Response) => {
   try {
-
     if (!req.user?._id) throw new ApiError(401, "Unauthorized request");
 
     const college = await CollegeModel.findById(req.user.college);
@@ -365,9 +505,9 @@ export const getUserProfile = async (req: Request, res: Response) => {
       limit: 10,
       page: 1,
       sortBy: { createdAt: -1 },
-    })
+    });
 
-    const karma = await postService.getKarma(req.user._id) ?? 0;
+    const karma = (await postService.getKarma(req.user._id)) ?? 0;
 
     res.status(200).json({
       message: "User profile fetched successfully!",
@@ -375,10 +515,9 @@ export const getUserProfile = async (req: Request, res: Response) => {
         ...req.user,
         college,
         posts,
-        karma
+        karma,
       },
     });
-
   } catch (error) {
     handleError(
       error as ApiError,

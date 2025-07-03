@@ -23,6 +23,7 @@ import BookmarksPage from './pages/BookmarksPage'
 import FeedbackPage from './pages/FeedbackPage'
 import NotificationsPage from './pages/NotificationsPage'
 import CollegePage from './pages/CollegePage'
+import OAuthSetupPage from './pages/OAuthSetup'
 
 // router
 const router = createBrowserRouter([
@@ -137,6 +138,10 @@ const router = createBrowserRouter([
           {
             path: "password-recovery/enter-email",
             element: <EnterEmail />,
+          },
+          {
+            path: "oauth/callback",
+            element: <OAuthSetupPage />,
           },
         ],
       },

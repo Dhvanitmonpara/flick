@@ -67,15 +67,27 @@ const userSchema = new mongoose.Schema(
         },
       },
     ],
+    authProvider: {
+      type: String,
+      enum: ["local", "google"],
+      default: "local",
+    },
     isVerified: { type: Boolean, default: false },
-    password: { type: String, required: true },
+    password: {
+      type: String,
+      required: function (this: any): boolean {
+        return this.authProvider === "local";
+      },
+      default: null,
+    },
   },
   { timestamps: true }
 );
 
 userSchema.pre("save", async function (next) {
-  if (this.isModified("password"))
+  if (this.isModified("password") && this.password) {
     this.password = await bcrypt.hash(this.password, 12);
+  }
   next();
 });
 

@@ -14,11 +14,15 @@ import {
   forgotPassword,
   terminateAllSessions,
   getUserProfile,
+  googleCallback,
+  registerUserOAuth,
 } from "../controllers/user.controller.js";
 import { verifyUserJWT } from "../middleware/auth.middleware.js";
 
 const router = Router();
 
+router.route("/google/callback").get(googleCallback);
+router.route("/oauth/register").post(registerUserOAuth);
 router.route("/register").post(registerUser);
 router.route("/initialize").post(initializeUser);
 router.route("/me").get(verifyUserJWT, getUserData);

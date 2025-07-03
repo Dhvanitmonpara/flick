@@ -18,8 +18,10 @@ import {
 } from "@/components/ui/select"
 import { env } from "@/conf/env"
 import FileInput from "@/components/FileInput"
-
-const branch = z.enum(["CSE", "BCA", "ECE", "IT", "ME"]);
+import { branch } from "@/constants/branch"
+import { FaGoogle } from "react-icons/fa"
+import { handleGoogleOAuthRedirect } from "@/utils/googleOAuthRedirect"
+import { Separator } from "@/components/ui/separator"
 
 const signInSchema = z.object({
   email: z.string().email("Email is invalid"),
@@ -208,6 +210,16 @@ function SignUpPage() {
         </Button>
       </form>
       {errors.root && <p className="text-red-500 text-sm !mt-1">{errors.root?.message}</p>}
+      <p className="flex justify-center items-center my-4">
+        <Separator className="shrink"/>
+        <span className="px-4 text-zinc-500 dark:text-zinc-500 text-sm">Or</span>
+        <Separator className="shrink"/>
+      </p>
+      <form onSubmit={handleGoogleOAuthRedirect}>
+        <Button className="w-full">
+          <FaGoogle /> Singup with Google
+        </Button>
+      </form>
       <p className={`text-center pt-4 ${isSubmitting && "text-zinc-900/50 dark:text-zinc-100/50"}`}>
         Already have an account?{" "}
         <Link

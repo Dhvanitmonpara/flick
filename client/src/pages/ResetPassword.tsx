@@ -25,8 +25,7 @@ function ResetPassword() {
   const [isConfirmPasswordShowing, setIsConfirmPasswordShowing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const [searchParams] = useSearchParams();
-  const email = searchParams.get('email');
+  const email = useSearchParams()[0].get('email');
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -34,7 +33,6 @@ function ResetPassword() {
       navigate("/auth/password-recovery/enter-email")
     }
   }, [email, navigate])
-
 
   const {
     register,

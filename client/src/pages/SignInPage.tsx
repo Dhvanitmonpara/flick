@@ -10,6 +10,9 @@ import axios, { isAxiosError } from "axios"
 import { toast } from "sonner"
 import { env } from "@/conf/env"
 import { IoMdEye, IoMdEyeOff } from "react-icons/io"
+import { FaGoogle } from "react-icons/fa6"
+import { handleGoogleOAuthRedirect } from "@/utils/googleOAuthRedirect"
+import { Separator } from "@/components/ui/separator"
 
 const signInSchema = z.object({
   email: z.string().email("Email is invalid"),
@@ -49,6 +52,10 @@ function SignInPage() {
     } catch (err) {
       console.error("Sign in error", err)
       if (isAxiosError(err)) {
+        if(err.response?.status === 400 && err.response?.data.code === "NO_PASSWORD_FOUND_ERROR") {
+          navigate(`/auth/password-recovery?email=${data.email}`)
+          return
+        }
         toast.error(err.response?.data.error || "Error signing in, Try again")
       } else {
         toast.error("Error signing in, Try again")
@@ -104,6 +111,16 @@ function SignInPage() {
           className={`w-full py-2 font-semibold select-none rounded-md dark:text-zinc-900 bg-zinc-800 dark:bg-zinc-200 hover:bg-zinc-700 dark:hover:bg-zinc-300 transition-colors ${isSubmitting && "bg-zinc-500 cursor-wait"}`}
         >
           {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Please wait</> : "Login"}
+        </Button>
+      </form>
+      <p className="flex justify-center items-center my-4">
+        <Separator className="shrink" />
+        <span className="px-4 text-zinc-500 dark:text-zinc-500 text-sm">Or</span>
+        <Separator className="shrink" />
+      </p>
+      <form onSubmit={handleGoogleOAuthRedirect}>
+        <Button className="w-full">
+          <FaGoogle /> Login with Google
         </Button>
       </form>
       <p className={`text-center pt-4 ${isSubmitting && "text-zinc-900/50 dark:text-zinc-100/50"}`}>
