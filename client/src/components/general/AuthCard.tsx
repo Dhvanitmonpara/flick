@@ -17,11 +17,6 @@ function AuthCard({ className }: { className?: string }) {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const isLoggedIn = localStorage.getItem("loggedIn") === "true"
-        if (!isLoggedIn) {
-          setFetching(false)
-          return
-        }
         
         const user = await axios.get(`${env.serverApiEndpoint}/users/me`, {
           withCredentials: true,

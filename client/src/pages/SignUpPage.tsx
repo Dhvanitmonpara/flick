@@ -217,7 +217,7 @@ function SignUpPage() {
       </p>
       <form onSubmit={handleGoogleOAuthRedirect}>
         <Button className="w-full">
-          <FaGoogle /> Singup with Google
+          <FaGoogle /> Signup with Google
         </Button>
       </form>
       <p className={`text-center pt-4 ${isSubmitting && "text-zinc-900/50 dark:text-zinc-100/50"}`}>

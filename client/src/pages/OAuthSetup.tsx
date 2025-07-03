@@ -51,7 +51,7 @@ function OAuthSetupPage() {
       }
 
       const response = await axios.post(
-        `${env.serverApiEndpoint}/users/oauth/register`,
+        `${env.serverApiEndpoint}/users/oauth`,
         { email: email, branch: branch.parse(data.branch) },
         { withCredentials: true }
       )

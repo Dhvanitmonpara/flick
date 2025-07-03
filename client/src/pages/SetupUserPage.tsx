@@ -30,7 +30,6 @@ function SetupUserPage() {
       });
       if (response.status === 201) {
         toast.success("User setup successfully")
-        localStorage.setItem("loggedIn", "true");
         setIsLoading(false)
         navigate("/")
       } else {

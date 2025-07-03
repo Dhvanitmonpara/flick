@@ -80,21 +80,48 @@ export const googleCallback = async (req: Request, res: Response) => {
 
     const user = userInfoRes.data;
 
-    // 🛡️ Here: create/find user in DB, issue session/JWT/etc
-    console.log("User info:", user);
-
     const hashedEmail = await hashEmailForLookup(user.email.toLowerCase());
-    const existingUser = await UserModel.findOne({
-      lookupEmail: hashedEmail,
-    });
+    const existingUser = await UserModel.findOne({ lookupEmail: hashedEmail });
+
     if (existingUser) {
-      return res.redirect(`http://localhost:5173`);
+      if (existingUser.isBlocked)
+        return res.redirect(
+          `http://localhost:5173?error=User+is+blocked&email=${user.email}`
+        );
+
+      if (existingUser.suspension && new Date(existingUser.suspension?.ends) > new Date())
+        return res.redirect(`http://localhost:5173?error=User+is+suspended+till+${existingUser.suspension.ends}+for+'${existingUser.suspension.reason}'`)
+
+      const { accessToken, refreshToken, ip, userAgent } =
+        await userService.generateAccessAndRefreshToken(existingUser._id, req);
+
+      logEvent({
+        req,
+        action: "user_logged_in_self",
+        platform: "web",
+        metadata: {
+          userAgent,
+          ip,
+        },
+        userId: existingUser._id.toString(),
+      });
+
+      return res
+        .status(200)
+        .cookie("__accessToken", accessToken, {
+          ...userService.options,
+          maxAge: userService.accessTokenExpiry,
+        })
+        .cookie("__refreshToken", refreshToken, {
+          ...userService.options,
+          maxAge: userService.refreshTokenExpiry,
+        })
+        .redirect(`http://localhost:5173`);
     }
 
-    // Optional: Redirect to frontend with JWT or session ID
     res.redirect(
       `http://localhost:5173/auth/oauth/callback?email=${user.email}`
-    ); // Or send data
+    );
   } catch (err) {
     handleError(
       err as ApiError,
@@ -105,13 +132,13 @@ export const googleCallback = async (req: Request, res: Response) => {
   }
 };
 
-export const registerUserOAuth = async (req: Request, res: Response) => {
+export const handleUserOAuth = async (req: Request, res: Response) => {
   try {
     const { email, branch } = req.body;
     if (!email) throw new ApiError(400, "Email is required");
 
     const hashedEmail = await hashEmailForLookup(email.toLowerCase());
-    const encryptedData = await encrypt(email.toLowerCase());
+    const encryptedEmail = await encrypt(email.toLowerCase());
     const username = await userService.generateUsername();
 
     const college = await CollegeModel.findOne({
@@ -122,7 +149,7 @@ export const registerUserOAuth = async (req: Request, res: Response) => {
     const createdUser = await UserModel.create({
       username,
       branch,
-      email: encryptedData,
+      email: encryptedEmail,
       lookupEmail: hashedEmail,
       bookmarks: [],
       college,
@@ -139,9 +166,6 @@ export const registerUserOAuth = async (req: Request, res: Response) => {
         .json({ error: "Failed to generate access and refresh token" });
       return;
     }
-
-    await redisClient.del(`pending:${hashedEmail}`);
-    await redisClient.del(`otp:${hashedEmail}`);
 
     logEvent({
       req,
@@ -372,7 +396,12 @@ export const loginUser = async (req: Request, res: Response) => {
 
     if (!existingUser) throw new ApiError(400, "User not found");
     if (existingUser.isBlocked) throw new ApiError(400, "User is blocked");
-    if (!existingUser.password) throw new ApiError(400, "User has no password", "NO_PASSWORD_FOUND_ERROR");
+    if (!existingUser.password)
+      throw new ApiError(
+        400,
+        "User has no password",
+        "NO_PASSWORD_FOUND_ERROR"
+      );
 
     if (new Date(existingUser.suspension.ends) > new Date())
       throw new ApiError(

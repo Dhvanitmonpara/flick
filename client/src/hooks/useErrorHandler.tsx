@@ -38,7 +38,6 @@ export const useErrorHandler = () => {
     } catch (error: any) {
       if (axios.isAxiosError(error) && error.response?.status === 401) {
         removeProfile();
-        localStorage.setItem("loggedIn", "false");
         throw new Error("Session invalid"); // Explicit signal for invalid refresh
       }
       throw error; // Retryable / network error, let it bubble
