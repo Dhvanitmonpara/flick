@@ -3,7 +3,6 @@ export const env = {
   serverApiEndpoint: import.meta.env.VITE_SERVER_API_ENDPOINT,
   baseUrl: import.meta.env.VITE_BASE_URL,
   ocrServerApiEndpoint: import.meta.env.VITE_OCR_SERVER_API_ENDPOINT,
-  geminiKey: import.meta.env.VITE_GEMINI_KEY,
   googleOauthId: import.meta.env.VITE_GOOGLE_OAUTH_ID,
 };
 
@@ -17,10 +16,6 @@ if (!env.ocrServerApiEndpoint) {
 
 if (!env.serverUri) {
   throw new Error("Missing VITE_SERVER_URI env variable");
-}
-
-if (!env.geminiKey) {
-  throw new Error("Missing VITE_GEMINI_KEY env variable");
 }
 
 if (!env.baseUrl) {
