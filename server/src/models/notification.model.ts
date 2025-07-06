@@ -29,7 +29,7 @@ const notificationSchema = new mongoose.Schema(
       default: "general",
     },
   },
-  { timestamps: true }
+  { timestamps: true, expires: '84d' }
 );
 
 notificationSchema.index({ createdAt: -1, receiverId: 1 });

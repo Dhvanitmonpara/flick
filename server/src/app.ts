@@ -3,8 +3,6 @@ import http from "http";
 import express from "express";
 import cors, { CorsOptions } from "cors";
 import cookieParser from "cookie-parser";
-import "./jobs/monthly.cron.js";
-import "./jobs/weekly.cron.js";
 
 import { SocketService } from "./services/socket.service.js";
 import { Server } from "socket.io";

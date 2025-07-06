@@ -107,7 +107,7 @@ const logSchema = new mongoose.Schema(
       default: "success",
     },
   },
-  { timestamps: true }
+  { timestamps: true, expires: "30d" }
 );
 
 export const LogModel = mongoose.model("Log", logSchema);
