@@ -4,7 +4,7 @@ dotenv.config({
 });
 
 export const env = {
-  port: process.env.PORT || 8000,
+  port: parseInt(process.env.PORT || "8000", 10),
   mongoUrl: process.env.MONGODB_URI,
   environment: process.env.ENVIRONMENT,
   accessTokenExpiry: process.env.ACCESS_TOKEN_EXPIRY,
