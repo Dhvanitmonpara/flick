@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "build": "tsup src/index.ts --dts --external:uuid",
+    "build": "tsup src/index.ts --dts",
     "start": "node dist/index.js",
     "dev": "kill-port 8000 && tsup src/index.ts --watch --onSuccess 'node dist/index.js'"
   },

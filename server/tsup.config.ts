@@ -9,4 +9,5 @@ export default defineConfig({
   silent: true,
   sourcemap: true,
   clean: true,
+  external: ['uuid'],
 })
