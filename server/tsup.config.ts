@@ -9,5 +9,20 @@ export default defineConfig({
   silent: true,
   sourcemap: true,
   clean: true,
-  external: ['uuid'],
+  external: [
+    'uuid',
+    'mongoose',
+    'nodemailer',
+    'socket.io',
+    'rate-limiter-flexible',
+    'ioredis',
+    'axios',
+    'express',
+    'jsonwebtoken',
+    'dotenv',
+    'cookie-parser',
+    'cors',
+    'ua-parser-js',
+    'bcryptjs'
+  ],
 })
