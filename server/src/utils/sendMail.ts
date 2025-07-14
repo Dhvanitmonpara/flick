@@ -2,27 +2,27 @@ import crypto from "crypto";
 import nodemailer from "nodemailer";
 import { env } from "../conf/env.js";
 
-// const transporter = nodemailer.createTransport({
-//   service: "gmail",
-//   port: 465,
-//   secure: true,
-//   auth: {
-//     user: env.gmailUser,
-//     pass: env.gmailAppPassword,
-//   },
-//   tls: {
-//     rejectUnauthorized: false,
-//   },
-// });
-
 const transporter = nodemailer.createTransport({
-  host: env.mailtrapHost,
-  port: env.mailtrapPort,
+  service: "gmail",
+  port: 465,
+  secure: true,
   auth: {
-    user: env.mailtrapUser,
-    pass: env.mailtrapPass,
+    user: env.gmailUser,
+    pass: env.gmailAppPassword,
+  },
+  tls: {
+    rejectUnauthorized: false,
   },
 });
+
+// const transporter = nodemailer.createTransport({
+//   host: env.mailtrapHost,
+//   port: env.mailtrapPort,
+//   auth: {
+//     user: env.mailtrapUser,
+//     pass: env.mailtrapPass,
+//   },
+// });
 
 const generateOtp = () => crypto.randomInt(100000, 999999).toString();
 
