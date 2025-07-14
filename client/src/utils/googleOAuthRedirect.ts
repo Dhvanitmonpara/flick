@@ -6,7 +6,7 @@ const handleGoogleOAuthRedirect = (e: React.FormEvent<HTMLFormElement>) => {
   const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth`;
   const params = new URLSearchParams({
     client_id: env.googleOauthId,
-    redirect_uri: "http://localhost:8000/api/public/v1/users/google/callback", // Your backend
+    redirect_uri: `${env.serverUri}/api/public/v1/users/google/callback`, // Your backend
     response_type: "code",
     scope: "email profile",
     access_type: "offline",

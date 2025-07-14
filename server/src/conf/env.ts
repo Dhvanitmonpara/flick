@@ -14,6 +14,7 @@ export const env = {
   encryptionKey: process.env.ENCRYPTION_KEY,
   adminAccessTokenSecret: process.env.ADMIN_ACCESS_TOKEN_SECRET,
   pepper: process.env.PEPPER,
+  serverBaseUrl: process.env.SERVER_BASE_URL || "http://localhost:8000",
   userCheckDisposableMailApiKey: process.env.USERCHECK_DISPOSABLE_MAIL_API_KEY,
   perspectiveApiKey: process.env.PERSPECTIVE_API_KEY,
   gmailUser: process.env.GMAIL_USER,
@@ -25,7 +26,7 @@ export const env = {
   accessControlOrigin:
     process.env.ACCESS_CONTROL_ORIGIN || "http://localhost:5173",
   redisUrl: process.env.REDIS_URL,
-    mailtrapUser: process.env.MAILTRAP_USER,
+  mailtrapUser: process.env.MAILTRAP_USER,
   mailtrapPass: process.env.MAILTRAP_PASS,
   mailtrapHost: process.env.MAILTRAP_HOST,
   mailtrapPort: parseInt(process.env.MAILTRAP_PORT || "587", 10),
@@ -39,7 +40,7 @@ if (!env.accessTokenSecret) {
   throw new Error("ACCESS_TOKEN_SECRET environment variable is not set");
 }
 
-if(!env.adminAccessTokenSecret) {
+if (!env.adminAccessTokenSecret) {
   throw new Error("ADMIN_ACCESS_TOKEN_SECRET environment variable is not set");
 }
 
@@ -67,6 +68,10 @@ if (!env.gmailAppPassword) {
   throw new Error("GMAIL_APP_PASSWORD environment variable is not set");
 }
 
+if (!env.serverBaseUrl) {
+  throw new Error("SERVER_BASE_URL environment variable is not set");
+}
+
 if (!env.accessControlOrigin) {
   throw new Error("ACCESS_CONTROL_ORIGIN environment variable is not set");
 }
@@ -75,12 +80,12 @@ if (!env.redisUrl) {
   throw new Error("REDIS_URL environment variable is not set");
 }
 
-if(!env.googleOAuthClientId){
-  throw new Error("GOOGLE_OAUTH_CLIENT_ID variable is not set")
+if (!env.googleOAuthClientId) {
+  throw new Error("GOOGLE_OAUTH_CLIENT_ID variable is not set");
 }
 
-if(!env.googleOAuthClientSecret){
-  throw new Error("GOOGLE_OAUTH_CLIENT_SECRET variable is not set")
+if (!env.googleOAuthClientSecret) {
+  throw new Error("GOOGLE_OAUTH_CLIENT_SECRET variable is not set");
 }
 
 if (!env.environment) {

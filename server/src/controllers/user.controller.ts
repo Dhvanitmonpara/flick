@@ -57,7 +57,7 @@ export const googleCallback = async (req: Request, res: Response) => {
           client_id: env.googleOAuthClientId,
           client_secret: env.googleOAuthClientSecret,
           redirect_uri:
-            "http://localhost:8000/api/public/v1/users/google/callback",
+            `${env.serverBaseUrl}/api/public/v1/users/google/callback`,
           grant_type: "authorization_code",
         },
         headers: {
@@ -86,11 +86,11 @@ export const googleCallback = async (req: Request, res: Response) => {
     if (existingUser) {
       if (existingUser.isBlocked)
         return res.redirect(
-          `http://localhost:5173?error=User+is+blocked&email=${user.email}`
+          `${env.accessControlOrigin}?error=User+is+blocked&email=${user.email}`
         );
 
       if (existingUser.suspension && new Date(existingUser.suspension?.ends) > new Date())
-        return res.redirect(`http://localhost:5173?error=User+is+suspended+till+${existingUser.suspension.ends}+for+'${existingUser.suspension.reason}'`)
+        return res.redirect(`${env.accessControlOrigin}?error=User+is+suspended+till+${existingUser.suspension.ends}+for+'${existingUser.suspension.reason}'`)
 
       const { accessToken, refreshToken, ip, userAgent } =
         await userService.generateAccessAndRefreshToken(existingUser._id, req);
@@ -116,11 +116,11 @@ export const googleCallback = async (req: Request, res: Response) => {
           ...userService.options,
           maxAge: userService.refreshTokenExpiry,
         })
-        .redirect(`http://localhost:5173`);
+        .redirect(env.accessControlOrigin);
     }
 
     res.redirect(
-      `http://localhost:5173/auth/oauth/callback?email=${user.email}`
+      `${env.accessControlOrigin}/auth/oauth/callback?email=${user.email}`
     );
   } catch (err) {
     handleError(
