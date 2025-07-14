@@ -24,8 +24,7 @@ export const env = {
     process.env.ADMIN_ACCESS_CONTROL_ORIGIN || "http://localhost:5174",
   accessControlOrigin:
     process.env.ACCESS_CONTROL_ORIGIN || "http://localhost:5173",
-  redisHost: process.env.REDIS_HOST || "localhost",
-  redisPort: process.env.REDIS_PORT || "6379",
+  redisUrl: process.env.REDIS_URL,
     mailtrapUser: process.env.MAILTRAP_USER,
   mailtrapPass: process.env.MAILTRAP_PASS,
   mailtrapHost: process.env.MAILTRAP_HOST,
@@ -72,12 +71,8 @@ if (!env.accessControlOrigin) {
   throw new Error("ACCESS_CONTROL_ORIGIN environment variable is not set");
 }
 
-if (!env.redisHost) {
-  throw new Error("REDIS_HOST environment variable is not set");
-}
-
-if (!env.redisPort) {
-  throw new Error("REDIS_PORT environment variable is not set");
+if (!env.redisUrl) {
+  throw new Error("REDIS_URL environment variable is not set");
 }
 
 if(!env.googleOAuthClientId){
