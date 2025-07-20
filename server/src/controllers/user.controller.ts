@@ -149,6 +149,7 @@ export const handleUserOAuth = async (req: Request, res: Response) => {
     const createdUser = await UserModel.create({
       username,
       branch,
+      authProvider: "google",
       email: encryptedEmail,
       lookupEmail: hashedEmail,
       bookmarks: [],
