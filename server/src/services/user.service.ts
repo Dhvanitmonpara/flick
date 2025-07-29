@@ -60,7 +60,7 @@ class UserService {
       httpOnly: true,
       secure: process.env.ENVIRONMENT === "production",
       sameSite:
-        process.env.NODE_ENV === "production"
+        process.env.ENVIRONMENT === "production"
           ? ("none" as "none")
           : ("lax" as "lax"),
     };
