@@ -1,4 +1,5 @@
 import Post from "@/components/general/Post"
+import SkeletonCard from "@/components/skeletons/PostSkeleton"
 import { env } from "@/conf/env"
 import { useErrorHandler } from "@/hooks/useErrorHandler"
 import usePostStore from "@/store/postStore"
@@ -56,8 +57,9 @@ function FeedPage() {
     return (
       <div className="flex gap-4 py-6 w-full">
         <section className="w-full max-h-screen overflow-y-auto no-scrollbar">
-          {/* create skeleton */}
-          loading
+          {[...Array(10)].map((_, index) => (
+            <SkeletonCard key={index} />
+          ))}
         </section>
         <section className="w-full max-w-80">
           <div className="">

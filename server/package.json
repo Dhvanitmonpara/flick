@@ -5,7 +5,7 @@
   "scripts": {
     "build": "NODE_OPTIONS='--max-old-space-size=512' tsc",
     "start": "node dist/index.js",
-    "dev": "kill-port 8000 && tsc src/index.ts --watch --onSuccess 'node dist/index.js'"
+    "dev": "kill-port 8000 && tsc-watch --onSuccess \"node dist/index.js\""
   },
   "keywords": [],
   "author": "",
@@ -43,6 +43,7 @@
     "kill-port": "^2.0.1",
     "nodemon": "^3.1.9",
     "ts-node": "^10.9.2",
+    "tsc-watch": "^7.1.1",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.7.3"
   },

@@ -5,6 +5,7 @@ import { IPost } from "@/types/Post"
 import { useCallback, useEffect, useState } from "react"
 import axios, { AxiosError } from "axios"
 import { isCollege, isUser } from "@/utils/helpers"
+import SkeletonCard from "@/components/skeletons/PostSkeleton"
 
 function BookmarksPage() {
 
@@ -33,7 +34,11 @@ function BookmarksPage() {
     setPosts((prev) => prev.filter((post) => post._id !== id))
   }
 
-  if (loading) return <div>Loading...</div>
+  if (loading) return <div>
+    {[...Array(10)].map((_, index) => (
+      <SkeletonCard key={index} />
+    ))}
+  </div>
 
   return (
     <div>

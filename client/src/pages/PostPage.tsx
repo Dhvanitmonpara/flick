@@ -1,6 +1,7 @@
 import Comment from "@/components/general/Comment";
 import CreateComment from "@/components/general/CreateComment";
 import Post from "@/components/general/Post"
+import SkeletonCard from "@/components/skeletons/PostSkeleton";
 import { env } from "@/conf/env";
 import { useErrorHandler } from "@/hooks/useErrorHandler";
 import useCommentStore from "@/store/commentStore";
@@ -10,7 +11,6 @@ import { IPost } from "@/types/Post";
 import { IUser } from "@/types/User";
 import { formatDate, isCollege, isUser } from "@/utils/helpers";
 import axios, { AxiosError } from "axios";
-import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -104,7 +104,7 @@ function PostPage() {
   }, [fetchComments, fetchPostById, id, incrementView, navigate, posts, resetComments]);
 
   if (loadingPosts || !currentPost) {
-    return <Loader2 className="animate-spin" />
+    return <SkeletonCard />
   }
 
   return (
@@ -133,7 +133,11 @@ function PostPage() {
       }
       <CreateComment />
       {loading
-        ? <Loader2 className="animate-spin" />
+        ? <>
+          {[...Array(10)].map((_, index) => (
+            <SkeletonCard key={index} />
+          ))}
+        </>
         : (comments
           ? comments.map((comment) => (
             <Comment key={comment._id} comment={comment} />
