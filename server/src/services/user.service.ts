@@ -58,9 +58,9 @@ class UserService {
   constructor() {
     this.options = {
       httpOnly: true,
-      secure: process.env.ENVIRONMENT === "production",
+      secure: env.environment === "production",
       sameSite:
-        process.env.ENVIRONMENT === "production"
+        env.environment === "production"
           ? ("none" as "none")
           : ("lax" as "lax"),
     };
