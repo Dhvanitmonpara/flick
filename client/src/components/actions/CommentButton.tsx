@@ -18,7 +18,10 @@ function CommentButton({ parentCommentId, className }: { parentCommentId?: strin
           <FaComment className={`text-gray-400 text-lg m-0.5 ${className}`} />
         </button>
       </DialogTrigger>
-      <DialogContent onClick={(e) => e.stopPropagation()}>
+      <DialogContent
+        onClick={(e) => e.stopPropagation()}
+        className="dark:bg-zinc-900 dark:border-zinc-800"
+      >
         <DialogHeader>
           <DialogTitle>Comment</DialogTitle>
         </DialogHeader>

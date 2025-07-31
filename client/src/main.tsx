@@ -2,7 +2,6 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import NotFoundPage from './pages/NotFoundPage'
-import LandingPage from './pages/LandingPage'
 import SignInPage from './pages/SignInPage'
 import SignUpPage from './pages/SignUpPage'
 import AuthLayout from './layouts/AuthLayout'
@@ -24,6 +23,7 @@ import FeedbackPage from './pages/FeedbackPage'
 import NotificationsPage from './pages/NotificationsPage'
 import CollegePage from './pages/CollegePage'
 import OAuthSetupPage from './pages/OAuthSetup'
+import ServerBooting from './pages/ServerBooting'
 
 // router
 const router = createBrowserRouter([
@@ -33,12 +33,12 @@ const router = createBrowserRouter([
     children: [
       // public routes
       {
-        path: "home",
-        element: <LandingPage />,
-      },
-      {
         path: "feedback",
         element: <FeedbackPage />,
+      },
+      {
+        path: "server-booting",
+        element: <ServerBooting />,
       },
       {
         path: "",

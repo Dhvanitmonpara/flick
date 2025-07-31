@@ -41,7 +41,7 @@ function BookmarksPage() {
   </div>
 
   return (
-    <div>
+    <div className="flex gap-4 py-6 w-full">
       {posts.length > 0 && posts.map((post) => (
         <div>
           <Post

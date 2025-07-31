@@ -9,6 +9,8 @@ import { IUser } from "@/types/User"
 import { ICollege } from "@/types/College"
 import { IPost } from "@/types/Post"
 import Post from "@/components/general/Post"
+import { Skeleton } from "@/components/ui/skeleton"
+import SkeletonCard from "@/components/skeletons/PostSkeleton"
 
 interface IProfile extends IUser {
   college: ICollege,
@@ -47,16 +49,16 @@ function ProfilePage() {
               <AvatarImage src={isCollege(profile.college) ? profile.college.profile : "Unknown College"} alt={profile.username} />
               <AvatarFallback className='bg-zinc-200 cursor-pointer select-none'>{user.username.slice(0, 2)}</AvatarFallback>
             </Avatar>
-          </div>
-          <div className="">
-            <h4 className="text-xl font-semibold">{profile.username}</h4>
-            <p className="text-zinc-600 dark:text-zinc-500 flex items-center space-x-0.5">
-              <span>{isCollege(profile.college) ? profile.college.name : "Unknown College"}</span>
-              <BsDot size={24} />
-              <span>{profile.branch}</span>
-              <BsDot size={24} />
-              <span>{profile.karma} Karma</span>
-            </p>
+            <div className="">
+              <h4 className="text-xl font-semibold">{profile.username}</h4>
+              <p className="text-zinc-600 dark:text-zinc-500 flex items-center space-x-0.5">
+                <span>{isCollege(profile.college) ? profile.college.name : "Unknown College"}</span>
+                <BsDot size={24} />
+                <span>{profile.branch}</span>
+                <BsDot size={24} />
+                <span>{profile.karma} Karma</span>
+              </p>
+            </div>
           </div>
           <div className="mt-6">
             {profile.posts && profile.posts.length > 0 ? (
@@ -118,10 +120,35 @@ function ProfilePage() {
             )}
           </div>
         </>
-        : <div>Loading...</div>
+        : <>
+          <ProfileSkeleton />
+          <div className="mt-6 space-y-6">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <SkeletonCard key={i} />
+            ))}
+          </div>
+        </>
       }
     </div>
   )
+}
+
+export function ProfileSkeleton() {
+  return (
+    <div className="flex items-center space-x-4 h-40">
+      <Skeleton className="w-28 h-28 rounded-full" />
+      <div className="space-y-2">
+        <Skeleton className="h-6 w-48" />
+        <div className="flex items-center space-x-2">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-4 w-4 rounded-full" />
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-4 w-4 rounded-full" />
+          <Skeleton className="h-4 w-20" />
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default ProfilePage

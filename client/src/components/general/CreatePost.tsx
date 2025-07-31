@@ -45,7 +45,7 @@ function CreatePost({ className }: { className?: string }) {
           <span>create</span>
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="dark:bg-zinc-900 dark:border-zinc-800">
         <DialogHeader>
           <DialogTitle>Create Post</DialogTitle>
         </DialogHeader>
@@ -74,17 +74,6 @@ export const CreatePostForm = ({ setOpen, defaultData, id }: { setOpen?: React.D
       content: "",
     },
   });
-
-  const onSubmitTerms = async () => {
-    try {
-      await axios.post(`${env.serverApiEndpoint}/users/accept-terms`, {}, { withCredentials: true });
-      toast.success("Terms accepted!");
-      setShowTerms(false);
-      form.handleSubmit(onSubmit)();
-    } catch (error) {
-      handleError(error as AxiosError, "Failed to accept terms");
-    }
-  }
 
   const onSubmit = async (data: PostFormValues) => {
     try {
@@ -149,6 +138,17 @@ export const CreatePostForm = ({ setOpen, defaultData, id }: { setOpen?: React.D
     }
   };
 
+  const onSubmitTerms = async () => {
+    try {
+      await axios.post(`${env.serverApiEndpoint}/users/accept-terms`, {}, { withCredentials: true });
+      toast.success("Terms accepted!");
+      setShowTerms(false);
+      form.handleSubmit(onSubmit)();
+    } catch (error) {
+      handleError(error as AxiosError, "Failed to accept terms");
+    }
+  }
+
   return (
     <>
       <Form {...form}>
@@ -161,7 +161,7 @@ export const CreatePostForm = ({ setOpen, defaultData, id }: { setOpen?: React.D
               <FormItem>
                 <FormLabel>Title</FormLabel>
                 <FormControl>
-                  <Input placeholder="Enter post title" {...field} />
+                  <Input className="dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-800" placeholder="Enter post title" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -182,12 +182,12 @@ export const CreatePostForm = ({ setOpen, defaultData, id }: { setOpen?: React.D
                       onValueChange={field.onChange}
                       defaultValue={field.value}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-800">
                         <SelectValue placeholder="Select a topic" />
                       </SelectTrigger>
                       <SelectContent>
                         {PostTopic.map((topic) => (
-                          <SelectItem key={topic} value={topic}>
+                          <SelectItem className="focus:bg-zinc-200 dark:focus:bg-zinc-700" key={topic} value={topic}>
                             {topic}
                           </SelectItem>
                         ))}
@@ -222,7 +222,7 @@ export const CreatePostForm = ({ setOpen, defaultData, id }: { setOpen?: React.D
                           setError("");
                           field.onChange(e);
                         }}
-                        className={hasBanned ? "border-red-500" : ""}
+                        className={hasBanned ? "border-red-500 bg-zinc-100 dark:bg-zinc-800 focus-visible:ring-red-500" : "bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-800"}
                       />
                       {field.value && (
                         <div className="mt-2 text-sm">

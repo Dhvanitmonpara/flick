@@ -13,9 +13,9 @@ function PrivateAppLayout() {
     }
   }, [navigate, profile])
   return (
-    <div>
+    <>
       <Outlet />
-    </div>
+    </>
   )
 }
 

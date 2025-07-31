@@ -166,7 +166,7 @@ function CreateComment({ parentCommentId, defaultData, commentId, setOpen, defau
                           setError("");
                           field.onChange(e);
                         }}
-                        className={`${isWriting ? "min-h-40" : "h-10"} transition-all ${hasBanned ? "border-red-500" : ""}`}
+                        className={`${isWriting ? "min-h-40" : "h-10"} transition-all bg-zinc-100 dark:bg-zinc-800 ${hasBanned ? "border-red-500" : ""}`}
                       />
                       {isWriting && <button className="absolute top-4 right-6" onClick={() => {
                         if (!field.value) handleEscape()
