@@ -34,39 +34,39 @@ function BookmarksPage() {
     setPosts((prev) => prev.filter((post) => post._id !== id))
   }
 
-  if (loading) return <div>
-    {[...Array(10)].map((_, index) => (
-      <SkeletonCard key={index} />
-    ))}
-  </div>
+  if (loading) return (
+    <section className="w-full max-h-screen overflow-y-auto no-scrollbar py-6 divide-y divide-zinc-300/60 dark:divide-zinc-700/50">
+      {[...Array(10)].map((_, index) => (
+        <SkeletonCard key={index} />
+      ))}
+    </section>
+  )
 
   return (
-    <div className="flex gap-4 py-6 w-full">
+    <section className="w-full max-h-screen overflow-y-auto no-scrollbar py-6 divide-y divide-zinc-300/60 dark:divide-zinc-700/50">
       {posts.length > 0 && posts.map((post) => (
-        <div>
-          <Post
-            avatarFallback={isUser(post.postedBy) ? post.postedBy.username.slice(0, 2) : ""}
-            branch={isUser(post.postedBy) ? post.postedBy.branch : ""}
-            commentsCount={0}
-            userVote={post.userVote ?? null}
-            viewsCount={0}
-            key={post._id}
-            _id={post._id}
-            topic={post.topic}
-            removedPostOnAction={removedPostOnAction}
-            bookmarked={true}
-            avatar={isUser(post.postedBy) && isCollege(post.postedBy.college) ? post.postedBy.college.profile : ""}
-            username={isUser(post.postedBy) ? post.postedBy.username : ""}
-            college={isUser(post.postedBy) && isCollege(post.postedBy.college) ? post.postedBy.college.name : "Unknown College"}
-            title={post.title}
-            content={post.content}
-            createdAt={post.createdAt}
-            upvoteCount={post.upvoteCount}
-            downvoteCount={post.downvoteCount}
-          />
-        </div>
+        <Post
+          avatarFallback={isUser(post.postedBy) ? post.postedBy.username.slice(0, 2) : ""}
+          branch={isUser(post.postedBy) ? post.postedBy.branch : ""}
+          commentsCount={0}
+          userVote={post.userVote ?? null}
+          viewsCount={0}
+          key={post._id}
+          _id={post._id}
+          topic={post.topic}
+          removedPostOnAction={removedPostOnAction}
+          bookmarked={true}
+          avatar={isUser(post.postedBy) && isCollege(post.postedBy.college) ? post.postedBy.college.profile : ""}
+          username={isUser(post.postedBy) ? post.postedBy.username : ""}
+          college={isUser(post.postedBy) && isCollege(post.postedBy.college) ? post.postedBy.college.name : "Unknown College"}
+          title={post.title}
+          content={post.content}
+          createdAt={post.createdAt}
+          upvoteCount={post.upvoteCount}
+          downvoteCount={post.downvoteCount}
+        />
       ))}
-    </div>
+    </section>
   )
 }
 

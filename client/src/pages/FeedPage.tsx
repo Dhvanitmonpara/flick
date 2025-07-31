@@ -55,95 +55,75 @@ function FeedPage() {
 
   if (loading) {
     return (
-      <div className="flex gap-4 py-6 w-full">
-        <section className="w-full max-h-screen overflow-y-auto no-scrollbar">
-          {[...Array(10)].map((_, index) => (
-            <SkeletonCard key={index} />
-          ))}
-        </section>
-        <section className="w-full max-w-80">
-          <div className="">
-            <h2>Most read</h2>
-            <div className="mt-2 rounded-md flex justify-center items-center h-64 border-[1px] border-zinc-300 dark:border-zinc-800">
-              coming soon
-            </div>
-          </div>
-        </section>
-      </div>
+      <section className="w-full max-h-screen overflow-y-auto no-scrollbar py-6 divide-y divide-zinc-300/60 dark:divide-zinc-700/50">
+        {[...Array(10)].map((_, index) => (
+          <SkeletonCard key={index} />
+        ))}
+      </section>
     )
   }
 
   return (
-    <div className="flex gap-4 py-6 w-full">
-      <section className="w-full max-h-screen overflow-y-auto no-scrollbar divide-y divide-zinc-300/60 dark:divide-zinc-700/50">
-        {posts && posts.length > 0 ? (
-          posts.map((post) => {
-            const postedBy = post.postedBy;
+    <section className="w-full max-h-screen overflow-y-auto no-scrollbar py-6 divide-y divide-zinc-300/60 dark:divide-zinc-700/50">
+      {posts && posts.length > 0 ? (
+        posts.map((post) => {
+          const postedBy = post.postedBy;
 
-            if (!isUser(postedBy)) {
-              // postedBy is just a string, fallback
-              return (
-                <Post
-                  key={post._id}
-                  _id={post._id}
-                  avatar=""
-                  userVote={post.userVote ?? null}
-                  username="Unknown"
-                  title={post.title}
-                  topic={post.topic}
-                  bookmarked={post.bookmarked ?? false}
-                  branch="Unknown"
-                  viewsCount={post.views}
-                  content={post.content}
-                  avatarFallback=""
-                  college="Unknown"
-                  createdAt={formatDate(post.createdAt)}
-                  upvoteCount={post.upvoteCount}
-                  downvoteCount={post.downvoteCount}
-                  commentsCount={post.commentsCount ?? 0}
-                />
-              )
-            }
-
-            // postedBy is a full IUser object here
+          if (!isUser(postedBy)) {
+            // postedBy is just a string, fallback
             return (
               <Post
                 key={post._id}
                 _id={post._id}
-                avatar={getAvatarUrl(postedBy)}
-                college={getCollegeName(postedBy)}
-                topic={post.topic}
-                username={postedBy.username}
+                avatar=""
                 userVote={post.userVote ?? null}
+                username="Unknown"
                 title={post.title}
+                topic={post.topic}
                 bookmarked={post.bookmarked ?? false}
-                branch={postedBy.branch}
+                branch="Unknown"
                 viewsCount={post.views}
                 content={post.content}
                 avatarFallback=""
-                removedPostOnAction={removedPostOnAction}
+                college="Unknown"
                 createdAt={formatDate(post.createdAt)}
                 upvoteCount={post.upvoteCount}
                 downvoteCount={post.downvoteCount}
                 commentsCount={post.commentsCount ?? 0}
               />
             )
-          })
-        ) : (
-          <div className="flex justify-center items-center h-full">
-            <p>No posts found</p>
-          </div>
-        )}
-      </section>
-      <section className="w-full max-w-80">
-        <div className="">
-          <h2>Most read</h2>
-          <div className="mt-2 rounded-md flex justify-center items-center h-64 border-[1px] border-zinc-300 dark:border-zinc-800">
-            coming soon
-          </div>
+          }
+
+          // postedBy is a full IUser object here
+          return (
+            <Post
+              key={post._id}
+              _id={post._id}
+              avatar={getAvatarUrl(postedBy)}
+              college={getCollegeName(postedBy)}
+              topic={post.topic}
+              username={postedBy.username}
+              userVote={post.userVote ?? null}
+              title={post.title}
+              bookmarked={post.bookmarked ?? false}
+              branch={postedBy.branch}
+              viewsCount={post.views}
+              content={post.content}
+              avatarFallback=""
+              removedPostOnAction={removedPostOnAction}
+              createdAt={formatDate(post.createdAt)}
+              upvoteCount={post.upvoteCount}
+              downvoteCount={post.downvoteCount}
+              commentsCount={post.commentsCount ?? 0}
+            />
+          )
+        })
+      ) : (
+        <div className="flex justify-center items-center h-full">
+          <p>No posts found</p>
         </div>
-      </section>
-    </div>
+      )}
+    </section>
   )
 }
 

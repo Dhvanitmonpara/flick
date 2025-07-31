@@ -12,6 +12,7 @@ import { PostTopic } from "@/types/postTopics";
 import { IoMdArrowDropdown, IoMdArrowDropup } from "react-icons/io";
 import { PostBranches } from "@/types/PostBranchs";
 import { SocketProvider } from "@/socket/SocketContext";
+import TrendingPostSection from "@/components/general/TrendingPostSection";
 
 function AppLayout() {
 
@@ -23,6 +24,7 @@ function AppLayout() {
       <SocketProvider>
         <Sidebar />
         <Outlet />
+        <TrendingPostSection/>
         {(reset === "true") && <TerminateSessions />}
       </SocketProvider>
     </div>
