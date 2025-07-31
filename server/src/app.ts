@@ -111,6 +111,9 @@ app.use(
   rateLimitMiddleware(apiLimiter),
   notificationRouter
 );
+app.get(`/health-check`, rateLimitMiddleware(authLimiter), (req, res) => {
+  res.status(200).json({ message: "OK" });
+});
 
 // admin routes
 app.use(

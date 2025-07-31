@@ -11,7 +11,7 @@ function RootLayout() {
   useEffect(() => {
     (async () => {
       if (!env.serverUri || env.environment === "development") return
-      const res = await axios.get(`${env.serverUri}/healthz`)
+      const res = await axios.get(`${env.serverUri}/health-check`)
       if (res.status !== 200) {
         navigate("/server-booting")
       }
