@@ -43,30 +43,28 @@ function TrendingPostSection() {
 
   return (
     <div className="py-6 w-full max-w-80">
-      <section className="">
-        <div className="">
-          <h2>Most read</h2>
-          <div className="mt-2 rounded-md min-h-64 border-[1px] border-zinc-300 dark:border-zinc-800 divide-y divide-zinc-300 dark:divide-zinc-800">
-            {loading
-              ? [...Array(4)].map((_, index) => (
-                <CardSkeleton key={index} />
+      <section>
+        <h2>Most read</h2>
+        <div className="mt-2 rounded-md min-h-64 border-[1px] border-zinc-300 dark:border-zinc-800 divide-y divide-zinc-300 dark:divide-zinc-800">
+          {loading
+            ? [...Array(4)].map((_, index) => (
+              <CardSkeleton key={index} />
+            ))
+            : (posts.length > 0
+              ? posts.map(({ time, views, category, title }) => (
+                <TrendingPostCard
+                  key={title}
+                  time={time}
+                  views={views}
+                  category={category}
+                  title={title}
+                />
               ))
-              : (posts.length > 0
-                ? posts.map(({ time, views, category, title }) => (
-                  <TrendingPostCard
-                    key={title}
-                    time={time}
-                    views={views}
-                    category={category}
-                    title={title}
-                  />
-                ))
-                : <div className="flex items-center justify-center h-96">
-                  <p>Posts not found</p>
-                </div>
-              )
-            }
-          </div>
+              : <div className="flex items-center justify-center h-96">
+                <p>Posts not found</p>
+              </div>
+            )
+          }
         </div>
       </section>
     </div>

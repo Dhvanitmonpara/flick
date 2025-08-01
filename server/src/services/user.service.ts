@@ -51,6 +51,7 @@ class UserService {
     httpOnly: boolean;
     secure: boolean;
     sameSite: "none" | "lax";
+    domain: string;
   } = null;
   accessTokenExpiry = 60 * 1000 * parseInt(env.accessTokenExpiry); // In minutes
   refreshTokenExpiry = 60 * 60 * 1000 * 24 * parseInt(env.refreshTokenExpiry); // In days
@@ -59,6 +60,7 @@ class UserService {
     this.options = {
       httpOnly: true,
       secure: env.environment === "production",
+      domain: env.environment === "production" ? env.accessControlOrigin : "localhost",
       sameSite:
         env.environment === "production"
           ? ("none" as "none")
